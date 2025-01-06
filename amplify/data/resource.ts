@@ -14,18 +14,12 @@ const schema = a.schema({
     .authorization((allow) => [allow.publicApiKey()]),
 
   
-  Post: a.customType({
-    id: a.id().required(),
-    author: a.string().required(),
-    title: a.string(),
-    content: a.string(),
-    url: a.string(),
-    ups: a.integer(),
-    downs: a.integer(),
-    version: a.integer(),
+    DivisionTable: a.customType({
+    Division  : a.string().required(),
+    DivisionName  : a.string(),
   }), 
 
-  
+
 });
 
 export type Schema = ClientSchema<typeof schema>;
