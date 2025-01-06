@@ -13,7 +13,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
-  
+  //step1に追加。  
     DivisionTable: a.customType({
     Division  : a.string().required(),
     DivisionName  : a.string(),
