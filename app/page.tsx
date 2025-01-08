@@ -32,19 +32,13 @@ export default function App() {
   }
 
   //以下は追加部分。
-  async function addPost() {
-    const title = window.prompt("Title");
-    const content = "My Content";
-    const author = "Chris";
-
-    const { data } = await client.mutations.addPost({
-      title,
-      content,
-      author,
-    }, { authMode: "apiKey" });
-
-    console.log(data);
-    // 必要に応じて、todosの状態を更新する処理を追加できます
+  async function addPost () {
+    const {data} = await client.mutations.addPost({
+      title: window.prompt("Title"),
+      content: "My Content",
+      author: "Chris",
+    },{authMode: "apiKey"});
+    console.log(data)
   }
 
   return (
