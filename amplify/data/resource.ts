@@ -25,7 +25,7 @@ const schema = a.schema({
     version: a.integer(),
   }),
 
-    
+  //step3にて追加。
   addPost: a
     .mutation()
     .arguments({
@@ -44,7 +44,6 @@ const schema = a.schema({
       })
     ),
 
-    
   getPost: a
     .query()
     .arguments({ id: a.id().required() })

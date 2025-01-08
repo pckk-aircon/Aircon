@@ -1,3 +1,4 @@
+//step4にて追加。
 import { util } from "@aws-appsync/utils";
 import * as ddb from "@aws-appsync/utils/dynamodb";
 
