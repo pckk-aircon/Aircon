@@ -31,6 +31,7 @@ export default function App() {
     });
   }
 
+  //以下は追加部分。
   async function addPost() {
     const title = window.prompt("Title");
     const content = "My Content";
