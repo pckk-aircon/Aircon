@@ -31,10 +31,26 @@ export default function App() {
     });
   }
 
+  async function addPost() {
+    const title = window.prompt("Title");
+    const content = "My Content";
+    const author = "Chris";
+
+    const { data } = await client.mutations.addPost({
+      title,
+      content,
+      author,
+    }, { authMode: "apiKey" });
+
+    console.log(data);
+    // 必要に応じて、todosの状態を更新する処理を追加できます
+  }
+
   return (
     <main>
       <h1>My todos</h1>
       <button onClick={createTodo}>+ new</button>
+      <button onClick={addPost}>+ new post</button>
       <ul>
         {todos.map((todo) => (
           <li key={todo.id}>{todo.content}</li>
