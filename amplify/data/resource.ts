@@ -13,11 +13,17 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
-  //step1にて追加。  
+  //step1にて追加。
   Post: a.customType({
-    Division : a.string().required(),
-    DivisionName : a.string(),
-  }), 
+    id: a.id().required(),
+    author: a.string().required(),
+    title: a.string(),
+    content: a.string(),
+    url: a.string(),
+    ups: a.integer(),
+    downs: a.integer(),
+    version: a.integer(),
+  }),
 
     
   addPost: a
