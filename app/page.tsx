@@ -31,7 +31,7 @@ export default function App() {
     });
   }
 
-  //以下は追加部分。
+  //step5にて追加。
   async function addPost () {
     const {data} = await client.mutations.addPost({
       title: window.prompt("Title"),
@@ -39,6 +39,13 @@ export default function App() {
       author: "Chris",
     },{authMode: "apiKey"});
     console.log(data)
+  }
+
+  async function getPost() {
+    //const postId = window.prompt("Enter post ID");
+    const {data} = await client.queries.getPost({
+      id: "a12b2004-a0ac-4dbe-9d90-00942a285a09",
+    });
   }
 
   return (
