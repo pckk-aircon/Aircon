@@ -14,6 +14,7 @@ const client = generateClient<Schema>();
 
 export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
@@ -21,8 +22,17 @@ export default function App() {
     });
   }
 
+  //Postを追加。
+  function listPosts() {
+    client.models.Post.observeQuery().subscribe({
+      //next: (data) => setPosts([...data.items]),
+      next: (data: { items: Array<Schema["Post"]["type"]> }) => setPosts([...data.items]),//生成AIの指示により修正
+    });
+  }
+
   useEffect(() => {
     listTodos();
+    listPosts();//Postを追加。
   }, []);
 
   function createTodo() {
@@ -58,6 +68,18 @@ export default function App() {
           <li key={todo.id}>{todo.content}</li>
         ))}
       </ul>
+
+      <h1>My posts</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>
+            <h2>{post.title}</h2>
+            <p>{post.content}</p>
+            <p>Author: {post.author}</p>
+          </li>
+        ))}
+      </ul>
+
       <div>
         🥳 App successfully hosted. Try creating a new todo.
         <br />

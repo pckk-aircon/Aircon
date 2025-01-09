@@ -14,16 +14,19 @@ const schema = a.schema({
     .authorization((allow) => [allow.publicApiKey()]),
 
   //step1にて追加。
-  Post: a.customType({
-    id: a.id().required(),
-    author: a.string().required(),
-    title: a.string(),
-    content: a.string(),
-    url: a.string(),
-    ups: a.integer(),
-    downs: a.integer(),
-    version: a.integer(),
-  }),
+  //Post: a.customType({ 
+  Post: a //生成AIの指示によりPostモデルをmodelとして定義
+    .model({
+      id: a.id().required(),
+      author: a.string().required(),
+      title: a.string(),
+      content: a.string(),
+      url: a.string(),
+      ups: a.integer(),
+      downs: a.integer(),
+      version: a.integer(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]), // Todoと同様に追記してみた。
 
   //step3にて追加。
   addPost: a
