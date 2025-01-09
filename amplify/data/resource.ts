@@ -59,7 +59,6 @@ const schema = a.schema({
       })
     ),
 
-
 });
 
 export type Schema = ClientSchema<typeof schema>;
