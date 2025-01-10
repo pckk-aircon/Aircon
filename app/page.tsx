@@ -72,11 +72,7 @@ export default function App() {
       <h1>My posts</h1>
       <ul>
         {posts.map((post) => (
-          <li key={post.id}>
-            <h2>{post.title}</h2>
-            <p>{post.content}</p>
-            <p>Author: {post.author}</p>
-          </li>
+          <li key={post.id}>{post.content}</li>
         ))}
       </ul>
 
