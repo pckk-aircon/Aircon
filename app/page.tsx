@@ -50,11 +50,11 @@ export default function App() {
     });
   }
 
+  
   return (
     <main>
       <h1>My todos</h1>
       <button onClick={createTodo}>+ new</button>
-      <button onClick={addPost}>+ new post</button>
       <ul>
         {todos.map((todo) => (
           <li key={todo.id}>{todo.content}</li>
@@ -62,6 +62,7 @@ export default function App() {
       </ul>
 
       <h1>My posts</h1>
+      <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
           <li key={post.id}>{post.content}</li>
