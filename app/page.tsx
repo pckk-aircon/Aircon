@@ -23,16 +23,16 @@ export default function App() {
   }
 
   //Postを追加。
-  //function listPosts() {
-    //client.models.Post.observeQuery().subscribe({
+  function listPosts() {
+    client.models.Post.observeQuery().subscribe({
       //next: (data) => setPosts([...data.items]),
-      //next: (data: { items: Array<Schema["Post"]["type"]> }) => setPosts([...data.items]),//生成AIの指示により修正
-    //});
-  //}
+      next: (data: { items: Array<Schema["Post"]["type"]> }) => setPosts([...data.items]),//生成AIの指示により修正
+    });
+  }
 
   useEffect(() => {
     listTodos();
-    //listPosts();//Postを追加。
+    listPosts();//Postを追加。
   }, []);
 
   function createTodo() {
