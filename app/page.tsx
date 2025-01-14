@@ -44,9 +44,6 @@ export default function App() {
     listTodos();
   }, []);
 
-
-
-
   function createTodo() {
     client.models.Todo.create({
       content: window.prompt("Todo content"),
