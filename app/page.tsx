@@ -22,6 +22,13 @@ export default function App() {
   const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
+        const eventDataArray = [
+          event.id,
+          event.title,
+          event.content,
+          event.author,
+        ];
+        console.log(eventDataArray);
         console.log(event)
       }
     }
