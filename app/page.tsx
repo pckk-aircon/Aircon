@@ -28,7 +28,7 @@ export default function App() {
           event.content,
           event.author,
         ];
-        console.log(eventDataArray);
+        //console.log(eventDataArray);
         console.log(event)
       }
     }
@@ -60,7 +60,7 @@ export default function App() {
       content: "My Content",
       author: "Chris",
     },{authMode: "apiKey"});
-    console.log(data)
+    //console.log(data)
   }
 
   async function getPost() {
