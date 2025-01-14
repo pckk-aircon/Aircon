@@ -27,6 +27,8 @@ export default function App() {
     }
   )
 
+  sub.unsubscribe()
+
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
       next: (data) => setTodos([...data.items]),
@@ -35,7 +37,6 @@ export default function App() {
 
   useEffect(() => {
     listTodos();
-
   }, []);
 
 
