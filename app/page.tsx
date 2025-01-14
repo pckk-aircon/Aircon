@@ -29,7 +29,7 @@ export default function App() {
           event.author,
         ];
         //console.log(eventDataArray);
-        console.log(event)
+        //console.log(event)
       }
     }
   )
