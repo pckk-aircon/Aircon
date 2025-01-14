@@ -64,10 +64,11 @@ export default function App() {
   }
 
   async function getPost() {
-    //const postId = window.prompt("Enter post ID");
-    const {data} = await client.queries.getPost({
+    const response = await client.queries.getPost({
       id: "a12b2004-a0ac-4dbe-9d90-00942a285a09",
       });
+    console.log(response)
+    const { data } = response;
     console.log(data)
   }
 
