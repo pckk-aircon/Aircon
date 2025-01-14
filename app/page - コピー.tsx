@@ -27,6 +27,9 @@ export default function App() {
 
   }, []);
 
+
+
+
   function createTodo() {
     client.models.Todo.create({
       content: window.prompt("Todo content"),
@@ -50,7 +53,7 @@ export default function App() {
     });
   }
 
-  
+
   return (
     <main>
       <h1>My todos</h1>

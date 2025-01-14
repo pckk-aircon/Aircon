@@ -16,6 +16,17 @@ export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
+
+  //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
+  const client = generateClient<Schema>()
+  const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+      }
+    }
+  )
+
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
       next: (data) => setTodos([...data.items]),
