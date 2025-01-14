@@ -22,7 +22,14 @@ export default function App() {
   const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
-        console.log(event)
+        const eventDataArray = [
+          event.id,
+          event.title,
+          event.content,
+          event.author,
+        ];
+        //console.log(eventDataArray);
+        //console.log(event)
       }
     }
   )
@@ -53,14 +60,20 @@ export default function App() {
       content: "My Content",
       author: "Chris",
     },{authMode: "apiKey"});
-    console.log(data)
+    //console.log(data)
   }
 
   async function getPost() {
-    //const postId = window.prompt("Enter post ID");
-    const {data} = await client.queries.getPost({
-      id: "a12b2004-a0ac-4dbe-9d90-00942a285a09",
-    });
+    console.log('ok')
+    try{
+      const response = await client.queries.getPost({
+        id: "a12b2004-a0ac-4dbe-9d90-00942a285a09",
+        });
+      console.log(response)
+      const { data } = response;
+    }catch(error){
+      console.error('Error:', error);
+    }
   }
 
 

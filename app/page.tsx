@@ -90,8 +90,8 @@ export default function App() {
       <h1>My posts</h1>
       <button onClick={addPost}>+ new post</button>
       <ul>
-        {posts.map((post) => (
-          <li key={post.id}>{post.content}</li>
+        {posts.map((event) => (
+          <li key={event.id}>{event.content}</li>
         ))}
       </ul>
 
