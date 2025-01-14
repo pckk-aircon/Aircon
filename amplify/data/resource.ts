@@ -55,18 +55,6 @@ const schema = a.schema({
         })
     ),
 
-  getPost: a
-    .query()
-    .arguments({ id: a.id().required() })
-    .returns(a.ref("Post"))
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./getPost.js",
-      })
-    ),
-
 });
 
 

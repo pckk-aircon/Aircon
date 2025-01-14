@@ -63,19 +63,6 @@ export default function App() {
     //console.log(data)
   }
 
-  async function getPost() {
-    console.log('ok')
-    try{
-      const response = await client.queries.getPost({
-        id: "a12b2004-a0ac-4dbe-9d90-00942a285a09",
-        });
-      console.log(response)
-      const { data } = response;
-    }catch(error){
-      console.error('Error:', error);
-    }
-  }
-
 
   return (
     <main>
@@ -90,8 +77,8 @@ export default function App() {
       <h1>My posts</h1>
       <button onClick={addPost}>+ new post</button>
       <ul>
-        {posts.map((event) => (
-          <li key={event.id}>{event.content}</li>
+        {posts.map((post) => (
+          <li key={post.id}>{post.content}</li>
         ))}
       </ul>
 
