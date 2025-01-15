@@ -18,18 +18,13 @@ export default function App() {
 
 
   //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
+
   const client = generateClient<Schema>()
   const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
-        const eventDataArray = [
-          event.id,
-          event.title,
-          event.content,
-          event.author,
-        ];
-        //console.log(eventDataArray);
-        //console.log(event)
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
       }
     }
   )
@@ -43,8 +38,6 @@ export default function App() {
   useEffect(() => {
     listTodos();
   }, []);
-
-
 
 
   function createTodo() {
@@ -64,8 +57,6 @@ export default function App() {
   }
 
 
-
-
   return (
     <main>
       <h1>My todos</h1>
@@ -79,8 +70,8 @@ export default function App() {
       <h1>My posts</h1>
       <button onClick={addPost}>+ new post</button>
       <ul>
-        {posts.map((event) => (
-          <li key={event.id}>{event.content}</li>
+        {posts.map((post) => (
+          <li key={post.id}>{post.title}</li>
         ))}
       </ul>
 
