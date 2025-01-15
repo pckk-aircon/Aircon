@@ -28,8 +28,8 @@ export default function App() {
           event.content,
           event.author,
         ];
-        //console.log(eventDataArray);
-        console.log(event)
+        console.log(eventDataArray);
+        //console.log(event)
       }
     }
   )
