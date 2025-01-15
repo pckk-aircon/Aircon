@@ -24,7 +24,8 @@ export default function App() {
     .subscribe({
       next: event => {
         console.log(event)
-        posts.push(event); 
+        setPosts(prevPosts => [...prevPosts, event]);
+        //posts.push(event); 
         //const eventDataArray = [
           //event.id,
           //event.title,
