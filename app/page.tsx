@@ -25,14 +25,6 @@ export default function App() {
       next: event => {
         console.log(event)
         setPosts(prevPosts => [...prevPosts, event]);
-        //posts.push(event); 
-        //const eventDataArray = [
-          //event.id,
-          //event.title,
-          //event.content,
-          //event.author,
-        //];
-
       }
     }
   )
@@ -46,8 +38,6 @@ export default function App() {
   useEffect(() => {
     listTodos();
   }, []);
-
-
 
 
   function createTodo() {
@@ -67,8 +57,6 @@ export default function App() {
   }
 
 
-
-
   return (
     <main>
       <h1>My todos</h1>
@@ -83,7 +71,7 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={post.id}>{post.content}</li>
+          <li key={post.id}>{post.title}</li>
         ))}
       </ul>
 
