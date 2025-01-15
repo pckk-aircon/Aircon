@@ -19,13 +19,6 @@ export default function App() {
 
   //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
 
-  const dataFields = [
-    'id',
-    'title',
-    'content'
-    // 必要に応じてフィールドを追加してください
-  ]
-
   const client = generateClient<Schema>()
   const sub = client.subscriptions.receivePost()
     .subscribe({
@@ -88,8 +81,8 @@ export default function App() {
       <h1>My posts</h1>
       <button onClick={addPost}>+ new post</button>
       <ul>
-        {posts.map((event) => (
-          <li key={event.id}>{event.content}</li>
+        {posts.map((post) => (
+          <li key={post.id}>{post.content}</li>
         ))}
       </ul>
 
