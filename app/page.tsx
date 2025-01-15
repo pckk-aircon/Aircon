@@ -18,11 +18,20 @@ export default function App() {
 
 
   //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
+
+  const dataFields = [
+    'id',
+    'title',
+    'content'
+    // 必要に応じてフィールドを追加してください
+  ]
+
   const client = generateClient<Schema>()
   const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
         console.log(event)
+        posts.push(event); 
         //const eventDataArray = [
           //event.id,
           //event.title,
