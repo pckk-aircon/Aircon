@@ -64,6 +64,12 @@ export default function App() {
       id: "ebd64f9d-e097-4f4c-b343-95d83f1d690b"
     });
     console.log('get=',data)
+
+    //画面への転送を追記
+    if (data) {
+      setPosts(prevPosts => [...prevPosts, data]);
+    }
+
   }
 
   return (
