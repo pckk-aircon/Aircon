@@ -20,14 +20,7 @@ export default function App() {
   //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
 
   const client = generateClient<Schema>()
-  const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        console.log(event)
-        setPosts(prevPosts => [...prevPosts, event]);
-      }
-    }
-  )
+
 
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
@@ -37,6 +30,19 @@ export default function App() {
 
   useEffect(() => {
     listTodos();
+
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      }
+    }
+  )
+
+    // コンポーネントのアンマウント時にサブスクリプションをクリーンアップ
+    return () => sub.unsubscribe();
+
   }, []);
 
 
