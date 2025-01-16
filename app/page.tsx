@@ -63,7 +63,7 @@ export default function App() {
     const { data, errors } = await client.queries.getPost({
       id: "ebd64f9d-e097-4f4c-b343-95d83f1d690b"
     });
-    console.log(data)
+    console.log('get=',data)
   }
 
   return (
