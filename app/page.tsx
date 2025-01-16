@@ -23,6 +23,14 @@ export default function App() {
     });
   }
 
+
+  //以下は作業中。初期表示ができない。
+  //function listPosts() {
+    //client.models.Post.observeQuery().subscribe({
+      //next: (data: { items: Array<Schema["Post"]["type"]> }) => setPosts([...data.items]),
+    //});
+  //}
+
   useEffect(() => {
     listTodos();
     //listPosts(); // Postのデータも取得
@@ -33,11 +41,12 @@ export default function App() {
       next: event => {
         console.log(event)
         setPosts(prevPosts => [...prevPosts, event]);
+
       },
     });
 
     // クリーンアップ関数を返してサブスクリプションを解除
-    return () => sub.unsubscribe();
+    //return () => sub.unsubscribe();
 
   }, []);
 

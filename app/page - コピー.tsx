@@ -17,18 +17,6 @@ export default function App() {
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
 
-  //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
-
-  const client = generateClient<Schema>()
-  const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        console.log(event)
-        setPosts(prevPosts => [...prevPosts, event]);
-      }
-    }
-  )
-
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
       next: (data) => setTodos([...data.items]),
@@ -37,6 +25,20 @@ export default function App() {
 
   useEffect(() => {
     listTodos();
+    //listPosts(); // Postのデータも取得
+
+    //サブスクリプションの設定をuseEffect()の中に移動。
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      },
+    });
+
+    // クリーンアップ関数を返してサブスクリプションを解除
+    return () => sub.unsubscribe();
+
   }, []);
 
 
