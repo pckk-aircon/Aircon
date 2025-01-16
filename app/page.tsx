@@ -19,7 +19,7 @@ export default function App() {
 
   //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
 
-  const client = generateClient<Schema>()
+  //const client = generateClient<Schema>() //重複を削除
   const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
