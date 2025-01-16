@@ -21,29 +21,31 @@ export default function App() {
 
   const client = generateClient<Schema>()
 
-
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
       next: (data) => setTodos([...data.items]),
     });
   }
 
-  useEffect(() => {
-    listTodos();
-
-    const sub = client.subscriptions.receivePost()
-    .subscribe({
+  function listPosts() {
+    client.subscriptions.receivePost().subscribe({
       next: event => {
         console.log(event)
         setPosts(prevPosts => [...prevPosts, event]);
       }
+    });        
+  }
+
+  useEffect(() => {
+    listTodos();
+    listPosts();
     }
   )
 
     // コンポーネントのアンマウント時にサブスクリプションをクリーンアップ
-    return () => sub.unsubscribe();
+    //return () => sub.unsubscribe();
 
-  }, []);
+  //}, []);
 
 
   function createTodo() {
