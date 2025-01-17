@@ -25,7 +25,7 @@ export default function App() {
 
   useEffect(() => {
     listTodos();
-    //listPosts(); // Postのデータも取得
+    getPost(); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
@@ -58,6 +58,20 @@ export default function App() {
     //console.log(data)
   }
 
+  //getPostを追記
+  async function getPost () {
+    //const { data, errors } = await client.queries.getPost({
+      //id: "ebd64f9d-e097-4f4c-b343-95d83f1d690b"
+    //});
+    const { data, errors } = await client.queries.getPost();
+    console.log('get=',data)
+
+    //画面への転送を追記
+    if (data) {
+      setPosts(prevPosts => [...prevPosts, data]);
+    }
+
+  }
 
   return (
     <main>
