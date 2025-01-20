@@ -41,7 +41,6 @@ export default function App() {
 
   }, []);
 
-
   
   function createTodo() {
     client.models.Todo.create({
