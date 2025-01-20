@@ -17,23 +17,6 @@ export default function App() {
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
 
-  //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
-  const client = generateClient<Schema>()
-  const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        const eventDataArray = [
-          event.id,
-          event.title,
-          event.content,
-          event.author,
-        ];
-        //console.log(eventDataArray);
-        //console.log(event)
-      }
-    }
-  )
-
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
       next: (data) => setTodos([...data.items]),
@@ -42,9 +25,21 @@ export default function App() {
 
   useEffect(() => {
     listTodos();
+    //listPosts(); // Postのデータも取得
+
+    //サブスクリプションの設定をuseEffect()の中に移動。
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      },
+    });
+
+    // クリーンアップ関数を返してサブスクリプションを解除
+    return () => sub.unsubscribe();
+
   }, []);
-
-
 
 
   function createTodo() {
@@ -63,19 +58,6 @@ export default function App() {
     //console.log(data)
   }
 
-  async function getPost() {
-    console.log('ok')
-    try{
-      const response = await client.queries.getPost({
-        id: "a12b2004-a0ac-4dbe-9d90-00942a285a09",
-        });
-      console.log(response)
-      const { data } = response;
-    }catch(error){
-      console.error('Error:', error);
-    }
-  }
-
 
   return (
     <main>
@@ -91,7 +73,7 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={post.id}>{post.content}</li>
+          <li key={post.id}>{post.title}</li>
         ))}
       </ul>
 

@@ -8,6 +8,7 @@ import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
+
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
@@ -15,24 +16,6 @@ const client = generateClient<Schema>();
 export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-
-
-  //チュートリアル「クライアント側でカスタムサブスクリプションを購読する」にしたがって追加。
-  const client = generateClient<Schema>()
-  const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        const eventDataArray = [
-          event.id,
-          event.title,
-          event.content,
-          event.author,
-        ];
-        //console.log(eventDataArray);
-        //console.log(event)
-      }
-    }
-  )
 
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
@@ -42,8 +25,27 @@ export default function App() {
 
   useEffect(() => {
     listTodos();
+    getPost(); // Postの初期表示
+
+    //サブスクリプションの設定をuseEffect()の中に移動。
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      },
+    });
+
+    // クリーンアップ関数を返してサブスクリプションを解除
+    return () => sub.unsubscribe();
+
   }, []);
 
+<<<<<<< HEAD
+=======
+
+  
+>>>>>>> feature
   function createTodo() {
     client.models.Todo.create({
       content: window.prompt("Todo content"),
@@ -60,6 +62,22 @@ export default function App() {
     //console.log(data)
   }
 
+<<<<<<< HEAD
+=======
+  //getPostを追記
+  async function getPost () {
+    const { data, errors } = await client.queries.getPost({
+      id: "ebd64f9d-e097-4f4c-b343-95d83f1d690b"
+    });
+    console.log('get=',data)
+
+    //画面への転送を追記
+    if (data) {
+      setPosts(prevPosts => [...prevPosts, data]);
+    }
+
+  }
+>>>>>>> feature
 
   return (
     <main>
@@ -75,7 +93,11 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
+<<<<<<< HEAD
           <li key={post.id}>{post.content}</li>
+=======
+          <li key={post.id}>{post.title}</li>
+>>>>>>> feature
         ))}
       </ul>
 
