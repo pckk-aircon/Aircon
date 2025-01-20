@@ -10,7 +10,6 @@ export const backend = defineBackend({
   data,
 });
 
-
 //step2にて追加。
 const externalDataSourcesStack = backend.createStack("MyExternalDataSources");
 
