@@ -23,7 +23,7 @@ const schema = a.schema({
   addPost: a
     .mutation()
     .arguments({
-      Device: a.id(),
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
       Controller: a.string()
     })
     .returns(a.ref("Post"))
@@ -49,7 +49,7 @@ const schema = a.schema({
   getPost: a
     .query()
     .arguments({
-      Device: a.id().required(),
+      Device: a.id(),//re
       Controller: a.string() // Controllerを追加
     })
     .returns(a.ref("Post"))
