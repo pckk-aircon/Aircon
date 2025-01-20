@@ -41,7 +41,7 @@ export default function App() {
 
   }, []);
 
-  
+
   function createTodo() {
     client.models.Todo.create({
       content: window.prompt("Todo content"),
@@ -59,6 +59,7 @@ export default function App() {
 
   //getPostを追記
   async function getPost () {
+
     const { data, errors } = await client.queries.getPost({
       Device: null , // 空文字列をデフォルト値として設定
       Controller: "Mutsu01",

@@ -2,7 +2,20 @@
 import * as ddb from "@aws-appsync/utils/dynamodb";
 
 export function request(ctx) {
-  return ddb.get({ key: { Device: ctx.args.Device } });
-}
+  //const { ControllerDevice } = ctx.args;
 
-export const response = (ctx) => ctx.result;
+  const ctx = {
+    args: {
+      ControllerDevice: "Mutsu01"
+    }
+  };
+
+  return {
+    operation: 'Query',
+    query: {
+      expression: 'Controller = :controller',
+      expressionValues: ddb.toMapValues({ ':controller': ControllerDevice })
+    },
+    index: 'Controller-DeviceType-index'
+  };
+}
