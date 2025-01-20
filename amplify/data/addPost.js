@@ -4,7 +4,8 @@ import * as ddb from "@aws-appsync/utils/dynamodb";
 
 export function request(ctx) {
   const item = { ...ctx.arguments, ups: 1, downs: 0, version: 1 };
-  const key = { id: ctx.args.id ?? util.autoId() };
+  //const key = { Device: ctx.args.id ?? util.autoId() };
+  const key = { Device: ctx.args.Device ?? util.autoId() };
   return ddb.put({ key, item });
 }
 
