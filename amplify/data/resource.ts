@@ -48,7 +48,10 @@ const schema = a.schema({
 
   getPost: a
     .query()
-    .arguments({ Device: a.id().required() })
+    .arguments({
+      Device: a.id().required(),
+      Controller: a.string() // Controllerを追加
+    })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(

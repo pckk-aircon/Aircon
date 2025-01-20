@@ -61,7 +61,8 @@ export default function App() {
   //getPostを追記
   async function getPost () {
     const { data, errors } = await client.queries.getPost({
-      Device: "AC233FA3DA16"
+      Device: "", // 空文字列をデフォルト値として設定
+      Controller: "Mutsu01",
     });
     console.log('get=',data)
 
