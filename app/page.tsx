@@ -26,18 +26,20 @@ export default function App() {
   useEffect(() => {
     listTodos();
     getPost(); // Postの初期表示
-  })
 
-  //getPostを追記
-  async function getPost () {
-    const { data, errors } = await client.queries.getPost({
-      Device: "dev-001",
-      DeviceDatetime: "2024",
+    //サブスクリプションの設定をuseEffect()の中に移動。
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      },
     });
-    console.log('get=',data)
-  }
 
+    // クリーンアップ関数を返してサブスクリプションを解除
+    return () => sub.unsubscribe();
 
+  }, []);
 
 
   
@@ -47,7 +49,29 @@ export default function App() {
     });
   }
 
+  //step5にて追加。
+  async function addPost () {
+    const {data} = await client.mutations.addPost({
+      title: window.prompt("Title"),
+      content: "My Content",
+      author: "Chris",
+    },{authMode: "apiKey"});
+    //console.log(data)
+  }
 
+  //getPostを追記
+  async function getPost () {
+    const { data, errors } = await client.queries.getPost({
+      id: "ebd64f9d-e097-4f4c-b343-95d83f1d690b"
+    });
+    console.log('get=',data)
+
+    //画面への転送を追記
+    if (data) {
+      setPosts(prevPosts => [...prevPosts, data]);
+    }
+
+  }
 
   return (
     <main>
@@ -60,13 +84,12 @@ export default function App() {
       </ul>
 
       <h1>My posts</h1>
+      <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={`${post.Device}-${post.DeviceDatetime}`}> {post.content} </li>
+          <li key={post.id}>{post.title}</li>
         ))}
       </ul>
-
-
 
       <div>
         🥳 App successfully hosted. Try creating a new todo.

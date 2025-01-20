@@ -15,38 +15,49 @@ const schema = a.schema({
 
   //step1にて追加。
   Post: a.customType({
-    Device: a.string().required(),
-    DeviceDatetime: a.string().required(),
+    id: a.id().required(),
+    author: a.string().required(),
     title: a.string(),
     content: a.string(),
+    url: a.string(),
+    ups: a.integer(),
+    downs: a.integer(),
+    version: a.integer(),
   }),
 
   //step3にて追加。
-  //addPost: a
-    //.mutation()
-    //.arguments({
-      //Device: a.string().required(),
-      //DeviceDatetime: a.string().required(),
-      //title: a.string(),
-      //content: a.string(),
-      //url: a.string(),
-    //})
-    //.returns(a.ref("Post"))
-    //.authorization(allow => [allow.publicApiKey()])
-    //.handler(
-      //a.handler.custom({
-        //dataSource: "ExternalPostTableDataSource",
-        //entry: "./addPost.js",
-      //})
-    //),
+  addPost: a
+    .mutation()
+    .arguments({
+      id: a.id(),
+      author: a.string().required(),
+      title: a.string(),
+      content: a.string(),
+      url: a.string(),
+    })
+    .returns(a.ref("Post"))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./addPost.js",
+      })
+    ),
 
+  //カスタムサブスクリプションを実装
+  receivePost: a
+    .subscription()
+    .for(a.ref("addPost")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivePost.js'
+        })
+    ),
 
   getPost: a
     .query()
-    .arguments({
-      Device: a.string().required(),
-      DeviceDatetime: a.string().required(),
-    })
+    .arguments({ id: a.id().required() })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
@@ -55,8 +66,6 @@ const schema = a.schema({
         entry: "./getPost.js",
       })
     ),
-
-
 
 });
 
