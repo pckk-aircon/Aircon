@@ -15,25 +15,16 @@ const schema = a.schema({
 
   //step1にて追加。
   Post: a.customType({
-    id: a.id().required(),
-    author: a.string().required(),
-    title: a.string(),
-    content: a.string(),
-    url: a.string(),
-    ups: a.integer(),
-    downs: a.integer(),
-    version: a.integer(),
+    Device: a.id().required(),
+    Controller: a.string()
   }),
 
   //step3にて追加。
   addPost: a
     .mutation()
     .arguments({
-      id: a.id(),
-      author: a.string().required(),
-      title: a.string(),
-      content: a.string(),
-      url: a.string(),
+      Device: a.id(),
+      Controller: a.string()
     })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
@@ -57,7 +48,7 @@ const schema = a.schema({
 
   getPost: a
     .query()
-    .arguments({ id: a.id().required() })
+    .arguments({ Device: a.id().required() })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
