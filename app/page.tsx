@@ -41,11 +41,8 @@ export default function App() {
 
   }, []);
 
-<<<<<<< HEAD
-=======
 
   
->>>>>>> feature
   function createTodo() {
     client.models.Todo.create({
       content: window.prompt("Todo content"),
@@ -62,8 +59,6 @@ export default function App() {
     //console.log(data)
   }
 
-<<<<<<< HEAD
-=======
   //getPostを追記
   async function getPost () {
     const { data, errors } = await client.queries.getPost({
@@ -77,7 +72,6 @@ export default function App() {
     }
 
   }
->>>>>>> feature
 
   return (
     <main>
@@ -93,11 +87,7 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-<<<<<<< HEAD
-          <li key={post.id}>{post.content}</li>
-=======
           <li key={post.id}>{post.title}</li>
->>>>>>> feature
         ))}
       </ul>
 
