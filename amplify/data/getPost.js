@@ -9,13 +9,14 @@ import * as ddb from "@aws-appsync/utils/dynamodb";
 
 import { util } from '@aws-appsync/utils';
 
-export function request(ctx) {
+export function getPost(ctx) {
   const controller = 'Mutsu01';
   return {
     operation: 'Query',
     query: {
-      expression: 'Controller = :controllerId',
-      expressionValues: util.dynamodb.toMapValues({ ':controllerId': controller })
+      expression: '#ctrl = :controller',
+      expressionNames: { '#ctrl': 'Controller' },
+      expressionValues: util.dynamodb.toMapValues({ ':controller': controller })
     },
     index: 'Controller-index'
   };
