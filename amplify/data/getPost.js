@@ -14,7 +14,7 @@ export function request(ctx) {
   return {
     operation: 'Query',
     query: {
-      expression: 'controller = :controller',
+      expression: 'Controller = :controller',
       expressionValues: util.dynamodb.toMapValues({ ':controller': controller })
     },
     index: 'controller-index'
