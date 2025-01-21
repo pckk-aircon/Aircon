@@ -1,25 +1,20 @@
 //step4にて追加。
-import * as ddb from "@aws-appsync/utils/dynamodb";
-
-export function request(ctx) {
-  return ddb.get({ key: { id: ctx.args.id } });
-}
-
-export const response = (ctx) => ctx.result;
+//import * as ddb from "@aws-appsync/utils/dynamodb";
 
 //export function request(ctx) {
-  //const ctx = {
-    //args: {
-      //ControllerDevice: "Mutsu01"
-    //}
-  //};
-
-  //return {
-    //operation: 'Query',
-    //query: {
-      //expression: 'Controller = :controller',
-      //expressionValues: ddb.toMapValues({ ':controller': ControllerDevice })
-    //},
-    //index: 'Controller-DeviceType-index'
-  //};
+  //return ddb.get({ key: { id: ctx.args.id } });
 //}
+
+import { util } from '@aws-appsync/utils';
+
+export function request(ctx) {
+  const controller = 'Mutsu01';
+  return {
+    operation: 'Query',
+    query: {
+      expression: 'controller = :controller',
+      expressionValues: util.dynamodb.toMapValues({ ':controller': controller })
+    },
+    index: 'controller-index'
+  };
+}
