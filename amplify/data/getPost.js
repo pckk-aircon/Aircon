@@ -9,6 +9,7 @@ import * as ddb from "@aws-appsync/utils/dynamodb";
 
 import { util } from '@aws-appsync/utils';
 
+
 export function request(ctx) {
   return {
     operation: 'Query',
