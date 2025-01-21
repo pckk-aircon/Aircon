@@ -1,5 +1,5 @@
 //step4にて追加。
-import * as ddb from "@aws-appsync/utils/dynamodb";
+//import * as ddb from "@aws-appsync/utils/dynamodb";
 
 //export function request(ctx) {
 
