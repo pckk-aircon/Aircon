@@ -5,7 +5,9 @@ export function request(ctx) {
   return ddb.get({ key: { id: ctx.args.id } });
 }
 
-export const response = (ctx) => ctx.result;
+
+
+//export const response = (ctx) => ctx.result;
 
 //export function request(ctx) {
   //const ctx = {
@@ -20,6 +22,6 @@ export const response = (ctx) => ctx.result;
       //expression: 'Controller = :controller',
       //expressionValues: ddb.toMapValues({ ':controller': ControllerDevice })
     //},
-    //index: 'Controller-DeviceType-index'
+    //index: 'Controller-index'
   //};
 //}
