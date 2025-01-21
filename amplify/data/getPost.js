@@ -9,8 +9,8 @@
 
 import { util } from '@aws-appsync/utils';
 
-export function request(ctx) {
-  const { owner } = ctx.args;
+export function request() {
+  //const { owner } = ctx.args;
   return {
     operation: 'Query',
     query: {
