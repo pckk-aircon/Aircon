@@ -10,7 +10,6 @@ import * as ddb from "@aws-appsync/utils/dynamodb";
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-  const { Controller } = ctx.args;
   return {
     operation: 'Query',
     query: {
