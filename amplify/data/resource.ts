@@ -49,7 +49,7 @@ const schema = a.schema({
   getPost: a
     .query()
     .arguments({
-      Device: a.id(),//re
+      Device: a.id().required(),//re
       Controller: a.string() // Controllerを追加
     })
     .returns(a.ref("Post"))
