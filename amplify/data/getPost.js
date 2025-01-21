@@ -17,6 +17,6 @@ export function request(ctx) {
       expression: 'Controller = :controller',
       expressionValues: util.dynamodb.toMapValues({ ':controller': controller })
     },
-    index: 'controller-index'
+    index: 'Controller-index'
   };
 }
