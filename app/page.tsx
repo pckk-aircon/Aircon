@@ -65,6 +65,7 @@ export default function App() {
     });
     console.log('get=',data)
 
+
     //画面への転送を追記
     if (data) {
       setPosts(prevPosts => [...prevPosts, data]);
