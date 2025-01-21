@@ -14,9 +14,8 @@ export function getPost(ctx) {
   return {
     operation: 'Query',
     query: {
-      expression: '#ctrl = :controller',
-      expressionNames: { '#ctrl': 'Controller' },
-      expressionValues: util.dynamodb.toMapValues({ ':controller': controller })
+      expression: 'Controller = :controllerId',
+      expressionValues: util.dynamodb.toMapValues({ ':controllerId': controller })
     },
     index: 'Controller-index'
   };
