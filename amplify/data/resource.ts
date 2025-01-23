@@ -61,6 +61,20 @@ const schema = a.schema({
       })
     ),
 
+    listDeviceByController: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+    })
+    .returns(a.ref("Post").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./listDeviceByController.js",
+      })
+    ),
+
 });
 
 
