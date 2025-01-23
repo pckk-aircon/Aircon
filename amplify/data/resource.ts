@@ -61,19 +61,22 @@ const schema = a.schema({
       })
     ),
 
-  //listDeviceByController: a
-    //.query()
-    //.arguments({
-      //Controller: a.string(),
-    //})
-    //.returns(a.ref("Post").array())
-    //.authorization(allow => [allow.publicApiKey()])
-    //.handler(
-      //a.handler.custom({
-        //dataSource: "ExternalPostTableDataSource",
-        //entry: "./listDeviceByController.js",
-      //})
-    //),
+  //2025.1.23サポート様より提示。
+  //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
+  //配列をレスポンスするスキーマを追加
+  listDeviceByController: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+    })
+    .returns(a.ref("Post").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./listDeviceByController.js",
+      })
+    ),
 
 });
 
