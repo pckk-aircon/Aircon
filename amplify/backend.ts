@@ -21,7 +21,43 @@ const externalTable = aws_dynamodb.Table.fromTableName(
   "DeviceTable"
 );
 
-backend.data.addDynamoDbDataSource(
+//backend.data.addDynamoDbDataSource(
+  //"ExternalPostTableDataSource",
+  //externalTable
+//);
+
+
+
+
+import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
+
+//中略
+
+const externalTableDS = backend.data.addDynamoDbDataSource(
+//backend.data.addDynamoDbDataSource(
   "ExternalPostTableDataSource",
   externalTable
 );
+
+const dsRole = Role.fromRoleArn(
+  externalDataSourcesStack,
+  "DatasourceRole",
+  externalTableDS.ds.serviceRoleArn ?? ''
+)
+
+const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
+  policyName: "amplify-permissions-external-table",
+  statements: [
+    new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: [
+        "dynamodb:Query"
+      ],
+      resources: [
+        `${externalTable.tableArn}/index/*`
+      ],
+    })
+  ],
+});
+
+dsRole.attachInlinePolicy(datasourceIamPolicy);
