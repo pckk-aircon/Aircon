@@ -4,12 +4,11 @@ import { data } from './data/resource.js';
 
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
-//defineBackend({ //step2にて修正。
+
 export const backend = defineBackend({
   auth,
   data,
 });
-
 
 
 //step2にて追加。
@@ -28,10 +27,12 @@ const externalTable = aws_dynamodb.Table.fromTableName(
 
 
 
+//2025.1.23サポート様より提示。
+//addDynamoDbDataSource() により作成されるデータソースには新規のIAMロールが作成される一方、
+// 作成されたIAMロールには許可されるresourcesにindexが含まれていないため、
+//データソースのIAMロールにindexへのQueryアクションの権限を追加。
 
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
-
-//中略
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
 //backend.data.addDynamoDbDataSource(
