@@ -75,6 +75,7 @@ const schema = a.schema({
       a.handler.custom({
         dataSource: "ExternalPostTableDataSource",
         entry: "./listDeviceByController.js",
+        //entry: "./getPost.js",
       })
     ),
 

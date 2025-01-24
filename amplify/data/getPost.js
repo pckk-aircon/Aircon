@@ -6,20 +6,3 @@ export function request(ctx) {
 }
 
 export const response = (ctx) => ctx.result;
-
-//export function request(ctx) {
-  //const ctx = {
-    //args: {
-      //ControllerDevice: "Mutsu01"
-    //}
-  //};
-
-  //return {
-    //operation: 'Query',
-    //query: {
-      //expression: 'Controller = :controller',
-      //expressionValues: ddb.toMapValues({ ':controller': ControllerDevice })
-    //},
-    //index: 'Controller-DeviceType-index'
-  //};
-//}
