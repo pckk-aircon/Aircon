@@ -94,7 +94,7 @@ export default function App() {
         //setLists(prevLists => [...prevLists, data]);
         const filteredData = data.filter((item): item is DeviceData => item !== null && item !== undefined);
         setLists(prevLists => [...prevLists, ...filteredData]); // listsの状態を更新
-        //setLists(data); //Listの更新
+        setLists(data); //Listの更新
       }
     }
 
