@@ -27,6 +27,7 @@ export default function App() {
   useEffect(() => {
     listTodos();
     getPost(); // Postの初期表示
+    listDeviceByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
