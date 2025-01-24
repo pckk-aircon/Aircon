@@ -62,8 +62,7 @@ export default function App() {
   async function getPost () {
 
     const { data, errors } = await client.queries.getPost({
-      Device: "AC233FA3DA16" , // 空文字列をデフォルト値として設定
-      //Controller: "Mutsu01",
+      Device: "AC233FA3DA16" ,//任意のDeviceをキーに1件抽出。
     });
     console.log('get=',data)
 
@@ -74,12 +73,10 @@ export default function App() {
   }
 
   //listDeviceByControllerを追記。
-    //getPostを追記
     async function listDeviceByController () {
 
       const { data, errors } = await client.queries.listDeviceByController({
-        //Device: "AC233FA3DA16" , // 空文字列をデフォルト値として設定
-        Controller: "Mutsu01",
+        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
       });
       console.log('get=',data)
   
@@ -101,6 +98,13 @@ export default function App() {
 
       <h1>My posts</h1>
       <button onClick={addPost}>+ new post</button>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.Device}>{post.Controller}</li>
+        ))}
+      </ul>
+
+      <h1>My lists</h1>
       <ul>
         {posts.map((post) => (
           <li key={post.Device}>{post.Controller}</li>
