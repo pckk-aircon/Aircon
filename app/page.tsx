@@ -71,8 +71,23 @@ export default function App() {
     if (data) {
       setPosts(prevPosts => [...prevPosts, data]);
     }
-
   }
+
+  //listDeviceByControllerを追記。
+    //getPostを追記
+    async function listDeviceByController () {
+
+      const { data, errors } = await client.queries.listDeviceByController({
+        //Device: "AC233FA3DA16" , // 空文字列をデフォルト値として設定
+        Controller: "Mutsu01",
+      });
+      console.log('get=',data)
+  
+      //画面への転送を追記
+      if (data) {
+        //setPosts(prevPosts => [...prevPosts, data]);
+      }
+    }
 
   return (
     <main>
