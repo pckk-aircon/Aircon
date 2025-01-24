@@ -87,7 +87,7 @@ export default function App() {
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
       });
-      console.log('list=',data)
+      //console.log('list=',data)
   
       //画面への転送を追記
       if (data) {
@@ -120,7 +120,7 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={post.Device}>{post.Controller}</li>
+          <li key={post.Controller}>{post.Controller}</li>
         ))}
       </ul>
 
