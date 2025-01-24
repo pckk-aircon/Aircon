@@ -14,10 +14,15 @@ Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
+type ShallowPretty<T> = {
+  [K in keyof T]: T[K];
+} & {};
+
 export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-
+  //const [lists, setLists] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
+  const [lists, setLists] = useState<ShallowPretty<{ Device: string; Controller?: string | null }>[]>([]);
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
       next: (data) => setTodos([...data.items]),
@@ -83,7 +88,8 @@ export default function App() {
   
       //画面への転送を追記
       if (data) {
-        //setPosts(prevPosts => [...prevPosts, data]);
+        //setLists(prevLists => [...prevLists, data]);
+        //setLists(data); //Listの更新
       }
     }
 
