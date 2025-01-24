@@ -94,7 +94,7 @@ export default function App() {
         //setLists(prevLists => [...prevLists, data]);
         const filteredData = data.filter((item): item is DeviceData => item !== null && item !== undefined);
         setLists(prevLists => [...prevLists, ...filteredData]); // listsの状態を更新
-        setLists(data); //Listの更新
+        //setLists(data); //Listの更新
       }
     }
 
@@ -120,7 +120,7 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={post.Controller}>{post.Controller}</li>
+          <li key={post.Device}>{post.Controller}</li>
         ))}
       </ul>
 
