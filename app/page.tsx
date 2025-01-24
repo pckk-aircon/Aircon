@@ -106,6 +106,7 @@ export default function App() {
       </ul>
 
       <h1>My lists</h1>
+      <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
           <li key={post.Device}>{post.Controller}</li>
