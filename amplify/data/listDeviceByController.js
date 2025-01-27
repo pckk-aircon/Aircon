@@ -13,6 +13,7 @@ export function request(ctx) {
       expression: 'Controller = :controller',
       expressionValues: util.dynamodb.toMapValues({ ':controller': ctx.args.Controller })
     },
+    //index: 'Controller-index'
     index: 'Controller-index'
   };
 }
