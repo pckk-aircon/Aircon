@@ -106,10 +106,15 @@ export default function App() {
   //listIotByControllerを追記。
   async function listIotDataByController () {
 
+    console.log('listIotDataByController called'); // 関数が呼び出されたことを確認
+
     const { data, errors } = await client.queries.listIotDataByController({
       Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
       //DeviceDatetime: "2024-06-30 23:28:28+09:00",
     });
+    
+    console.log('Query result:', data); // クエリ結果を確認
+    console.log('Query errors:', errors); // エラーがある場合に確認
     console.log('Iot=',data)
   }
 
