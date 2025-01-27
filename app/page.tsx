@@ -99,7 +99,6 @@ export default function App() {
         const filteredData = data.filter((device) => device !== null && device !== undefined);
         setDevices(prevDevices => [...prevDevices, ...filteredData]);
        
-
       }
     }
 
