@@ -88,6 +88,7 @@ const schema = a.schema({
 
   //新しいテーブル（IoTData）の設定を追加
   listIotDataByController: a
+
     .query()
     .arguments({
       Controller: a.string(),
@@ -101,6 +102,7 @@ const schema = a.schema({
         entry: "./listIotDataByController.js",
       })
     ),
+
 
 });
 
