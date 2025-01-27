@@ -37,6 +37,7 @@ export default function App() {
     listTodos();
     getPost(); // Postの初期表示
     listDeviceByController (); // Postの初期表示
+    listIotByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
