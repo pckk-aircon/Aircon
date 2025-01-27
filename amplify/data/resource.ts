@@ -19,6 +19,13 @@ const schema = a.schema({
     Controller: a.string()
   }),
 
+  //新しいテーブル（IoTData）の設定を追加
+  IotData: a.customType({
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+    Controller: a.string()
+  }),
+
   //step3にて追加。
   addPost: a
     .mutation()
