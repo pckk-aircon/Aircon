@@ -66,6 +66,7 @@ const iotDataRole = Role.fromRoleArn(
   iotDataTableDS.ds.serviceRoleArn ?? ''
 );
 
+
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
   policyName: "amplify-permissions-external-table",
   statements: [
@@ -82,3 +83,4 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
 });
 
 dsRole.attachInlinePolicy(datasourceIamPolicy);
+iotDataRole.attachInlinePolicy(datasourceIamPolicy);//新しいテーブル（IoTData）の設定を追加
