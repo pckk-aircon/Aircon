@@ -37,6 +37,7 @@ export default function App() {
     listTodos();
     getPost(); // Postの初期表示
     listDeviceByController (); // Postの初期表示
+    listIotDataByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
@@ -102,13 +103,14 @@ export default function App() {
     }
 
   //listIotByControllerを追記。
-  //async function listIotByController () {
+  async function listIotDataByController () {
 
-    //const { data, errors } = await client.queries.listIotDataByController({
-      //Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-    //});
-    //console.log('list=',data)
-  //}
+    const { data, errors } = await client.queries.listIotDataByController({
+      Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+      DeviceDatetime: "2024-06-30 23:28:28+09:00",
+    });
+    console.log('Iot=',data)
+  }
 
   return (
     <main>
