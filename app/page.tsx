@@ -24,7 +24,7 @@ export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-
+  const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
 
 
   function listTodos() {
@@ -101,6 +101,15 @@ export default function App() {
        
       }
     }
+
+  //listIotByControllerを追記。
+  //async function listIotByController () {
+
+    //const { data, errors } = await client.queries.listIotDataByController({
+      //Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+    //});
+    //console.log('list=',data)
+  //}
 
   return (
     <main>
