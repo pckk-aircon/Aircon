@@ -17,7 +17,9 @@ const externalDataSourcesStack = backend.createStack("MyExternalDataSources");
 const externalTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyExternalPostTable",
-  "IotData"
+  //"IotData"
+  "DivisionTable"
+
 );
 
 //新しいテーブル（IoTData）の設定を追加
