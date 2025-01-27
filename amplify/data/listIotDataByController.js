@@ -14,7 +14,8 @@ export function request(ctx) {
             //})
             expressionValues: util.dynamodb.toMapValues({ ':controller': ctx.args.Controller })
         },
-        index: 'Controller-DeviceDatetime-index'
+        //index: 'Controller-DeviceDatetime-index'
+        index: 'Controller-index'
     };
 }
 
