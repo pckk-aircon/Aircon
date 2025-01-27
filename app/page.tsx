@@ -108,9 +108,9 @@ export default function App() {
 
     const { data, errors } = await client.queries.listIotDataByController({
       Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-      DeviceDatetime: "2024-07-01",
+      DeviceDatetime: "2024-07-01 14:42:07+09:00",
     });
-    console.log('list=',data)
+    console.log('Iot=',data)
   }
 
   return (
