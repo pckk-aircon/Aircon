@@ -26,7 +26,6 @@ const externalTable = aws_dynamodb.Table.fromTableName(
 //);
 
 
-
 //2025.1.23サポート様より提示。
 //addDynamoDbDataSource() により作成されるデータソースには新規のIAMロールが作成される一方、
 // 作成されたIAMロールには許可されるresourcesにindexが含まれていないため、
