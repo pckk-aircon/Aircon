@@ -79,6 +79,21 @@ const schema = a.schema({
       })
     ),
 
+  //新しいテーブル（IoTData）の設定を追加
+  listIotDataByController: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+    })
+    .returns(a.ref("IotData").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "IotDataTableDataSource",
+        entry: "./listIotDataByController.js",
+      })
+    ),
+
 });
 
 
