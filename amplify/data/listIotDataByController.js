@@ -1,10 +1,13 @@
 //新しいテーブル（IoTData）の設定を追加
+console.log('listIotDataByController called'); // ファイルが呼び出されたことを確認
 
 import { util } from '@aws-appsync/utils';
 
-console.log('Iot-handrar called'); // 関数が呼び出されたことを確認
-
 export function request(ctx) {
+
+    console.log('Request context:', ctx); // Check the context object
+    //console.log('Controller:', ctx.args.Controller); // Check the Controller argument
+    console.log('DeviceDatetime:', ctx.args.DeviceDatetime); // Check the DeviceDatetime
 
     return {
 
