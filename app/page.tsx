@@ -88,6 +88,7 @@ export default function App() {
 
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+
       });
       console.log('list=',data)
   
@@ -106,7 +107,7 @@ export default function App() {
   //listIotByControllerを追記。
   async function listIotDataByController () {
 
-    console.log('listIotDataByController called'); // 関数が呼び出されたことを確認
+    //console.log('listIotDataByController called'); // 関数が呼び出されたことを確認
 
     const { data, errors } = await client.queries.listIotDataByController({
       Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
