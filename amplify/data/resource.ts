@@ -76,15 +76,15 @@ const schema = a.schema({
     .query()
     .arguments({
       Controller: a.string(),
-      DeviceType: a.string(),//DeviceTypeを追加。
+      //DeviceType: a.string(),//DeviceTypeを追加。
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
         dataSource: "ExternalPostTableDataSource",
-        //entry: "./listDeviceByController.js",
-        entry: "./listDeviceByControllerType.js",
+        entry: "./listDeviceByController.js",
+        //entry: "./listDeviceByControllerType.js",
       })
     ),
 
