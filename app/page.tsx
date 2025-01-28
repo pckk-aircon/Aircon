@@ -16,15 +16,18 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  interface Device {
-    Device: string;
-    Controller?: string;
-  }
+
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
+
+  interface Device {
+    Device: string;
+    Controller: string;
+    DeviceType: string;
+  }
 
 
   function listTodos() {
@@ -88,7 +91,7 @@ export default function App() {
 
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-
+        //DeviceType: "Temp",
       });
       console.log('list=',data)
   
