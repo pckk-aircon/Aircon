@@ -2,8 +2,10 @@
 
 import { util } from '@aws-appsync/utils';
 
+console.log('Iot-handrar called'); // 関数が呼び出されたことを確認
+
 export function request(ctx) {
-    console.log('Iot-handrar called'); // 関数が呼び出されたことを確認
+
     return {
 
         operation: 'Query',
