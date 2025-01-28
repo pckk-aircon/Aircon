@@ -91,7 +91,7 @@ export default function App() {
 
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        //DeviceType: "Temp",
+        DeviceType: "Temp",
       });
       console.log('Devicelist=',data)
   

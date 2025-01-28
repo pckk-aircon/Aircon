@@ -76,7 +76,7 @@ const schema = a.schema({
     .query()
     .arguments({
       Controller: a.string(),
-      //DeviceType: a.string(),//DeviceTypeを追加。
+      DeviceType: a.string(),//DeviceTypeを追加。
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
