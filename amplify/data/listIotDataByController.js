@@ -21,8 +21,8 @@ export function request(ctx) {
             })
 
         },
-        //index: 'Controller-DeviceDatetime-index'
-        index: 'Controller-index'
+        index: 'Controller-DeviceDatetime-index'
+
     };
 }
 
