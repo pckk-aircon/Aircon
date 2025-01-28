@@ -118,9 +118,14 @@ export default function App() {
         DeviceDatetime: "2024-06-30T23:28:28",
       });
     
-      console.log('Query 結果', data); // クエリ結果を確認
-      console.log('Query エラー', errors); // エラーがある場合に確認
-      console.log('Iot=',data)
+      if (errors) {
+        console.error('Query エラー', errors); // エラーがある場合にログ出力
+      } else if (data) {
+        console.log('Query 結果', data); // クエリ結果をログ出力
+      } else {
+        console.log('データ無し'); // データが返されなかった場合
+      }
+
     } catch (error) {
       console.error('予期しないエラー', error); // 予期しないエラーをログ出力
     }
