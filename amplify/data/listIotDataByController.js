@@ -5,10 +5,6 @@ import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
 
-    console.log('Request context:', ctx); // Check the context object
-    //console.log('Controller:', ctx.args.Controller); // Check the Controller argument
-    console.log('DeviceDatetime:', ctx.args.DeviceDatetime); // Check the DeviceDatetime
-
     return {
 
         operation: 'Query',
@@ -29,4 +25,9 @@ export function request(ctx) {
     };
 }
 
-export const response = (ctx) => ctx.result.items;
+//export const response = (ctx) => ctx.result.items;
+export const response = (ctx) => {
+    console.log('Response context:', ctx); // レスポンスコンテキストを確認
+    console.log('Result items:', ctx.result.items); // 結果のアイテムを確認
+    return ctx.result.items;
+};
