@@ -18,8 +18,8 @@ export function request(ctx) {
         ':deviceType': ctx.args.DeviceType
       })
     },
-    index: 'Controller-index'
-    //index: Controller-DeviceType-index
+    //index: 'Controller-index'
+    index: Controller-DeviceType-index
   };
 }
 export const response = (ctx) => ctx.result.items;
