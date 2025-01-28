@@ -91,9 +91,9 @@ export default function App() {
 
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        //DeviceType: "Temp",
+        DeviceType: "Temp",
       });
-      console.log('list=',data)
+      console.log('Devicelist=',data)
   
       //画面への転送を追記
       if (data) {
