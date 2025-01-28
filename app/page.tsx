@@ -39,7 +39,7 @@ export default function App() {
   useEffect(() => {
     listTodos();
     getPost(); // Postの初期表示
-    //listDeviceByController (); // Postの初期表示
+    listDeviceByController (); // Postの初期表示
     listIotDataByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
@@ -91,7 +91,7 @@ export default function App() {
 
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        DeviceType: "Temp",
+        //DeviceType: "Temp",
       });
       console.log('Devicelist=',data)
   
