@@ -2,10 +2,9 @@
 //listDeviceByController.jsを改変。
 //グローバルセカンダリインデックスが連結の場合
 
-
-
-
 import { util } from '@aws-appsync/utils';
+
+console.log('ControllerType-handrar called'); // 関数が呼び出されたことを確認
 
 export function request(ctx) {
     return {

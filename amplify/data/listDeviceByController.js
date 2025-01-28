@@ -6,8 +6,6 @@
 
 import { util } from '@aws-appsync/utils';
 
-console.log('ControllerType-handrar called'); // 関数が呼び出されたことを確認
-
 export function request(ctx) {
     return {
     operation: 'Query',
