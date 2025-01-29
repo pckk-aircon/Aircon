@@ -16,7 +16,6 @@ const client = generateClient<Schema>();
 export default function App() {
 
 
-
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
