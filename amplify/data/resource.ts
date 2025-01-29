@@ -77,7 +77,8 @@ const schema = a.schema({
     .query()
     .arguments({
       Controller: a.string(),
-      DeviceType: a.string(),//DeviceTypeを追加。
+      DeviceDatetime: a.string(), // DeviceDatetimeを追加
+      //DeviceType: a.string(),//DeviceTypeを追加。
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
@@ -87,6 +88,7 @@ const schema = a.schema({
         //entry: "./listDeviceByController.js",
         //entry: "./listDeviceByControllerType.js",
         entry: "./listIotDataByController.js",
+
       })
     ),
 
