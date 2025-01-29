@@ -89,8 +89,10 @@ export default function App() {
     async function listDeviceByController () {
 
       const { data, errors } = await client.queries.listDeviceByController({
+        //Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+        //DeviceType: "Aircon",
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        DeviceType: "Aircon",
+        DeviceDatetime: "2024-06-30 23:28:28+09:00",
       });
       console.log('Devicelist=',data)
   

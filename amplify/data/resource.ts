@@ -16,8 +16,9 @@ const schema = a.schema({
   //step1にて追加。
   Post: a.customType({
     Device: a.id().required(),
+    DeviceDatetime: a.string(),
     Controller: a.string(),
-    DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
+    //DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
   }),
 
   //新しいテーブル（IoTData）の設定を追加
@@ -76,7 +77,8 @@ const schema = a.schema({
     .query()
     .arguments({
       Controller: a.string(),
-      DeviceType: a.string(),//DeviceTypeを追加。
+      DeviceDatetime: a.string(), // DeviceDatetimeを追加
+      //DeviceType: a.string(),//DeviceTypeを追加。
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
@@ -84,7 +86,9 @@ const schema = a.schema({
       a.handler.custom({
         dataSource: "ExternalPostTableDataSource",
         //entry: "./listDeviceByController.js",
-        entry: "./listDeviceByControllerType.js",
+        //entry: "./listDeviceByControllerType.js",
+        entry: "./listIotDataByController.js",
+
       })
     ),
 
