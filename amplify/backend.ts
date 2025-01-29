@@ -20,7 +20,8 @@ const IotDataSourcesStack = backend.createStack("MyIotDataTable");
 const externalTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyExternalPostTable",
-  "DeviceTable"
+  //"DeviceTable"
+  "IotData"
 
 );
 
