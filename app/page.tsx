@@ -16,15 +16,18 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  interface Device {
-    Device: string;
-    Controller?: string;
-  }
+
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
+
+  interface Device {
+    Device: string;
+    Controller: string;
+    DeviceType: string;
+  }
 
 
   function listTodos() {
@@ -87,8 +90,9 @@ export default function App() {
 
       const { data, errors } = await client.queries.listDeviceByController({
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+        DeviceType: "Aircon",
       });
-      console.log('list=',data)
+      console.log('Devicelist=',data)
   
       //画面への転送を追記
       if (data) {
@@ -105,11 +109,25 @@ export default function App() {
   //listIotByControllerを追記。
   async function listIotDataByController () {
 
-    const { data, errors } = await client.queries.listIotDataByController({
-      Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-      DeviceDatetime: "2024-06-30 23:28:28+09:00",
-    });
-    console.log('Iot=',data)
+
+    console.log('page called'); // 関数が呼び出されたことを確認
+    try {  
+      const { data, errors } = await client.queries.listIotDataByController({
+        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+        DeviceDatetime: "2024-06-30 23:28:28+09:00",
+      });
+    
+      if (errors) {
+        console.error('Query エラー', errors); // エラーがある場合にログ出力
+      } else if (data) {
+        console.log('Query 結果', data); // クエリ結果をログ出力
+      } else {
+        console.log('データ無し'); // データが返されなかった場合
+      }
+
+    } catch (error) {
+      console.error('予期しないエラー', error); // 予期しないエラーをログ出力
+    }
   }
 
   return (

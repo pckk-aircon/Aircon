@@ -14,15 +14,18 @@ export const backend = defineBackend({
 //step2にて追加。
 const externalDataSourcesStack = backend.createStack("MyExternalDataSources");
 
+const IotDataSourcesStack = backend.createStack("MyIotDataTable");
+
 const externalTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyExternalPostTable",
   "DeviceTable"
+
 );
 
 //新しいテーブル（IoTData）の設定を追加
 const iotDataTable = aws_dynamodb.Table.fromTableName(
-  externalDataSourcesStack,
+  IotDataSourcesStack,
   "MyIotDataTable",
   "IotData"
 );
