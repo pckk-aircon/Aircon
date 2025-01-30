@@ -42,12 +42,13 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
   externalTable
 );
 
-//これを追記するとエラーになる？。
+//これを追記するとエラーになる。なぜか。
 const DeviceDS = backend.data.addDynamoDbDataSource(//★
   "IotPostTableDataSource",//★
   //externalTable
   DeviceTable//★
 );//★
+
 
 //Role。
 const dsRole = Role.fromRoleArn(
