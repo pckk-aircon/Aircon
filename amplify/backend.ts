@@ -5,10 +5,13 @@ import { data } from './data/resource.js';
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
 
+
 export const backend = defineBackend({
   auth,
   data,
 });
+
+
 
 
 //step2にて追加。
@@ -36,7 +39,7 @@ const iotTable = aws_dynamodb.Table.fromTableName(
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
-  "ExternalPostTableDataSource",
+  "IoTDataSource",
   externalTable
 );
 
@@ -46,7 +49,6 @@ const dsRole = Role.fromRoleArn(
   "DatasourceRole",
   externalTableDS.ds.serviceRoleArn ?? ''
 )
-
 
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
   policyName: "amplify-permissions-external-table",
