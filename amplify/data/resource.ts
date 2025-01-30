@@ -15,25 +15,25 @@ const schema = a.schema({
 
   //step1にて追加。
   Post: a.customType({
-    id: a.id().required(),
-    author: a.string().required(),
-    title: a.string(),
-    content: a.string(),
-    url: a.string(),
-    ups: a.integer(),
-    downs: a.integer(),
-    version: a.integer(),
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+    Controller: a.string(),
+    //DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
+  }),
+
+  //新しいテーブル（IoTData）の設定を追加
+  IotData: a.customType({
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+    Controller: a.string(),
   }),
 
   //step3にて追加。
   addPost: a
     .mutation()
     .arguments({
-      id: a.id(),
-      author: a.string().required(),
-      title: a.string(),
-      content: a.string(),
-      url: a.string(),
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string()
     })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
@@ -57,7 +57,10 @@ const schema = a.schema({
 
   getPost: a
     .query()
-    .arguments({ id: a.id().required() })
+    .arguments({
+      Device: a.id().required(),
+      //Controller: a.string() // Controllerを追加
+    })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
@@ -67,9 +70,47 @@ const schema = a.schema({
       })
     ),
 
+  //2025.1.23サポート様より提示。
+  //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
+  //配列をレスポンスするスキーマを追加
+  listIot: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+      DeviceDatetime: a.string(), // DeviceDatetimeを追加
+      //DeviceType: a.string(),//DeviceTypeを追加。
+    })
+    .returns(a.ref("Post").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        //entry: "./listDeviceByController.js",
+        //entry: "./listDeviceByControllerType.js",
+        entry: "./listIot.js",
+
+      })
+    ),
+
+  //新しいテーブル（IoTData）の設定を追加
+  listIotDataByController: a
+
+    .query()
+    .arguments({
+      Controller: a.string(),
+      DeviceDatetime: a.string(), // DeviceDatetimeを追加
+    })
+    .returns(a.ref("IotData").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "IotPostTableDataSource",
+        entry: "./listIot.js",
+      })
+    ),
+
+
 });
-
-
 
 export type Schema = ClientSchema<typeof schema>;
 
