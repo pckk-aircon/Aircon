@@ -27,7 +27,7 @@ const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
   "MyIotPostTable",
   //"IotData"
-  "DeviceData"//★
+  "DeviceTable"//★テーブル名
 );
 
 //2025.1.23サポート様より提示。
@@ -39,15 +39,15 @@ import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
   "ExternalPostTableDataSource",
-  externalTable
+  externalTable//こちらは変数名。次のRoleと関連か。
 );
 
-//これを追記するとエラーになる？。
+//これを追記するとエラーになる。なぜか。
 const DeviceDS = backend.data.addDynamoDbDataSource(//★
   "IotPostTableDataSource",//★
-  //externalTable
   DeviceTable//★
 );//★
+
 
 //Role。
 const dsRole = Role.fromRoleArn(
@@ -55,7 +55,6 @@ const dsRole = Role.fromRoleArn(
   "DatasourceRole",
   externalTableDS.ds.serviceRoleArn ?? ''
 )
-
 
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
   policyName: "amplify-permissions-external-table",
