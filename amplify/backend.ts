@@ -40,6 +40,7 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
   externalTable
 );
 
+
 //ここからは共通。
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
