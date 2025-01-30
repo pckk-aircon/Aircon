@@ -31,6 +31,7 @@ const iotTable = aws_dynamodb.Table.fromTableName(
   "IotData"
 );
 
+
 //backend.data.addDynamoDbDataSource(
   //"ExternalPostTableDataSource",
   //externalTable
