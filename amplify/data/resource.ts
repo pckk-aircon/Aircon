@@ -103,8 +103,8 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        //dataSource: "IotPostTableDataSource",
-        dataSource: "ExternalPostTableDataSource",//★      
+        dataSource: "IotPostTableDataSource",
+        //dataSource: "ExternalPostTableDataSource",//★      
         entry: "./listIot.js",
       })
     ),
