@@ -20,7 +20,7 @@ const externalTable = aws_dynamodb.Table.fromTableName(
   "IotData"
 );
 
-//新しいテーブル（IoTData）の設定を追加
+//DeviceTableの設定を追加
 //const iotTable = aws_dynamodb.Table.fromTableName(
 const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
@@ -42,11 +42,11 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
   externalTable//こちらは変数名。次のRoleと関連か。
 );
 
-//これを追記するとエラーになる。なぜか。
-const DeviceDS = backend.data.addDynamoDbDataSource(//★
-  "DeviceDataSource",//★
-  DeviceTable//★
-);//★
+//DeviceTableの設定を追加
+const DeviceDS = backend.data.addDynamoDbDataSource(
+  "DeviceDataSource",//データソース名
+  DeviceTable//テーブル名
+);
 
 //dsRoleは、externalTableDSのIAMロールを取得おり、同じロールをDeviceTableにも適用可能。
 const dsRole = Role.fromRoleArn(
