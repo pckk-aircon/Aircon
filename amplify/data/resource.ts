@@ -39,7 +39,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
+        dataSource: "IoTDataSource",
         entry: "./addPost.js",
       })
     ),
@@ -65,7 +65,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
+        dataSource: "IoTDataSource",
         entry: "./getPost.js",
       })
     ),
