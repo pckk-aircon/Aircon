@@ -5,13 +5,10 @@ import { data } from './data/resource.js';
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
 
-
 export const backend = defineBackend({
   auth,
   data,
 });
-
-
 
 
 //step2にて追加。
@@ -25,10 +22,12 @@ const externalTable = aws_dynamodb.Table.fromTableName(
 );
 
 //新しいテーブル（IoTData）の設定を追加
-const iotTable = aws_dynamodb.Table.fromTableName(
+//const iotTable = aws_dynamodb.Table.fromTableName(
+const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
   "MyIotPostTable",
-  "IotData"
+  //"IotData"
+  "DeviceData"//★
 );
 
 //2025.1.23サポート様より提示。
@@ -39,11 +38,17 @@ const iotTable = aws_dynamodb.Table.fromTableName(
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
-  "IoTDataSource",
+  "ExternalPostTableDataSource",
   externalTable
 );
 
-//ここからは共通。
+//これを追記するとエラーになる。
+//const DeviceDS = backend.data.addDynamoDbDataSource(
+  //"IotPostTableDataSource",
+  //externalTable
+//);
+
+//Role。
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
   "DatasourceRole",
