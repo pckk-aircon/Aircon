@@ -44,11 +44,11 @@ const iotTable = aws_dynamodb.Table.fromTableName(
 
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
-const externalTableDS = backend.data.addDynamoDbDataSource(
+//const externalTableDS = backend.data.addDynamoDbDataSource(
 //backend.data.addDynamoDbDataSource(
-  "ExternalPostTableDataSource",
-  externalTable
-);
+  //"ExternalPostTableDataSource",
+  //externalTable
+//);
 
 //新しいテーブル（IoTData）の設定を追加
 const iotDataTableDS = backend.data.addDynamoDbDataSource(
@@ -57,18 +57,18 @@ const iotDataTableDS = backend.data.addDynamoDbDataSource(
 );
 
 //ここからは共通。
-const dsRole = Role.fromRoleArn(
-  externalDataSourcesStack,
-  "DatasourceRole",
-  externalTableDS.ds.serviceRoleArn ?? ''
-)
+//const dsRole = Role.fromRoleArn(
+  //externalDataSourcesStack,
+  //"DatasourceRole",
+  //externalTableDS.ds.serviceRoleArn ?? ''
+//)
 
 //新しいテーブル（IoTData）の設定を追加
-//const iotDataRole = Role.fromRoleArn(
-  //externalDataSourcesStack,
-  //"IotDataRole",
-  //iotDataTableDS.ds.serviceRoleArn ?? ''
-//);
+const iotDataRole = Role.fromRoleArn(
+  externalDataSourcesStack,
+  "IotDataRole",
+  iotDataTableDS.ds.serviceRoleArn ?? ''
+);
 
 
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
@@ -86,5 +86,5 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
   ],
 });
 
-dsRole.attachInlinePolicy(datasourceIamPolicy);
-//iotDataRole.attachInlinePolicy(datasourceIamPolicy);//新しいテーブル（IoTData）の設定を追加
+//dsRole.attachInlinePolicy(datasourceIamPolicy);
+iotDataRole.attachInlinePolicy(datasourceIamPolicy);//新しいテーブル（IoTData）の設定を追加
