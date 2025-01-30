@@ -4,11 +4,15 @@ import { data } from './data/resource.js';
 
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
+import { AppSync } from 'aws-sdk';
+const appSync = new AppSync();
+
 
 export const backend = defineBackend({
   auth,
   data,
 });
+
 
 
 //step2にて追加。
