@@ -40,7 +40,12 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
   externalTable
 );
 
-//ここからは共通。
+const DeviceDS = backend.data.addDynamoDbDataSource(
+  "IotPostTableDataSource",
+  externalTable
+);
+
+//Role。
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
   "DatasourceRole",
