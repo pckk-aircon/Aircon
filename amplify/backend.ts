@@ -37,7 +37,8 @@ const DeviceTable = aws_dynamodb.Table.fromTableName(//★
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
-  "ExternalPostTableDataSource",
+  //"ExternalPostTableDataSource",
+  "IotPostTableDataSource",//★★
   externalTable//こちらは変数名。次のRoleと関連か。
 );
 
