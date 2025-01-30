@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.5.5",
+    "@aws-cdk/aws-appsync": "^1.203.0",
     "@babel/plugin-transform-class-properties": "^7.25.9",
     "@babel/plugin-transform-object-rest-spread": "^7.25.9",
     "aws-amplify": "^6.6.6",

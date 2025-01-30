@@ -4,14 +4,13 @@ import { data } from './data/resource.js';
 
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
-import { AppSync } from 'aws-sdk';
-const appSync = new AppSync();
 
 
 export const backend = defineBackend({
   auth,
   data,
 });
+
 
 
 
@@ -40,7 +39,7 @@ const iotTable = aws_dynamodb.Table.fromTableName(
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
-  "ExternalPostTableDataSource",
+  "IoTDataSource",
   externalTable
 );
 
