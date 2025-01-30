@@ -48,8 +48,7 @@ const DeviceDS = backend.data.addDynamoDbDataSource(//★
   DeviceTable//★
 );//★
 
-
-//Role。
+//dsRoleは、externalTableDSのIAMロールを取得おり、同じロールをDeviceTableにも適用可能。
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
   "DatasourceRole",
@@ -65,7 +64,8 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
         "dynamodb:Query"
       ],
       resources: [
-        `${externalTable.tableArn}/index/*`
+        `${externalTable.tableArn}/index/*`,
+        `${DeviceTable.tableArn}/index/*`, // DeviceTableのリソースを追加
       ],
     })
   ],
