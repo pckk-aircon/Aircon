@@ -51,10 +51,10 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
 );
 
 //新しいテーブル（IoTData）の設定を追加
-const iotDataTableDS = backend.data.addDynamoDbDataSource(
-  "IotPostTableDataSource",
-  iotTable
-);
+//const iotDataTableDS = backend.data.addDynamoDbDataSource(
+  //"IotPostTableDataSource",
+ ///iotTable
+//);
 
 //ここからは共通。
 const dsRole = Role.fromRoleArn(
