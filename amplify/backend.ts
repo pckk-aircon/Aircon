@@ -18,17 +18,16 @@ const externalTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyExternalPostTable",
   "IotData"
-
 );
 
 //新しいテーブル（IoTData）の設定を追加
 //const iotTable = aws_dynamodb.Table.fromTableName(
-const DeviceTable = aws_dynamodb.Table.fromTableName(//★
-  externalDataSourcesStack,
-  "MyIotPostTable",
+//const DeviceTable = aws_dynamodb.Table.fromTableName(//★
+  //externalDataSourcesStack,
+//"MyIotPostTable",
   //"IotData"
-  "DeviceTable"//★テーブル名
-);
+  //DeviceTable"//★テーブル名
+//);
 
 //2025.1.23サポート様より提示。
 //addDynamoDbDataSource() により作成されるデータソースには新規のIAMロールが作成される一方、
@@ -43,10 +42,10 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
 );
 
 //これを追記するとエラーになる。なぜか。
-const DeviceDS = backend.data.addDynamoDbDataSource(//★
-  "IotPostTableDataSource",//★
-  DeviceTable//★
-);//★
+//const DeviceDS = backend.data.addDynamoDbDataSource(//★
+  //"IotPostTableDataSource",//★
+  //DeviceTable//★
+//);//★
 
 
 //Role。
