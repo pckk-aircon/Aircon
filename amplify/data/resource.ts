@@ -21,6 +21,7 @@ const schema = a.schema({
     //DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
   }),
 
+  
   //新しいテーブル（IoTData）の設定を追加
   IotData: a.customType({
     Device: a.id().required(),
