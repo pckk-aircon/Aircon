@@ -11,32 +11,22 @@ export const backend = defineBackend({
 });
 
 
-
 //step2にて追加。
 const externalDataSourcesStack = backend.createStack("MyExternalDataSources");
 
 const externalTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyExternalPostTable",
-  //"DeviceTable"
   "IotData"
 
 );
 
 //新しいテーブル（IoTData）の設定を追加
-//const IotDataSourcesStack = backend.createStack("MyIotDataSources");
 const iotTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyIotPostTable",
   "IotData"
 );
-
-
-//backend.data.addDynamoDbDataSource(
-  //"ExternalPostTableDataSource",
-  //externalTable
-//);
-
 
 //2025.1.23サポート様より提示。
 //addDynamoDbDataSource() により作成されるデータソースには新規のIAMロールが作成される一方、
@@ -45,32 +35,17 @@ const iotTable = aws_dynamodb.Table.fromTableName(
 
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
-//const externalTableDS = backend.data.addDynamoDbDataSource(
-//backend.data.addDynamoDbDataSource(
-  //"ExternalPostTableDataSource",
-  //externalTable
-//);
-
-//新しいテーブル（IoTData）の設定を追加
-//const iotDataTableDS = backend.data.addDynamoDbDataSource(
-  //"IotPostTableDataSource",
- ///iotTable
-//);
-
-//ここからは共通。
-//const dsRole = Role.fromRoleArn(
-  //externalDataSourcesStack,
-  //"DatasourceRole",
-  //externalTableDS.ds.serviceRoleArn ?? ''
-//)
-
-//新しいテーブル（IoTData）の設定を追加
-const iotDataRole = Role.fromRoleArn(
-  externalDataSourcesStack,
-  "IotDataRole",
-  iotDataTableDS.ds.serviceRoleArn ?? ''
+const externalTableDS = backend.data.addDynamoDbDataSource(
+  "ExternalPostTableDataSource",
+  externalTable
 );
 
+//ここからは共通。
+const dsRole = Role.fromRoleArn(
+  externalDataSourcesStack,
+  "DatasourceRole",
+  externalTableDS.ds.serviceRoleArn ?? ''
+)
 
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
   policyName: "amplify-permissions-external-table",
@@ -87,5 +62,4 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
   ],
 });
 
-//dsRole.attachInlinePolicy(datasourceIamPolicy);
-iotDataRole.attachInlinePolicy(datasourceIamPolicy);//新しいテーブル（IoTData）の設定を追加
+dsRole.attachInlinePolicy(datasourceIamPolicy);
