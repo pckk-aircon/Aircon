@@ -21,7 +21,7 @@ const schema = a.schema({
     //DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
   }),
 
-  
+
   //新しいテーブル（IoTData）の設定を追加
   IotData: a.customType({
     Device: a.id().required(),
@@ -85,7 +85,8 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
+        //dataSource: "ExternalPostTableDataSource",
+        dataSource: "IotPostTableDataSource",
         //entry: "./listDeviceByController.js",
         //entry: "./listDeviceByControllerType.js",
         entry: "./listIot.js",
