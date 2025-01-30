@@ -56,6 +56,7 @@ const dsRole = Role.fromRoleArn(
   externalTableDS.ds.serviceRoleArn ?? ''
 )
 
+
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
   policyName: "amplify-permissions-external-table",
   statements: [
