@@ -22,10 +22,12 @@ const externalTable = aws_dynamodb.Table.fromTableName(
 );
 
 //新しいテーブル（IoTData）の設定を追加
-const iotTable = aws_dynamodb.Table.fromTableName(
+//const iotTable = aws_dynamodb.Table.fromTableName(
+const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
   "MyIotPostTable",
-  "IotData"
+  //"IotData"
+  "DeviceData"//★
 );
 
 //2025.1.23サポート様より提示。
