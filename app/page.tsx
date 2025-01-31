@@ -90,7 +90,9 @@ export default function App() {
         //Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
         //DeviceType: "Aircon",
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        DeviceDatetime: "2024-06-30 23:28:28+09:00",
+        //DeviceDatetime: "2024-06-30 23:28:28+09:00",
+        startDatetime: "2024-06-30 00:00:00+09:00",//★
+        endDatetime: "2024-06-30 23:59:59+09:00",//★
       });
       console.log('listIot=',data)
   
