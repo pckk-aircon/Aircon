@@ -20,7 +20,11 @@ const externalTable = aws_dynamodb.Table.fromTableName(
   "IotData"
 );
 
+<<<<<<< HEAD
 //新しいテーブル（IoTData）の設定を追加
+=======
+//DeviceTableの設定を追加
+>>>>>>> feature-t
 //const iotTable = aws_dynamodb.Table.fromTableName(
 const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
@@ -38,6 +42,7 @@ import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
   "ExternalPostTableDataSource",
+<<<<<<< HEAD
   externalTable//こちらは変数名。次のRoleと関連か。
 );
 
@@ -49,6 +54,19 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
 
 
 //Role。
+=======
+  //"IotPostTableDataSource",//★★
+  externalTable//こちらは変数名。次のRoleと関連か。
+);
+
+//DeviceTableの設定を追加
+const DeviceDS = backend.data.addDynamoDbDataSource(
+  "DeviceDataSource",//データソース名
+  DeviceTable//テーブル名
+);
+
+//dsRoleは、externalTableDSのIAMロールを取得おり、同じロールをDeviceTableにも適用可能。
+>>>>>>> feature-t
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
   "DatasourceRole",
@@ -64,7 +82,8 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
         "dynamodb:Query"
       ],
       resources: [
-        `${externalTable.tableArn}/index/*`
+        `${externalTable.tableArn}/index/*`,
+        `${DeviceTable.tableArn}/index/*`, // DeviceTableのリソースを追加
       ],
     })
   ],
