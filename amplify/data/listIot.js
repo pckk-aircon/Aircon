@@ -4,9 +4,9 @@ export function request(ctx) {
   try {
     // クエリパラメータをログに出力
     console.log('Query Parameters:', {
-        Controller: ctx.args.Controller,
-        StartDatetime: ctx.args.StartDatetime,
-        EndDatetime: ctx.args.EndDatetime
+      Controller: ctx.args.Controller,
+      StartDatetime: ctx.args.StartDatetime,
+      EndDatetime: ctx.args.EndDatetime
     });
 
     return {
@@ -31,9 +31,8 @@ export function request(ctx) {
 
   } catch (error) {
     console.error('Error in request function:', error);
-  throw error;
+    throw error;
   }
-
 
 }
 
