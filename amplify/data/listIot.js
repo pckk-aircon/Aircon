@@ -2,6 +2,13 @@ import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
 
+    // クエリパラメータをログに出力
+    console.log('Query Parameters:', {
+        Controller: ctx.args.Controller,
+        StartDatetime: ctx.args.StartDatetime,
+        EndDatetime: ctx.args.EndDatetime
+    });
+    
     return {
         operation: 'Query',
         query: {
@@ -18,7 +25,6 @@ export function request(ctx) {
                 ':startDatetime': ctx.args.StartDatetime,
                 ':endDatetime': ctx.args.EndDatetime
             })
-
         },
         index: 'Controller-DeviceDatetime-index'
     };
