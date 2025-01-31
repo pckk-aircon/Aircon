@@ -1,7 +1,7 @@
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-  try {
+  //try {
     // クエリパラメータをログに出力
     console.log('Query Parameters:', {
       Controller: ctx.args.Controller,
@@ -29,10 +29,11 @@ export function request(ctx) {
         index: 'Controller-DeviceDatetime-index'
     };
 
-  } catch (error) {
-    console.error('Error in request function:', error);
-    throw error;
-  }
+  //} catch (error) {
+    //console.error('Error in request function:', error);
+    //throw error;
+  //}
+
 
 }
 
