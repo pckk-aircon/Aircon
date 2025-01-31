@@ -83,29 +83,17 @@ export default function App() {
     }
   }
 
-  //listDeviceByControllerを追記。
+  //Iotのデータを抽出。
     async function listIot () {
 
       const { data, errors } = await client.queries.listIot({
-        //Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        //DeviceType: "Aircon",
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
         //DeviceDatetime: "2024-06-30 23:28:28+09:00",
-        startDatetime: "2024-06-30 00:00:00+09:00",//★
-        endDatetime: "2024-06-30 23:59:59+09:00",//★
+        startDatetime: "2024-06-30 00:00:00+09:00",//★範囲検索
+        endDatetime: "2024-06-30 23:59:59+09:00",//★範囲検索
       });
       console.log('listIot=',data)
   
-      //画面への転送を追記
-      //if (data) {
-        //setPosts(prevPosts => [...prevPosts, data]);
-        //setDevices(prevDevices => [...prevDevices, ...data]);
-        //prevDevices の型と setDevices の型の不一致を解消するためdataをフィルタリングして
-        // null または undefined を除外する。また、dataがShallowPretty型の配列であると仮定。
-        //const filteredData = data.filter((device) => device !== null && device !== undefined);
-        //setDevices(prevDevices => [...prevDevices, ...filteredData]);
-       
-      //}
     }
 
   //listIotByControllerを追記。
