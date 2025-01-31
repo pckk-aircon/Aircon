@@ -1,14 +1,14 @@
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-
+  try {
     // クエリパラメータをログに出力
     console.log('Query Parameters:', {
         Controller: ctx.args.Controller,
         StartDatetime: ctx.args.StartDatetime,
         EndDatetime: ctx.args.EndDatetime
     });
-    
+
     return {
         operation: 'Query',
         query: {
@@ -28,6 +28,13 @@ export function request(ctx) {
         },
         index: 'Controller-DeviceDatetime-index'
     };
+
+  } catch (error) {
+    console.error('Error in request function:', error);
+  throw error;
+  }
+
+
 }
 
 export const response = (ctx) => ctx.result.items;
