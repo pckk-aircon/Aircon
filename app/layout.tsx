@@ -22,7 +22,9 @@
 //}
 
 
-import React, { ReactNode } from 'react';
+"use client";
+
+import React, { useEffect, useState, ReactNode } from 'react';
 import Sidebar from './Sidebar';
 
 interface LayoutProps {
@@ -30,13 +32,27 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // クライアントサイドでのみレンダリングする要素を避ける
+  }
+
   return (
-    <div style={{ display: 'flex' }}>
-      <Sidebar />
-      <main style={{ flex: 1, padding: '20px' }}>
-        {children}
-      </main>
-    </div>
+    <html lang="en">
+      <body>
+        <div style={{ display: 'flex' }}>
+          <Sidebar />
+          <main style={{ flex: 1, padding: '20px' }}>
+            {children}
+          </main>
+        </div>
+      </body>
+    </html>
   );
 };
 
