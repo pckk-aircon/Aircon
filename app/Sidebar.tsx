@@ -6,10 +6,9 @@ const Sidebar = () => {
     <div style={{ width: '200px', background: '#f4f4f4', padding: '20px' }}>
       <h2>Sidebar</h2>
       <ul>
-
         <li><Link href="/">Home</Link></li>
         <li><Link href="/ListIot">ListIot</Link></li>
-
+        <li><Link href="/TableDevice">TableDevice</Link></li>
       </ul>
     </div>
   );
