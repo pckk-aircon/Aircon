@@ -1,16 +1,16 @@
-import React from 'react';
+"use client";
 import Link from 'next/link';
+//import styles from './sidebar.module.css'; // サイドバー用のCSSモジュールを作成してください。
 
-const Sidebar = () => {
+export default function Sidebar() {
   return (
-    <div style={{ width: '200px', background: '#f4f4f4', padding: '20px' }}>
-      <h2>Sidebar</h2>
+    <div>
+      <h2>メニュー</h2>
       <ul>
-        <li><Link href="/">Home</Link></li>
+        <li><Link href="/">トップ画面</Link></li>
         <li><Link href="/ListIot">ListIot</Link></li>
+        <li><Link href="/TableDevice">TableDeviceページ</Link></li>
       </ul>
     </div>
   );
-};
-
-export default Sidebar;
+}
