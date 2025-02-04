@@ -8,6 +8,8 @@ import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
+import Layout from '../layout';
+
 import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";//フォーマット変換。インストール要。
@@ -156,7 +158,7 @@ export default function App() {
 
 
   return (
-    <main>
+    <Layout>
       <h1>My todos</h1>
       <button onClick={createTodo}>+ new</button>
       <ul>
@@ -200,6 +202,6 @@ export default function App() {
           Review next steps of this tutorial.
         </a>
       </div>
-    </main>
+    </Layout>
   );
 }
