@@ -8,6 +8,10 @@ import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
+import DatePicker from "react-datepicker";//インストール要。
+import "react-datepicker/dist/react-datepicker.css";
+import { format } from "date-fns";//フォーマット変換。インストール要。
+
 
 Amplify.configure(outputs);
 
@@ -20,6 +24,14 @@ export default function App() {
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   //const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
+
+
+  // StartDatetimeとEndDatetimeを選択するためのステート。useState()の中は初期値。
+  //const [startDate, setStartDatetime] = useState("2025-01-31");
+  //const [endDate, setEndDatetime] = useState("2025-01-31");
+  const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
+  const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
+
 
   interface Device {
     Device: string;
@@ -52,7 +64,8 @@ export default function App() {
     // クリーンアップ関数を返してサブスクリプションを解除
     return () => sub.unsubscribe();
 
-  }, []);
+  //}, []);
+  }, [startDate, endDate]);//★startDatetimeとendDatetimeが変更されたときにlistIot関数を呼び出す
 
   function createTodo() {
     client.models.Todo.create({
@@ -83,27 +96,28 @@ export default function App() {
     }
   }
 
-  //listDeviceByControllerを追記。
+  //Iotのデータを抽出。
     async function listIot () {
 
+      //const startDatetime = `${startDate} 00:00:00+09:00`;
+      //const endDatetime = `${endDate} 23:59:59+09:00`;
+      const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
+      const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
+
+      console.log("StartDatetime=", startDate); // デバッグ用のログ出力
+      console.log("EndDatetime=", endDate); // デバッグ用のログ出力
+
       const { data, errors } = await client.queries.listIot({
-        //Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        //DeviceType: "Aircon",
+
         Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        DeviceDatetime: "2024-06-30 23:28:28+09:00",
+        //DeviceDatetime: "2024-06-30 23:28:28+09:00",
+        //StartDatetime: "2025-01-31 00:00:00+09:00",//範囲検索
+        StartDatetime: startDatetime,//★修正
+        //EndDatetime: "2025-01-31 23:59:59+09:00",//範囲検索
+        EndDatetime: endDatetime,//★修正
       });
       console.log('listIot=',data)
   
-      //画面への転送を追記
-      //if (data) {
-        //setPosts(prevPosts => [...prevPosts, data]);
-        //setDevices(prevDevices => [...prevDevices, ...data]);
-        //prevDevices の型と setDevices の型の不一致を解消するためdataをフィルタリングして
-        // null または undefined を除外する。また、dataがShallowPretty型の配列であると仮定。
-        //const filteredData = data.filter((device) => device !== null && device !== undefined);
-        //setDevices(prevDevices => [...prevDevices, ...filteredData]);
-       
-      //}
     }
 
   //listIotByControllerを追記。
@@ -130,6 +144,17 @@ export default function App() {
       console.error('予期しないエラー', error); // 予期しないエラーをログ出力
     }
   }
+
+
+  // リストボックスコンポーネントを追加
+  //function handleStartDatetimeChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    //setStartDatetime(event.target.value);
+  //}
+
+  //function handleEndDatetimeChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    //setEndDatetime(event.target.value);
+  //}
+
 
   return (
     <main>
@@ -158,6 +183,16 @@ export default function App() {
       </ul>
 
 
+      <div>
+        <label>
+          StartDatetime:
+          <DatePicker selected={startDate} onChange={(date: Date | null) => setStartDatetime(date ? date : new Date())} />
+        </label>
+        <label>
+          EndDatetime:
+          <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
+        </label>
+      </div>
 
       <div>
         🥳 App successfully hosted. Try creating a new todo.
