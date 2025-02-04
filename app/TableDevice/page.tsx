@@ -1,15 +1,14 @@
-<<<<<<< HEAD
-import Layout from './layout';
-=======
 "use client";
 
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import "./../app/app.css";
+//import "./../app/app.css";
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
+
+import Layout from '../layout';
 
 import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
@@ -27,7 +26,6 @@ export default function App() {
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   //const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
-
 
   // StartDatetimeとEndDatetimeを選択するためのステート。useState()の中は初期値。
   //const [startDate, setStartDatetime] = useState("2025-01-31");
@@ -158,17 +156,9 @@ export default function App() {
     //setEndDatetime(event.target.value);
   //}
 
->>>>>>> main
 
-const HomePage = () => {
   return (
-<<<<<<< HEAD
     <Layout>
-      <h1>Home Page</h1>
-      <p>Welcome to the home page!</p>
-    </Layout>
-=======
-    <main>
       <h1>My todos</h1>
       <button onClick={createTodo}>+ new</button>
       <ul>
@@ -193,6 +183,7 @@ const HomePage = () => {
         ))}
       </ul>
 
+
       <div>
         <label>
           StartDatetime:
@@ -211,9 +202,6 @@ const HomePage = () => {
           Review next steps of this tutorial.
         </a>
       </div>
-    </main>
->>>>>>> main
+    </Layout>
   );
-};
-
-export default HomePage;
+}

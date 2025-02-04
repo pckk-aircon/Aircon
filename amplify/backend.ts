@@ -4,7 +4,6 @@ import { data } from './data/resource.js';
 
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
-
 export const backend = defineBackend({
   auth,
   data,
