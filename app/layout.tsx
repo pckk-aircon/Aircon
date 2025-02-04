@@ -42,6 +42,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return null; // クライアントサイドでのみレンダリングする要素を避ける
   }
 
+
+  //Next.jsのルートレイアウトに<html>および<body>タグが含まれていないとエラーが発生する。
+
   return (
     <html lang="en">
       <body>
