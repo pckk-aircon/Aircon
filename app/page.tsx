@@ -12,7 +12,6 @@ import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";//フォーマット変換。インストール要。
 
-
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
