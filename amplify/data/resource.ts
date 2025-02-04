@@ -27,6 +27,8 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(),
   }),
 
   //step3にて追加。
