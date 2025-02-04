@@ -79,6 +79,8 @@ const schema = a.schema({
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
+      StartDatetime: a.string(),//★範囲検索で使用するため、追加。
+      EndDatetime: a.string(),//★範囲検索で使用するため、追加。
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
