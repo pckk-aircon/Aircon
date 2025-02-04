@@ -48,9 +48,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    listTodos();
     getPost(); // Postの初期表示
-    listIot (); // Postの初期表示
     listIotDataByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
@@ -97,29 +95,6 @@ export default function App() {
     }
   }
 
-  //Iotのデータを抽出。
-    async function listIot () {
-
-      //const startDatetime = `${startDate} 00:00:00+09:00`;
-      //const endDatetime = `${endDate} 23:59:59+09:00`;
-      const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
-      const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
-
-      console.log("StartDatetime=", startDate); // デバッグ用のログ出力
-      console.log("EndDatetime=", endDate); // デバッグ用のログ出力
-
-      const { data, errors } = await client.queries.listIot({
-
-        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        //DeviceDatetime: "2024-06-30 23:28:28+09:00",
-        //StartDatetime: "2025-01-31 00:00:00+09:00",//範囲検索
-        StartDatetime: startDatetime,//★修正
-        //EndDatetime: "2025-01-31 23:59:59+09:00",//範囲検索
-        EndDatetime: endDatetime,//★修正
-      });
-      console.log('listIot=',data)
-  
-    }
 
   //listIotByControllerを追記。
   async function listIotDataByController () {
@@ -145,16 +120,6 @@ export default function App() {
       console.error('予期しないエラー', error); // 予期しないエラーをログ出力
     }
   }
-
-
-  // リストボックスコンポーネントを追加
-  //function handleStartDatetimeChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    //setStartDatetime(event.target.value);
-  //}
-
-  //function handleEndDatetimeChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    //setEndDatetime(event.target.value);
-  //}
 
 
   return (

@@ -14,6 +14,9 @@ import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";//フォーマット変換。インストール要。
 
+import { Pie } from "react-chartjs-2";//グラフ
+import Chart from 'chart.js/auto';//グラフ
+
 
 Amplify.configure(outputs);
 
