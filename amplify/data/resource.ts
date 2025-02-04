@@ -40,7 +40,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "IoTDataSource",
+        dataSource: "ExternalPostTableDataSource",
         entry: "./addPost.js",
       })
     ),
@@ -66,7 +66,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "IoTDataSource",
+        dataSource: "ExternalPostTableDataSource",
         entry: "./getPost.js",
       })
     ),
@@ -92,7 +92,7 @@ const schema = a.schema({
       })
     ),
 
-
+  //新しいテーブル（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
     .query()
     .arguments({
@@ -122,7 +122,6 @@ export const data = defineData({
     },
   },
 });
-
 
 
 /*== STEP 2 ===============================================================

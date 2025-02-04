@@ -4,7 +4,6 @@ import { data } from './data/resource.js';
 
 import { aws_dynamodb } from "aws-cdk-lib"; //step2にて追加。
 
-
 export const backend = defineBackend({
   auth,
   data,
@@ -20,11 +19,7 @@ const externalTable = aws_dynamodb.Table.fromTableName(
   "IotData"
 );
 
-<<<<<<< HEAD
-//新しいテーブル（IoTData）の設定を追加
-=======
 //DeviceTableの設定を追加
->>>>>>> feature-t
 //const iotTable = aws_dynamodb.Table.fromTableName(
 const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
@@ -42,19 +37,6 @@ import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
   "ExternalPostTableDataSource",
-<<<<<<< HEAD
-  externalTable//こちらは変数名。次のRoleと関連か。
-);
-
-//これを追記するとエラーになる。なぜか。
-//const DeviceDS = backend.data.addDynamoDbDataSource(//★
-  //"IotPostTableDataSource",//★
-  //DeviceTable//★
-//);//★
-
-
-//Role。
-=======
   //"IotPostTableDataSource",//★★
   externalTable//こちらは変数名。次のRoleと関連か。
 );
@@ -66,7 +48,6 @@ const DeviceDS = backend.data.addDynamoDbDataSource(
 );
 
 //dsRoleは、externalTableDSのIAMロールを取得おり、同じロールをDeviceTableにも適用可能。
->>>>>>> feature-t
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
   "DatasourceRole",
