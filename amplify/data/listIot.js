@@ -28,9 +28,4 @@ export const response = (ctx) => {
         Division: item.Division
     }));
 
-    // 整形後のデータをログ出力
-    console.log('Formatted response items:', items);
-    return items;
-
-
 };
