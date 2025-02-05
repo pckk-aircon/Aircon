@@ -64,11 +64,11 @@ export default function App() {
 
       const { data, errors } = await client.queries.listIot({
 
-        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        StartDatetime: startDatetime,//★修正
-        EndDatetime: endDatetime,//★修正
+        Controller: "Mutsu01",//Controllerで抽出。
+        StartDatetime: startDatetime,//範囲で検索
+        EndDatetime: endDatetime,//範囲で検索
       });
-      console.log('listIot=',data)
+      console.log('listIot=',data)//★ブラウザの検査画面にて確認表示
   
     }
 

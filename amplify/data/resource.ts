@@ -27,8 +27,8 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-    DeviceType: a.string(),
-    Division: a.string(),
+    DeviceType: a.string(),//★追加
+    Division: a.string(),//★追加
   }),
 
   //step3にて追加。
@@ -89,7 +89,7 @@ const schema = a.schema({
     .handler(
       a.handler.custom({
         dataSource: "ExternalPostTableDataSource",
-        entry: "./listIot.js",
+        entry: "./listIot.js",//★←修正対象のハンドラー
 
       })
     ),
