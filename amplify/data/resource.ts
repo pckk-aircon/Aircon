@@ -94,6 +94,7 @@ const schema = a.schema({
       })
     ),
 
+  
   //新しいテーブル（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
     .query()
