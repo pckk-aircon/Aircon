@@ -35,7 +35,6 @@ export default function App() {
     DeviceType: string;
   }
 
-
   useEffect(() => {
     listIot (); // Postの初期表示
 
