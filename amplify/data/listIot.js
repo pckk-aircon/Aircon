@@ -27,4 +27,10 @@ export const response = (ctx) => {
         DeviceType: item.DeviceType,
         Division: item.Division
     }));
+
+    // 整形後のデータをログ出力
+    console.log('Formatted response items:', items);
+    return items;
+
+
 };
