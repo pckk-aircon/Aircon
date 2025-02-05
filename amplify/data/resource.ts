@@ -22,7 +22,7 @@ const schema = a.schema({
   }),
 
 
-  //新しいテーブル（IoTData）の設定を追加
+  //テーブル（IoTData）の設定
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
@@ -81,8 +81,8 @@ const schema = a.schema({
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
-      StartDatetime: a.string(),//★範囲検索で使用するため、追加。
-      EndDatetime: a.string(),//★範囲検索で使用するため、追加。
+      StartDatetime: a.string(),//範囲検索で使用
+      EndDatetime: a.string(),//範囲検索で使用
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
