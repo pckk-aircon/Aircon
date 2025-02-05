@@ -8,11 +8,6 @@ export function request(ctx) {
             //expression: 'Controller = :controller AND DeviceDatetime = :deviceDatetime',
             expression: 'Controller = :controller AND DeviceDatetime BETWEEN :startDatetime AND :endDatetime',
 
-            //expressionValues: util.dynamodb.toMapValues({ 
-                //':controller': ctx.args.Controller,
-                //':deviceDatetime': ctx.args.DeviceDatetime
-            //})
-
             expressionValues: util.dynamodb.toMapValues({ 
                 ':controller': ctx.args.Controller,
                 ':startDatetime': ctx.args.StartDatetime,
@@ -24,4 +19,12 @@ export function request(ctx) {
 
 }
 
-export const response = (ctx) => ctx.result.items;
+export const response = (ctx) => {
+    return ctx.result.items.map(item => ({
+        Device: item.Device,
+        DeviceDatetime: item.DeviceDatetime,
+        Controller: item.Controller,
+        DeviceType: item.DeviceType,
+        Division: item.Division
+    }));
+};
