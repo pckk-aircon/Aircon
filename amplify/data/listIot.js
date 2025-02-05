@@ -19,7 +19,7 @@ export function request(ctx) {
 
 }
 
-//★↓以下を追加
+/*
 export const response = (ctx) => {
     return ctx.result.items.map(item => ({
         Device: item.Device,
@@ -30,3 +30,17 @@ export const response = (ctx) => {
     }));
 
 };
+*/
+
+//★↓こちらに差し替え
+export const response = (ctx) => {
+    // リクエストからフィールドの値を取得します。
+    const deviceType = ctx.args.DeviceType;
+    const division = ctx.args.Division;
+  
+    return {
+      ...ctx.result,
+      DeviceType: deviceType,
+      Division: division
+    };
+  };

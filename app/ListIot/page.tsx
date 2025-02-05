@@ -69,6 +69,19 @@ export default function App() {
         EndDatetime: endDatetime,//範囲で検索
       });
       console.log('listIot=',data)//★ブラウザの検査画面にて確認表示
+
+      /*
+      const dateCounts = data.reduce((acc, entry) => {
+        if (entry && entry.DeviceDatetime) { // entryとentry.DeviceDatetimeが存在することを確認
+          const date = new Date(entry.DeviceDatetime).toLocaleDateString();
+          acc[date] = (acc[date] || 0) + 1;
+        }
+        return acc;
+      }, {});
+  
+        setDateData(dateCounts);
+      }
+    */
   
     }
 
