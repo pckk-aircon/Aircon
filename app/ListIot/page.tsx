@@ -23,12 +23,8 @@ export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-  //const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
 
 
-  // StartDatetimeとEndDatetimeを選択するためのステート。useState()の中は初期値。
-  //const [startDate, setStartDatetime] = useState("2025-01-31");
-  //const [endDate, setEndDatetime] = useState("2025-01-31");
   const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
   const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
 
