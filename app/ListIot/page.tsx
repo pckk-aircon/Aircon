@@ -50,7 +50,6 @@ export default function App() {
         setPosts(prevPosts => [...prevPosts, event]);
       },
     });
-
     return () => sub.unsubscribe();
 
   }, [startDate, endDate]);
@@ -76,6 +75,9 @@ export default function App() {
         ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
         Device: item?.Device ?? '',
       }));
+
+      // DeviceDatetime順にソート
+      formattedData.sort((a, b) => new Date(a.DeviceDatetime).getTime() - new Date(b.DeviceDatetime).getTime());
 
       console.log('Formatted Data:', formattedData);
 
@@ -104,7 +106,6 @@ export default function App() {
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
       </div>
-
 
       <div>
         <h1>Temperature Data</h1>
