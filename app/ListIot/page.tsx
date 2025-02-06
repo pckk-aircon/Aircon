@@ -108,9 +108,9 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart>
+          <LineChart data={chartData}> {/* dataプロパティを追加 */}
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="DeviceDatetime" />
+            <XAxis dataKey="DeviceDatetime" /> {/* dataKeyを正しく設定 */}
             <YAxis />
             <Tooltip />
             <Legend />
