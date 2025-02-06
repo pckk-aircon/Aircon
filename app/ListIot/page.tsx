@@ -111,9 +111,9 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}> {/* marginプロパティを追加 */}
+          <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="DeviceDatetime" /> {/* dataKeyを正しく設定 */}
+            <XAxis dataKey="DeviceDatetime" />
             <YAxis />
             <Tooltip />
             <Legend />
@@ -122,7 +122,7 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey="ActualTemp"
-                data={groupedData[device]}
+                data={groupedData[device]} // 各デバイスのデータを個別に設定
                 name={device}
                 stroke={`hsl(${index * 60}, 70%, 50%)`}
                 activeDot={{ r: 8 }}
