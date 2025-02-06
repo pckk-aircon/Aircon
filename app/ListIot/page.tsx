@@ -123,7 +123,9 @@ export default function App() {
                 type="monotone"
                 dataKey="ActualTemp"
                 name={device}
-                stroke={`hsl(${index * 60}, 70%, 50%)`}
+                //stroke={`hsl(${index * 60}, 70%, 50%)`}
+                stroke="none"
+                dot={{ r: 4, fill: `hsl(${index * 60}, 70%, 50%)` }}
                 activeDot={{ r: 8 }}
               />
             ))}
