@@ -111,22 +111,24 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          {Object.keys(groupedData).map((device, index) => (
-            <LineChart key={device} data={groupedData[device]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="DeviceDatetime" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
+          <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="DeviceDatetime" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            {Object.keys(groupedData).map((device, index) => (
               <Line
+                key={device}
                 type="monotone"
                 dataKey="ActualTemp"
+                data={groupedData[device]} // 各デバイスのデータを個別に設定
                 name={device}
                 stroke={`hsl(${index * 60}, 70%, 50%)`}
                 activeDot={{ r: 8 }}
               />
-            </LineChart>
-          ))}
+            ))}
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </main>
