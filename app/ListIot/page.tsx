@@ -105,10 +105,11 @@ export default function App() {
         </label>
       </div>
 
+
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData}> {/* dataプロパティを追加 */}
+          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}> {/* marginプロパティを追加 */}
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="DeviceDatetime" /> {/* dataKeyを正しく設定 */}
             <YAxis />
