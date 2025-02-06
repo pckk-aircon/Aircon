@@ -94,6 +94,7 @@ export default function App() {
           return !isNaN(temp) ? temp : 0;
         });
 
+
         
         setChartData({
           labels: labels,
