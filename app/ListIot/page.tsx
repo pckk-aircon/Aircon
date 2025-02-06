@@ -121,7 +121,8 @@ export default function App() {
               backgroundColor: 'rgba(75,192,192,0.2)',
               fill: false,
               pointRadius: 0, // ポイントを非表示
-              showLine: true, // ラインを表示
+              borderWidth: 2, // ラインの太さを設定
+              //showLine: true, // 縦のラインを表示
             },
           ],
         });
