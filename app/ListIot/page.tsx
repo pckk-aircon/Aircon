@@ -117,7 +117,6 @@ export default function App() {
         });
 
 
-
         setChartData({
           labels: labels,
           datasets: [
