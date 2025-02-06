@@ -57,6 +57,7 @@ export default function App() {
         borderWidth: 2,
       },
     },
+    spanGaps: true, // これを追加してプロット間をラインで結ぶ
   };
 
   interface Device {
@@ -122,7 +123,7 @@ export default function App() {
               fill: false,
               pointRadius: 0, // ポイントを非表示
               borderWidth: 2, // ラインの太さを設定
-              //showLine: true, // 縦のラインを表示
+              showLine: true, // プロット間を結ぶ
             },
           ],
         });
