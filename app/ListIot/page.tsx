@@ -12,6 +12,9 @@ import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";//フォーマット変換。インストール要。
 
+import React from 'react';
+//import PieChartComponent from '../components/PieChartComponent.js';
+
 
 Amplify.configure(outputs);
 
@@ -23,8 +26,12 @@ export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
+  //const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
 
 
+  // StartDatetimeとEndDatetimeを選択するためのステート。useState()の中は初期値。
+  //const [startDate, setStartDatetime] = useState("2025-01-31");
+  //const [endDate, setEndDatetime] = useState("2025-01-31");
   const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
   const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
 
@@ -35,10 +42,10 @@ export default function App() {
     DeviceType: string;
   }
 
+
   useEffect(() => {
     listIot (); // Postの初期表示
 
-    /*
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
     .subscribe({
@@ -47,10 +54,11 @@ export default function App() {
         setPosts(prevPosts => [...prevPosts, event]);
       },
     });
+
     // クリーンアップ関数を返してサブスクリプションを解除
     return () => sub.unsubscribe();
-    */
 
+  //}, []);
   }, [startDate, endDate]);//★startDatetimeとendDatetimeが変更されたときにlistIot関数を呼び出す
 
   //Iotのデータを抽出。
@@ -64,15 +72,14 @@ export default function App() {
 
       const { data, errors } = await client.queries.listIot({
 
-        Controller: "Mutsu01",//Controllerで抽出。
-        StartDatetime: startDatetime,//範囲で検索
-        EndDatetime: endDatetime,//範囲で検索
+        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+        StartDatetime: startDatetime,//★修正
+        EndDatetime: endDatetime,//★修正
       });
-      console.log('listIot=',data)//★ブラウザの検査画面にて確認表示
+      console.log('listIot=',data)
   
     }
 
-    
 
   return (
     <main>
@@ -88,6 +95,9 @@ export default function App() {
         </label>
       </div>
 
+     
+
     </main>
+
   );
 }

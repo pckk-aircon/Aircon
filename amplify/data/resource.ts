@@ -18,17 +18,16 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-    //DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
+    DeviceType: a.string(),
+    Division: a.string(),   
   }),
 
 
-  //テーブル（IoTData）の設定
+  //新しいテーブル（IoTData）の設定を追加
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-    DeviceType: a.string(),//★追加
-    Division: a.string(),//★追加
   }),
 
   //step3にて追加。
@@ -73,7 +72,6 @@ const schema = a.schema({
       })
     ),
 
-    
   //2025.1.23サポート様より提示。
   //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
   //配列をレスポンスするスキーマを追加
@@ -82,20 +80,19 @@ const schema = a.schema({
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
-      StartDatetime: a.string(),//範囲検索で使用
-      EndDatetime: a.string(),//範囲検索で使用
+      StartDatetime: a.string(),//★範囲検索で使用するため、追加。
+      EndDatetime: a.string(),//★範囲検索で使用するため、追加。
     })
     .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
         dataSource: "ExternalPostTableDataSource",
-        entry: "./listIot.js",//★←修正対象のハンドラー
+        entry: "./listIot.js",
 
       })
     ),
 
-  
   //新しいテーブル（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
     .query()
