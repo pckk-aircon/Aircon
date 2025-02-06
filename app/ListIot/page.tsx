@@ -28,12 +28,7 @@ export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-  //const [Iotdatas, setIots] = useState<Array<Schema["IotData"]["type"]>>([]); //Postを追加。
 
-
-  // StartDatetimeとEndDatetimeを選択するためのステート。useState()の中は初期値。
-  //const [startDate, setStartDatetime] = useState("2025-01-31");
-  //const [endDate, setEndDatetime] = useState("2025-01-31");
   const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
   const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
 
@@ -58,9 +53,8 @@ export default function App() {
     },
     elements: {
       line: {
-        tension: 0.4, // 線の滑らかさを設定
-        borderWidth: 2, // 線の太さを設定
-        showLine: false, // データポイント間の接続線を非表示に設定
+        tension: 0.4,
+        borderWidth: 2,
       },
     },
   };
@@ -126,7 +120,8 @@ export default function App() {
               borderColor: 'rgba(75,192,192,1)',
               backgroundColor: 'rgba(75,192,192,0.2)',
               fill: false,
-              showLine: false, // データポイント間の接続線を非表示に設定
+              pointRadius: 0, // ポイントを非表示
+              showLine: true, // ラインを表示
             },
           ],
         });
