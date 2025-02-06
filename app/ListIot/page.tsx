@@ -12,8 +12,8 @@ import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";//フォーマット変換。インストール要。
 
-import React from 'react';
-//import PieChartComponent from '../components/PieChartComponent.js';
+import { Line } from 'react-chartjs-2';
+import 'chart.js/auto';
 
 
 Amplify.configure(outputs);
@@ -34,6 +34,8 @@ export default function App() {
   //const [endDate, setEndDatetime] = useState("2025-01-31");
   const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
   const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
+
+  const [chartData, setChartData] = useState({}); // ここを追加
 
 
   interface Device {
@@ -78,6 +80,26 @@ export default function App() {
       });
       console.log('listIot=',data)
   
+      if (data) {
+        const labels = data.map(item => item?.DeviceDatetime ?? '');
+        const temps = data.map(item => item?.ActualTemp ?? 0);
+  
+        setChartData({
+          labels: labels,
+          datasets: [
+            {
+              label: 'Actual Temperature',
+              data: temps,
+              borderColor: 'rgba(75,192,192,1)',
+              backgroundColor: 'rgba(75,192,192,0.2)',
+              fill: false,
+            },
+          ],
+        });
+      }
+
+
+
     }
 
 
