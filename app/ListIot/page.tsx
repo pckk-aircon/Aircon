@@ -17,10 +17,10 @@ Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
-// ChartDataの型定義を追加
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number;
+  Device: string;
 }
 
 export default function App() {
@@ -32,7 +32,6 @@ export default function App() {
   const [startDate, setStartDatetime] = useState(new Date());
   const [endDate, setEndDatetime] = useState(new Date());
 
-  //const [chartData, setChartData] = useState([]);
   const [chartData, setChartData] = useState<ChartData[]>([]); // ここで初期値と型を設定
 
   interface Device {
@@ -75,13 +74,23 @@ export default function App() {
       const formattedData = data.map(item => ({
         DeviceDatetime: item?.DeviceDatetime ?? '',
         ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+        Device: item?.Device ?? '',
       }));
 
       console.log('Formatted Data:', formattedData);
 
-      setChartData(formattedData);
+      setChartData(formattedData); // ここでformattedDataを設定
     }
   }
+
+  // デバイスごとにデータをグループ化
+  const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
+    if (!acc[item.Device]) {
+      acc[item.Device] = [];
+    }
+    acc[item.Device].push(item);
+    return acc;
+  }, {});
 
   return (
     <main>
@@ -99,13 +108,23 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData}>
+          <LineChart>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="DeviceDatetime" />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="ActualTemp" stroke="#8884d8" activeDot={{ r: 8 }} />
+            {Object.keys(groupedData).map((device, index) => (
+              <Line
+                key={device}
+                type="monotone"
+                dataKey="ActualTemp"
+                data={groupedData[device]}
+                name={device}
+                stroke={`hsl(${index * 60}, 70%, 50%)`}
+                activeDot={{ r: 8 }}
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
