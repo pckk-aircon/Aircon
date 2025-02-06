@@ -38,6 +38,7 @@ export default function App() {
   useEffect(() => {
     listIot (); // Postの初期表示
 
+    /*
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
     .subscribe({
@@ -46,11 +47,10 @@ export default function App() {
         setPosts(prevPosts => [...prevPosts, event]);
       },
     });
-
     // クリーンアップ関数を返してサブスクリプションを解除
     return () => sub.unsubscribe();
+    */
 
-  //}, []);
   }, [startDate, endDate]);//★startDatetimeとendDatetimeが変更されたときにlistIot関数を呼び出す
 
   //Iotのデータを抽出。
@@ -72,6 +72,7 @@ export default function App() {
   
     }
 
+    
 
   return (
     <main>
