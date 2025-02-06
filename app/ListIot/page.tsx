@@ -94,7 +94,7 @@ export default function App() {
           return !isNaN(temp) ? temp : 0;
         });
 
-
+        
         setChartData({
           labels: labels,
           datasets: [
@@ -104,6 +104,7 @@ export default function App() {
               borderColor: 'rgba(75,192,192,1)',
               backgroundColor: 'rgba(75,192,192,0.2)',
               fill: false,
+              showLine: false, // データポイント間の接続線を非表示に設定
             },
           ],
         });
