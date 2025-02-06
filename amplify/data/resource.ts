@@ -19,7 +19,9 @@ const schema = a.schema({
     DeviceDatetime: a.string(),
     Controller: a.string(),
     DeviceType: a.string(),
-    Division: a.string(),   
+    Division: a.string(), 
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
   }),
 
 
