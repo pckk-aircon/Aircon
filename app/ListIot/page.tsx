@@ -77,7 +77,7 @@ export default function App() {
         Device: item?.Device ?? '',
       }));
 
-      // DeviceDatetime順にソート
+      // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
 
       console.log('Formatted Data:', formattedData);
