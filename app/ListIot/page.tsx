@@ -9,7 +9,7 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -50,6 +50,7 @@ export default function App() {
         setPosts(prevPosts => [...prevPosts, event]);
       },
     });
+
     return () => sub.unsubscribe();
 
   }, [startDate, endDate]);
@@ -77,7 +78,7 @@ export default function App() {
       }));
 
       // DeviceDatetime順にソート
-      formattedData.sort((a, b) => new Date(a.DeviceDatetime).getTime() - new Date(b.DeviceDatetime).getTime());
+      formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
 
       console.log('Formatted Data:', formattedData);
 
