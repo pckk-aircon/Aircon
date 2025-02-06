@@ -122,7 +122,6 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey="ActualTemp"
-                data={groupedData[device]}
                 name={device}
                 stroke={`hsl(${index * 60}, 70%, 50%)`}
                 activeDot={{ r: 8 }}
