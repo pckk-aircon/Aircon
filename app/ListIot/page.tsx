@@ -12,8 +12,10 @@ import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";//フォーマット変換。インストール要。
 
+
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
+import { ChartData } from 'chart.js';
 
 
 Amplify.configure(outputs);
@@ -35,7 +37,10 @@ export default function App() {
   const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
   const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
 
-  const [chartData, setChartData] = useState({}); // ここを追加
+  const [chartData, setChartData] = useState<ChartData<'line'>>({
+    labels: [],
+    datasets: [],
+  });// ここを追加
 
 
   interface Device {
@@ -89,19 +94,16 @@ export default function App() {
           datasets: [
             {
               label: 'Actual Temperature',
-              data: temps,
+              data: temps.map(temp => typeof temp === 'number' ? temp : 0), // 数値に変換
               borderColor: 'rgba(75,192,192,1)',
               backgroundColor: 'rgba(75,192,192,0.2)',
               fill: false,
             },
           ],
         });
+
       }
-
-
-
-    }
-
+}
 
   return (
     <main>
@@ -115,6 +117,12 @@ export default function App() {
           EndDatetime:
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
+      </div>
+
+
+      <div>
+        <h1>Temperature Data</h1>
+        <Line data={chartData} />
       </div>
 
      
