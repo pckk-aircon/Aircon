@@ -32,7 +32,7 @@ export default function App() {
   const [startDate, setStartDatetime] = useState(new Date());
   const [endDate, setEndDatetime] = useState(new Date());
 
-  const [chartData, setChartData] = useState<ChartData[]>([]); // ここで初期値と型を設定
+  const [chartData, setChartData] = useState<ChartData[]>([]);
 
   interface Device {
     Device: string;
@@ -82,7 +82,7 @@ export default function App() {
 
       console.log('Formatted Data:', formattedData);
 
-      setChartData(formattedData); // ここでformattedDataを設定
+      setChartData(formattedData);
     }
   }
 
@@ -111,7 +111,7 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="DeviceDatetime" />
             <YAxis />
@@ -122,7 +122,7 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey="ActualTemp"
-                data={groupedData[device]} // 各デバイスのデータを個別に設定
+                data={groupedData[device]}
                 name={device}
                 stroke={`hsl(${index * 60}, 70%, 50%)`}
                 activeDot={{ r: 8 }}
