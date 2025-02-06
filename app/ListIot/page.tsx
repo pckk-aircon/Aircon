@@ -43,6 +43,28 @@ export default function App() {
   });// ここを追加
 
 
+  const options = {
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+      },
+      y: {
+        grid: {
+          display: false,
+        },
+      },
+    },
+    elements: {
+      line: {
+        tension: 0.4, // 線の滑らかさを設定
+        borderWidth: 2, // 線の太さを設定
+        showLine: false, // データポイント間の接続線を非表示に設定
+      },
+    },
+  };
+
   interface Device {
     Device: string;
     Controller: string;
@@ -95,7 +117,7 @@ export default function App() {
         });
 
 
-        
+
         setChartData({
           labels: labels,
           datasets: [
@@ -113,6 +135,7 @@ export default function App() {
       }
 }
 
+
   return (
     <main>
 
@@ -127,13 +150,10 @@ export default function App() {
         </label>
       </div>
 
-
       <div>
         <h1>Temperature Data</h1>
-        <Line data={chartData} />
+        <Line data={chartData} options={options} />
       </div>
-
-     
 
     </main>
 
