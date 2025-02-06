@@ -87,8 +87,14 @@ export default function App() {
   
       if (data) {
         const labels = data.map(item => item?.DeviceDatetime ?? '');
-        const temps = data.map(item => item?.ActualTemp ?? 0);
-  
+        //const temps = data.map(item => item?.ActualTemp ?? 0);
+        const temps = data.map(item => {
+          const temp = item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : NaN;
+          console.log('ActualTemp:', temp); // デバッグ用
+          return !isNaN(temp) ? temp : 0;
+        });
+
+
         setChartData({
           labels: labels,
           datasets: [
