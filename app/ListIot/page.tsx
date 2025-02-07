@@ -21,6 +21,7 @@ interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number;
   Device: string;
+  Division: string;
 }
 
 export default function App() {
@@ -71,11 +72,14 @@ export default function App() {
     console.log('listIot=', data)
 
     if (data) {
-      const formattedData = data.map(item => ({
-        DeviceDatetime: item?.DeviceDatetime ?? '',
-        ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
-        Device: item?.Device ?? '',
-      }));
+      const formattedData = data
+        .filter(item => item?.Division === "MUTS-Flower") // Divisionでフィルタリング
+        .map(item => ({
+          DeviceDatetime: item?.DeviceDatetime ?? '',
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+          Device: item?.Device ?? '',
+          Division: item?.Division ?? '',
+        }));
 
       // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
