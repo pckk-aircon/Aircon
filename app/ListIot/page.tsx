@@ -137,8 +137,8 @@ export default function App() {
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]}
-                //dot={{ r: 1, fill: colors[index % colors.length] }}
-                dot={false} //明示的にfalseに設定。
+                dot={{ r: 0.5, fill: colors[index % colors.length] }}
+                //dot={false} //明示的にfalseに設定。
               />
             ))}
           </LineChart>
