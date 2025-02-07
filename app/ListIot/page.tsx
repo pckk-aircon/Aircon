@@ -157,6 +157,7 @@ export default function App() {
                 name={device}
                 stroke={colors[index % colors.length]}
                 dot={{ r: 0.2, fill: colors[index % colors.length] }}
+                connectNulls
               />
             ))}
           </LineChart>
