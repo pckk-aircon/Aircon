@@ -123,6 +123,7 @@ export default function App() {
               <Line
                 key={device}
                 type="monotone"
+                data={groupedData[device]}
                 dataKey="ActualTemp"
                 name={device}
                 stroke={colors[index % colors.length]}
