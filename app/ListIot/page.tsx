@@ -113,7 +113,7 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="DeviceDatetime" />
             <YAxis />
