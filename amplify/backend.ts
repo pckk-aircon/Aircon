@@ -21,14 +21,15 @@ const externalTable = aws_dynamodb.Table.fromTableName(
   externalDataSourcesStack,
   "MyExternalPostTable",
   "IotData"
-
 );
 
-//新しいテーブル（IoTData）の設定を追加
-const iotTable = aws_dynamodb.Table.fromTableName(
+//DeviceTableの設定を追加
+//const iotTable = aws_dynamodb.Table.fromTableName(
+const DeviceTable = aws_dynamodb.Table.fromTableName(//★
   externalDataSourcesStack,
-  "MyIotPostTable",
-  "IotData"
+  "MyDeviceTable",
+  //"IotData"
+  "DeviceTable"//★テーブル名
 );
 
 //2025.1.23サポート様より提示。
@@ -43,12 +44,19 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
   externalTable
 );
 
-//ここからは共通。
+//DeviceTableの設定を追加
+const DeviceDS = backend.data.addDynamoDbDataSource(
+  "DeviceDataSource",//データソース名
+  DeviceTable//テーブル名
+);
+
+//dsRoleは、externalTableDSのIAMロールを取得おり、同じロールをDeviceTableにも適用可能。
 const dsRole = Role.fromRoleArn(
   externalDataSourcesStack,
   "DatasourceRole",
   externalTableDS.ds.serviceRoleArn ?? ''
 )
+
 
 const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamPolicy", {
   policyName: "amplify-permissions-external-table",
@@ -59,7 +67,8 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
         "dynamodb:Query"
       ],
       resources: [
-        `${externalTable.tableArn}/index/*`
+        `${externalTable.tableArn}/index/*`,
+        `${DeviceTable.tableArn}/index/*`, // DeviceTableのリソースを追加
       ],
     })
   ],
