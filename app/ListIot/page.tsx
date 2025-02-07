@@ -133,7 +133,7 @@ export default function App() {
             {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
-                type="monotone"
+                type="linear"//データポイント間を直線で結ぶ。
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]}
