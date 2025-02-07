@@ -3,36 +3,27 @@
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
+//import "./../app/app.css";
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
-import DatePicker from "react-datepicker";
+import DatePicker from "react-datepicker";//インストール要。
 import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO } from "date-fns";
-
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { format } from "date-fns";//フォーマット変換。インストール要。
 
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
-interface ChartData {
-  DeviceDatetime: string;
-  ActualTemp: number;
-  Device: string;
-}
-
 export default function App() {
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
-  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]);
+  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
+  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
-  const [startDate, setStartDatetime] = useState(new Date());
-  const [endDate, setEndDatetime] = useState(new Date());
-
-  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [startDate, setStartDatetime] = useState(new Date());//本日の日付をデフォルト表示。
+  const [endDate, setEndDatetime] = useState(new Date());//本日の日付をデフォルト表示。
 
   interface Device {
     Device: string;
@@ -41,8 +32,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    listIot();
+    listIot (); // Postの初期表示
 
+    //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
@@ -51,51 +43,28 @@ export default function App() {
       },
     });
 
+    // クリーンアップ関数を返してサブスクリプションを解除
     return () => sub.unsubscribe();
 
-  }, [startDate, endDate]);
+  //}, []);
+  }, [startDate, endDate]);//★startDatetimeとendDatetimeが変更されたときにlistIot関数を呼び出す
 
-  async function listIot() {
+  //Iotのデータを抽出。
+  async function listIot () {
 
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
-    console.log("StartDatetime=", startDate);
-    console.log("EndDatetime=", endDate);
+    console.log("StartDatetime=", startDate); // デバッグ用のログ出力
+    console.log("EndDatetime=", endDate); // デバッグ用のログ出力
 
     const { data, errors } = await client.queries.listIot({
-      Controller: "Mutsu01",
-      StartDatetime: startDatetime,
-      EndDatetime: endDatetime,
+      Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
+      StartDatetime: startDatetime,//★修正
+      EndDatetime: endDatetime,//★修正
     });
-    console.log('listIot=', data)
-
-    if (data) {
-      const formattedData = data.map(item => ({
-        DeviceDatetime: item?.DeviceDatetime ?? '',
-        ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
-        Device: item?.Device ?? '',
-      }));
-
-      // DeviceDatetime順にソート（Deviceをソートキーに含めない）
-      formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
-
-      console.log('Formatted Data:', formattedData);
-
-      setChartData(formattedData);
-    }
+    console.log('listIot=',data)
   }
-
-  // デバイスごとにデータをグループ化
-  const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.Device]) {
-      acc[item.Device] = [];
-    }
-    acc[item.Device].push(item);
-    return acc;
-  }, {});
-
-  const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
 
   return (
     <main>
@@ -108,31 +77,6 @@ export default function App() {
           EndDatetime:
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
-      </div>
-
-      <div>
-        <h1>Temperature Data</h1>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {Object.keys(groupedData).map((device, index) => (
-              <Line
-                key={device}
-                type="monotone"
-                dataKey="ActualTemp"
-                name={device}
-                data={groupedData[device]}
-                stroke={colors[index % colors.length]}
-                dot={false}
-                strokeWidth={2}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
       </div>
     </main>
   );
