@@ -34,6 +34,7 @@ export default function App() {
   const [endDate, setEndDatetime] = useState(new Date());
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [selectedDivision, setSelectedDivision] = useState<string | null>(null);
 
   interface Device {
     Device: string;
@@ -112,29 +113,42 @@ export default function App() {
         </label>
       </div>
 
-      {Object.keys(groupedData).map((division, index) => (
-        <div key={division} style={{ marginBottom: '50px' }}>
-          <h2>{division}</h2>
+      <div>
+        <label>
+          Select Division:
+          <select onChange={(e) => setSelectedDivision(e.target.value)} value={selectedDivision || ''}>
+            <option value="" disabled>Select a division</option>
+            {Object.keys(groupedData).map((division) => (
+              <option key={division} value={division}>{division}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {selectedDivision && (
+        <div style={{ marginBottom: '50px' }}>
+          <h2>{selectedDivision}</h2>
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={groupedData[division]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={groupedData[selectedDivision]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="DeviceDatetime" />
               <YAxis />
               <Tooltip />
               <Legend />
-              {groupedData[division].map((item, idx) => (
+              {groupedData[selectedDivision].map((item, idx) => (
                 <Line
                   key={item.Device}
                   type="monotone"
                   dataKey="ActualTemp"
                   name={item.Device}
                   stroke={colors[idx % colors.length]}
+                  connectNulls={true} 
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
-      ))}
+      )}
     </main>
   );
 }
