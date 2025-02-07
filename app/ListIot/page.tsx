@@ -121,12 +121,10 @@ export default function App() {
               <Line
                 key={device}
                 type="monotone"
-                data={groupedData[device]}
                 dataKey="ActualTemp"
                 name={device}
-                stroke={`hsl(${index * 60}, 70%, 50%)`}
-                dot={{ r: 4, fill: `hsl(${index * 60}, 70%, 50%)` }}
                 stroke="none"
+                dot={{ r: 4, fill: `hsl(${index * 60}, 70%, 50%)` }}
               />
             ))}
           </LineChart>
