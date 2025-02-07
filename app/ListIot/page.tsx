@@ -23,7 +23,6 @@ interface ChartData {
   Device: string;
 }
 
-
 export default function App() {
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
@@ -98,16 +97,6 @@ export default function App() {
 
   const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
 
-  // デバイスごとのデータを統合して表示
-  const mergedData = chartData.map(item => {
-    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(device => {
-      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.ActualTemp : null;
-    });
-    return newItem;
-  });
-
   return (
     <main>
       <div>
@@ -124,7 +113,7 @@ export default function App() {
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="DeviceDatetime" />
             <YAxis />
@@ -134,8 +123,9 @@ export default function App() {
               <Line
                 key={device}
                 type="monotone"
-                dataKey={device}
+                dataKey="ActualTemp"
                 name={device}
+                data={groupedData[device]}
                 stroke={colors[index % colors.length]}
                 dot={false}
                 strokeWidth={2}
