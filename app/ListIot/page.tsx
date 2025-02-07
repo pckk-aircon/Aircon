@@ -125,7 +125,7 @@ export default function App() {
                 type="monotone"
                 dataKey="ActualTemp"
                 name={device}
-                stroke={colors[index % colors.length]}
+                //stroke={colors[index % colors.length]}
                 dot={{ r: 4, fill: colors[index % colors.length] }}
               />
             ))}
