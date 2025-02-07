@@ -114,7 +114,7 @@ export default function App() {
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="DeviceDatetime" />
             <YAxis />
             <Tooltip />
@@ -125,7 +125,7 @@ export default function App() {
                 type="monotone"
                 dataKey="ActualTemp"
                 name={device}
-                //stroke={colors[index % colors.length]}
+                stroke={colors[index % colors.length]}
                 dot={{ r: 4, fill: colors[index % colors.length] }}
               />
             ))}
