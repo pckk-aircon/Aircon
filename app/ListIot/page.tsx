@@ -136,7 +136,8 @@ export default function App() {
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]}
-                dot={{ r: 4, fill: colors[index % colors.length] }}
+                dot={false}
+                strokeWidth={2}
               />
             ))}
           </LineChart>
