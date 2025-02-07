@@ -95,6 +95,8 @@ export default function App() {
     return acc;
   }, {});
 
+  const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
+
   return (
     <main>
       <div>
@@ -123,8 +125,8 @@ export default function App() {
                 type="monotone"
                 dataKey="ActualTemp"
                 name={device}
-                stroke="none"
-                dot={{ r: 4, fill: `hsl(${index * 60}, 70%, 50%)` }}
+                stroke={colors[index % colors.length]}
+                dot={{ r: 4, fill: colors[index % colors.length] }}
               />
             ))}
           </LineChart>
