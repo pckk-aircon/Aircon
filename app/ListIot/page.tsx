@@ -129,7 +129,7 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend />
-            {Object.keys(groupedData).slice(0, 2).map((device, index) => (
+            {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
                 type="monotone"
