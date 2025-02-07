@@ -21,7 +21,6 @@ interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number;
   Device: string;
-  Division: string;
 }
 
 export default function App() {
@@ -34,7 +33,6 @@ export default function App() {
   const [endDate, setEndDatetime] = useState(new Date());
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [selectedDivision, setSelectedDivision] = useState<string | null>(null);
 
   interface Device {
     Device: string;
@@ -77,7 +75,6 @@ export default function App() {
         DeviceDatetime: item?.DeviceDatetime ?? '',
         ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
         Device: item?.Device ?? '',
-        Division: item?.Division ?? '',
       }));
 
       // DeviceDatetime順にソート（Deviceをソートキーに含めない）
@@ -89,16 +86,26 @@ export default function App() {
     }
   }
 
-  // Divisionごとにデータをグループ化
+  // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.Division]) {
-      acc[item.Division] = [];
+    if (!acc[item.Device]) {
+      acc[item.Device] = [];
     }
-    acc[item.Division].push(item);
+    acc[item.Device].push(item);
     return acc;
   }, {});
 
   const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
+
+  // デバイスごとのデータを統合して表示
+  const mergedData = chartData.map(item => {
+    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
+    Object.keys(groupedData).forEach(device => {
+      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
+      newItem[device] = deviceData ? deviceData.ActualTemp : null;
+    });
+    return newItem;
+  });
 
   return (
     <main>
@@ -113,42 +120,29 @@ export default function App() {
         </label>
       </div>
 
-      <div>
-        <label>
-          Select Division:
-          <select onChange={(e) => setSelectedDivision(e.target.value)} value={selectedDivision || ''}>
-            <option value="" disabled>Select a division</option>
-            {Object.keys(groupedData).map((division) => (
-              <option key={division} value={division}>{division}</option>
-            ))}
-          </select>
-        </label>
-      </div>
 
-      {selectedDivision && (
-        <div style={{ marginBottom: '50px' }}>
-          <h2>{selectedDivision}</h2>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={groupedData[selectedDivision]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="DeviceDatetime" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              {groupedData[selectedDivision].map((item, idx) => (
-                <Line
-                  key={item.Device}
-                  type="monotone"
-                  dataKey="ActualTemp"
-                  name={item.Device}
-                  stroke={colors[idx % colors.length]}
-                  connectNulls={true} 
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      <div>
+        <h1>Temperature Data</h1>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="DeviceDatetime" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            {Object.keys(groupedData).map((device, index) => (
+              <Line
+                key={device}
+                type="monotone"
+                dataKey={device}
+                name={device}
+                stroke={colors[index % colors.length]}
+                dot={{ r: 0.2, fill: colors[index % colors.length] }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </main>
   );
 }
