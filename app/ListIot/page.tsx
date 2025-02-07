@@ -23,6 +23,7 @@ interface ChartData {
   Device: string;
 }
 
+
 export default function App() {
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
