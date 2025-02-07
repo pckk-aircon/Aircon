@@ -21,6 +21,7 @@ interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number;
   Device: string;
+  Division: string;
 }
 
 export default function App() {
@@ -75,6 +76,7 @@ export default function App() {
         DeviceDatetime: item?.DeviceDatetime ?? '',
         ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
         Device: item?.Device ?? '',
+        Division: item?.Division ?? '',
       }));
 
       // DeviceDatetime順にソート（Deviceをソートキーに含めない）
@@ -86,26 +88,16 @@ export default function App() {
     }
   }
 
-  // デバイスごとにデータをグループ化
+  // Divisionごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.Device]) {
-      acc[item.Device] = [];
+    if (!acc[item.Division]) {
+      acc[item.Division] = [];
     }
-    acc[item.Device].push(item);
+    acc[item.Division].push(item);
     return acc;
   }, {});
 
   const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
-
-  // デバイスごとのデータを統合して表示
-  const mergedData = chartData.map(item => {
-    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(device => {
-      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.ActualTemp : null;
-    });
-    return newItem;
-  });
 
   return (
     <main>
@@ -120,30 +112,29 @@ export default function App() {
         </label>
       </div>
 
-
-      <div>
-        <h1>Temperature Data</h1>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {Object.keys(groupedData).map((device, index) => (
-              <Line
-                key={device}
-                type="linear"//データポイント間を直線で結ぶ。
-                dataKey={device}
-                name={device}
-                stroke={colors[index % colors.length]}
-                dot={{ r: 0.5, fill: colors[index % colors.length] }}
-                //dot={false} //明示的にfalseに設定。
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {Object.keys(groupedData).map((division, index) => (
+        <div key={division} style={{ marginBottom: '50px' }}>
+          <h2>{division}</h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={groupedData[division]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="DeviceDatetime" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              {groupedData[division].map((item, idx) => (
+                <Line
+                  key={item.Device}
+                  type="monotone"
+                  dataKey="ActualTemp"
+                  name={item.Device}
+                  stroke={colors[idx % colors.length]}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ))}
     </main>
   );
 }
