@@ -18,7 +18,11 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-    //DeviceType: a.string(),//追加（セカンダリーキーにも使用）。
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(), 
+
   }),
 
 
@@ -27,8 +31,11 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
     DeviceType: a.string(),
-    Division: a.string(),
+    Division: a.string(), 
+
   }),
 
   //step3にて追加。

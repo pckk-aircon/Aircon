@@ -120,6 +120,7 @@ export default function App() {
         </label>
       </div>
 
+
       <div>
         <h1>Temperature Data</h1>
         <ResponsiveContainer width="100%" height={400}>
