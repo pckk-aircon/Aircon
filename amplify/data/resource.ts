@@ -91,7 +91,7 @@ const schema = a.schema({
       StartDatetime: a.string(),//★範囲検索で使用するため、追加。
       EndDatetime: a.string(),//★範囲検索で使用するため、追加。
     })
-    .returns(a.ref("Post").array())
+    .returns(a.ref("IotData").array())
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
@@ -99,6 +99,17 @@ const schema = a.schema({
         entry: "./listIot.js",
 
       })
+    ),
+
+  //カスタムサブスクリプションを実装
+  receiveIot: a
+    .subscription()
+    .for(a.ref("listIot")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receiveIot.js'
+        })
     ),
 
   //新しいテーブル（DeviceTableDeviceTable）の設定を追加
