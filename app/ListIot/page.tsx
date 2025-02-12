@@ -196,6 +196,24 @@ export default function App() {
     return null;
   };
 
+  // カスタムツールチップコンポーネント
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Time: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
 
 
   return (
