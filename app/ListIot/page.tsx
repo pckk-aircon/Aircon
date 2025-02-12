@@ -22,6 +22,7 @@ interface ChartData {
   ActualTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
+  ReferenceTemp: number | null;
   Device: string;
   Division: string;
 }
@@ -84,6 +85,7 @@ export default function App() {
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+          ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -117,6 +119,7 @@ export default function App() {
     });
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
+    newItem.ReferenceTemp = item.ReferenceTemp;
     return newItem;
   });
 
@@ -180,6 +183,15 @@ export default function App() {
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="ReferenceTemp"
+              name="ReferenceTemp"
+              stroke="#800080"
               dot={false}
               connectNulls
               isAnimationActive={false}

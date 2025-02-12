@@ -7,6 +7,8 @@ export const response = (ctx) => {
   // リクエストからフィールドの値を取得。
   const deviceType = ctx.args.DeviceType;
   const division = ctx.args.Division;
+  const controlStage = ctx.args.ControlStage;
+  const referenceTemp = ctx.args.ReferenceTemp;
   const targetTemp = ctx.args.TargetTemp;
   const presetTemp = ctx.args.PresetTemp;
   const actualTemp = ctx.args.ActualTemp;
@@ -16,6 +18,8 @@ export const response = (ctx) => {
     ...ctx.result,
     DeviceType: deviceType,
     Division: division,
+    ControlStage: controlStage,
+    ReferenceTemp: referenceTemp,
     TargetTemp: targetTemp,
     PresetTemp: presetTemp,
     ActualTemp: actualTemp,
