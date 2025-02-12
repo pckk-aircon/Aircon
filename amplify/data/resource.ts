@@ -26,6 +26,8 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
+    TargetTemp: a.string(),
+    PresetTemp: a.string(),
     ActualTemp: a.string(),
     ActualHumidity: a.string(),
     DeviceType: a.string(),
@@ -99,8 +101,8 @@ const schema = a.schema({
   //カスタムサブスクリプションを実装
   receivelistIot: a
     .subscription()
-    .for(a.ref("addPost")) 
-    //.for(a.ref("getList")) 
+    //.for(a.ref("addPost")) 
+    .for(a.ref("getList")) 
     .authorization(allow => [allow.publicApiKey()])
     .handler(
         a.handler.custom({
