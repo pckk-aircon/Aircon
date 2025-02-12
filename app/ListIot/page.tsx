@@ -47,6 +47,7 @@ export default function App() {
   useEffect(() => {
     listIot();
 
+    /*
     const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
@@ -54,9 +55,9 @@ export default function App() {
         setPosts(prevPosts => [...prevPosts, event]);
       },
     });
-
     return () => sub.unsubscribe();
-
+    */
+   
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
