@@ -18,11 +18,6 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-    ActualTemp: a.string(),
-    ActualHumidity: a.string(),
-    DeviceType: a.string(),
-    Division: a.string(), 
-
   }),
 
 
@@ -31,12 +26,16 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
+    ControlStage: a.string(),
+    ReferenceTemp: a.string(), 
+    TargetTemp: a.string(),
+    PresetTemp: a.string(),
     ActualTemp: a.string(),
     ActualHumidity: a.string(),
     DeviceType: a.string(),
     Division: a.string(), 
-
   }),
+
 
   //step3にて追加。
   addPost: a
@@ -54,17 +53,6 @@ const schema = a.schema({
       })
     ),
 
-  //カスタムサブスクリプションを実装
-  receivePost: a
-    .subscription()
-    .for(a.ref("addPost")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receivePost.js'
-        })
-    ),
-
   getPost: a
     .query()
     .arguments({
@@ -80,6 +68,17 @@ const schema = a.schema({
       })
     ),
 
+  //カスタムサブスクリプションを実装
+  receivePost: a
+    .subscription()
+    .for(a.ref("addPost")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivePost.js'
+        })
+    ),
+
   //2025.1.23サポート様より提示。
   //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
   //配列をレスポンスするスキーマを追加
@@ -91,7 +90,7 @@ const schema = a.schema({
       StartDatetime: a.string(),//★範囲検索で使用するため、追加。
       EndDatetime: a.string(),//★範囲検索で使用するため、追加。
     })
-    .returns(a.ref("Post").array())
+    .returns(a.ref("IotData").array())
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
@@ -100,6 +99,34 @@ const schema = a.schema({
 
       })
     ),
+
+  //カスタムサブスクリプションを実装
+  receivelistIot: a
+    .subscription()
+    //.for(a.ref("addPost")) 
+    .for(a.ref("getList")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivelistIot.js'
+        })
+    ),
+
+  getList: a
+    .mutation()
+    .arguments({
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string()
+    })
+    .returns(a.ref("IotData"))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./getList.js",
+      })
+    ),
+
 
   //新しいテーブル（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
@@ -118,6 +145,8 @@ const schema = a.schema({
       })
     ),
 
+
+
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -131,33 +160,3 @@ export const data = defineData({
     },
   },
 });
-
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
