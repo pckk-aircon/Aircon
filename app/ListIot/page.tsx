@@ -19,9 +19,9 @@ const client = generateClient<Schema>();
 
 interface ChartData {
   DeviceDatetime: string;
-  ActualTemp: number;
-  TargetTemp: number;
-  PresetTemp: number;
+  ActualTemp: number | null;
+  TargetTemp: number | null;
+  PresetTemp: number | null;
   Device: string;
   Division: string;
 }
