@@ -91,7 +91,7 @@ const schema = a.schema({
       StartDatetime: a.string(),//★範囲検索で使用するため、追加。
       EndDatetime: a.string(),//★範囲検索で使用するため、追加。
     })
-    .returns(a.ref("IotData").array())
+    .returns(a.ref("Post").array())
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
