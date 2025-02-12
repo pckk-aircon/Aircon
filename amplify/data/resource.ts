@@ -38,21 +38,7 @@ const schema = a.schema({
 
   }),
 
-  //step3にて追加。
-  addPost: a
-    .mutation()
-    .arguments({
-      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
-      Controller: a.string()
-    })
-    .returns(a.ref("Post"))
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./addPost.js",
-      })
-    ),
+
 
   //カスタムサブスクリプションを実装
   receivePost: a
@@ -80,11 +66,28 @@ const schema = a.schema({
       })
     ),
 
+  //step3にて追加。
+  addPost: a
+    .mutation()
+    .arguments({
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string()
+    })
+    .returns(a.ref("Post"))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./addPost.js",
+      })
+    ),
+
   //2025.1.23サポート様より提示。
   //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
   //配列をレスポンスするスキーマを追加
   listIot: a
-    .query()
+    //.query()
+    .mutation()
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
