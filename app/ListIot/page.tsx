@@ -81,9 +81,9 @@ export default function App() {
         .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
-          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
-          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : 0,
-          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : 0,
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
+          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -170,17 +170,19 @@ export default function App() {
               type="monotone"
               dataKey="TargetTemp"
               name="TargetTemp"
-              stroke="#ff0000"
-              dot={{ r: 0.2, fill: "#ff0000" }}
+              stroke="#00ff00"
+              dot={false}
               connectNulls
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
-              dot={{ r: 0.2, fill: "#0000ff" }}
+              dot={false}
               connectNulls
+              isAnimationActive={false}
             />
           </LineChart>
         </ResponsiveContainer>
