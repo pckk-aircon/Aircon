@@ -158,7 +158,7 @@ export default function App() {
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
     const color = getDotColor(payload.ControlStage);
-    const size = 1;
+    const size = 4;
 
     return <circle cx={cx} cy={cy} r={size} fill={color} />;
   };
