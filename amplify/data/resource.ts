@@ -101,17 +101,6 @@ const schema = a.schema({
       })
     ),
 
-  //カスタムサブスクリプションを実装
-  receiveIot: a
-    .subscription()
-    .for(a.ref("listIot")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receiveIot.js'
-        })
-    ),
-
   //新しいテーブル（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
     .query()
