@@ -51,7 +51,7 @@ export default function App() {
     .subscribe({
       next: event => {
         console.log(event)
-        setPosts(prevPosts => [...prevPosts, event]);
+        //setPosts(prevPosts => [...prevPosts, event]);
       },
     });
 
