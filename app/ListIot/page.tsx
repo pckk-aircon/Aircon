@@ -21,6 +21,7 @@ interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number;
   Device: string;
+  Division: string;
 }
 
 export default function App() {
@@ -33,6 +34,9 @@ export default function App() {
   const [endDate, setEndDatetime] = useState(new Date());
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
+
+  const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
 
   interface Device {
     Device: string;
@@ -53,7 +57,7 @@ export default function App() {
 
     return () => sub.unsubscribe();
 
-  }, [startDate, endDate]);
+  }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
 
@@ -71,11 +75,14 @@ export default function App() {
     console.log('listIot=', data)
 
     if (data) {
-      const formattedData = data.map(item => ({
-        DeviceDatetime: item?.DeviceDatetime ?? '',
-        ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
-        Device: item?.Device ?? '',
-      }));
+      const formattedData = data
+        .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+        .map(item => ({
+          DeviceDatetime: item?.DeviceDatetime ?? '',
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+          Device: item?.Device ?? '',
+          Division: item?.Division ?? '',
+        }));
 
       // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
@@ -107,6 +114,14 @@ export default function App() {
     return newItem;
   });
 
+  const handleNext = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisions.length);
+  };
+
+  const handlePrevious = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
+  };
+
   return (
     <main>
       <div>
@@ -120,9 +135,13 @@ export default function App() {
         </label>
       </div>
 
+      <div>
+        <button onClick={handlePrevious}>前へ</button>
+        <button onClick={handleNext}>次へ</button>
+      </div>
 
       <div>
-        <h1>Temperature Data</h1>
+        <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -137,7 +156,8 @@ export default function App() {
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]}
-                dot={{ r: 4, fill: colors[index % colors.length] }}
+                dot={{ r: 0.2, fill: colors[index % colors.length] }}
+                connectNulls
               />
             ))}
           </LineChart>
