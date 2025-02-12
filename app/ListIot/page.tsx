@@ -20,6 +20,8 @@ const client = generateClient<Schema>();
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number;
+  TargetTemp: number;
+  PresetTemp: number;
   Device: string;
   Division: string;
 }
@@ -80,6 +82,8 @@ export default function App() {
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : 0,
+          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : 0,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -111,6 +115,8 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.TargetTemp = item.TargetTemp;
+    newItem.PresetTemp = item.PresetTemp;
     return newItem;
   });
 
@@ -160,6 +166,22 @@ export default function App() {
                 connectNulls
               />
             ))}
+            <Line
+              type="monotone"
+              dataKey="TargetTemp"
+              name="TargetTemp"
+              stroke="#ff0000"
+              dot={{ r: 0.2, fill: "#ff0000" }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="PresetTemp"
+              name="PresetTemp"
+              stroke="#0000ff"
+              dot={{ r: 0.2, fill: "#0000ff" }}
+              connectNulls
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

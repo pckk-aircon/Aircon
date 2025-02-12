@@ -9,6 +9,7 @@ export const response = (ctx) => {
 };
 */
 
+
 export function request() {
   // リクエストを返す際には、通常の設定や初期化を行います。
   return {};
