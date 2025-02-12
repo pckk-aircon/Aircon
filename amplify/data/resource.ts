@@ -18,11 +18,6 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-    ActualTemp: a.string(),
-    ActualHumidity: a.string(),
-    DeviceType: a.string(),
-    Division: a.string(), 
-
   }),
 
 
@@ -35,9 +30,7 @@ const schema = a.schema({
     ActualHumidity: a.string(),
     DeviceType: a.string(),
     Division: a.string(), 
-
   }),
-
 
 
   //カスタムサブスクリプションを実装
@@ -86,8 +79,7 @@ const schema = a.schema({
   //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
   //配列をレスポンスするスキーマを追加
   listIot: a
-    //.query()
-    .mutation()
+    .query()
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
