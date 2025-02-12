@@ -23,6 +23,7 @@ interface ChartData {
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
+  ControlStage: string | null;
   Device: string;
   Division: string;
 }
@@ -86,6 +87,7 @@ export default function App() {
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+          ControlStage: item?.ControlStage ?? null,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -120,6 +122,7 @@ export default function App() {
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
+    newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
@@ -130,6 +133,70 @@ export default function App() {
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
+
+  // ControlStageに応じたプロットの形状を設定
+  const getDotShape = (controlStage: string | null) => {
+    switch (controlStage) {
+      case '1a':
+        return 'circle';
+      case '1b':
+        return 'square';
+      case '2a':
+        return 'triangle';
+      case '2b':
+        return 'diamond';
+      case '3a':
+        return 'star';
+      case '3b':
+        return 'hexagon';
+      default:
+        return 'circle';
+    }
+  };
+
+  // カスタムドットコンポーネント
+  const CustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    const shape = getDotShape(payload.ControlStage);
+    const size = 6;
+
+    if (shape === 'circle') {
+      return <circle cx={cx} cy={cy} r={size} fill="#0000ff" />;
+    } else if (shape === 'square') {
+      return <rect x={cx - size / 2} y={cy - size / 2} width={size} height={size} fill="#0000ff" />;
+    } else if (shape === 'triangle') {
+      return (
+        <polygon
+          points={`${cx},${cy - size} ${cx - size},${cy + size} ${cx + size},${cy + size}`}
+          fill="#0000ff"
+        />
+      );
+    } else if (shape === 'diamond') {
+      return (
+        <polygon
+          points={`${cx},${cy - size} ${cx - size},${cy} ${cx},${cy + size} ${cx + size},${cy}`}
+          fill="#0000ff"
+        />
+      );
+    } else if (shape === 'star') {
+      return (
+        <polygon
+          points={`${cx},${cy - size} ${cx - size / 2},${cy - size / 2} ${cx - size},${cy} ${cx - size / 2},${cy + size / 2} ${cx},${cy + size} ${cx + size / 2},${cy + size / 2} ${cx + size},${cy} ${cx + size / 2},${cy - size / 2}`}
+          fill="#0000ff"
+        />
+      );
+    } else if (shape === 'hexagon') {
+      return (
+        <polygon
+          points={`${cx - size},${cy} ${cx - size / 2},${cy - size} ${cx + size / 2},${cy - size} ${cx + size},${cy} ${cx + size / 2},${cy + size} ${cx - size / 2},${cy + size}`}
+          fill="#0000ff"
+        />
+      );
+    }
+    return null;
+  };
+
+
 
   return (
     <main>
