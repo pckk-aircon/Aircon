@@ -134,66 +134,33 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
-  // ControlStageに応じたプロットの形状を設定
-  const getDotShape = (controlStage: string | null) => {
+  // ControlStageに応じたプロットの色を設定
+  const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return 'circle';
+        return '#ff0000'; // 赤
       case '1b':
-        return 'square';
+        return '#00ff00'; // 緑
       case '2a':
-        return 'triangle';
+        return '#0000ff'; // 青
       case '2b':
-        return 'diamond';
+        return '#ffff00'; // 黄
       case '3a':
-        return 'star';
+        return '#ff00ff'; // マゼンタ
       case '3b':
-        return 'hexagon';
+        return '#00ffff'; // シアン
       default:
-        return 'circle';
+        return '#000000'; // 黒
     }
   };
 
   // カスタムドットコンポーネント
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
-    const shape = getDotShape(payload.ControlStage);
-    const size = 6;
+    const color = getDotColor(payload.ControlStage);
+    const size = 1;
 
-    if (shape === 'circle') {
-      return <circle cx={cx} cy={cy} r={size} fill="#0000ff" />;
-    } else if (shape === 'square') {
-      return <rect x={cx - size / 2} y={cy - size / 2} width={size} height={size} fill="#0000ff" />;
-    } else if (shape === 'triangle') {
-      return (
-        <polygon
-          points={`${cx},${cy - size} ${cx - size},${cy + size} ${cx + size},${cy + size}`}
-          fill="#0000ff"
-        />
-      );
-    } else if (shape === 'diamond') {
-      return (
-        <polygon
-          points={`${cx},${cy - size} ${cx - size},${cy} ${cx},${cy + size} ${cx + size},${cy}`}
-          fill="#0000ff"
-        />
-      );
-    } else if (shape === 'star') {
-      return (
-        <polygon
-          points={`${cx},${cy - size} ${cx - size / 2},${cy - size / 2} ${cx - size},${cy} ${cx - size / 2},${cy + size / 2} ${cx},${cy + size} ${cx + size / 2},${cy + size / 2} ${cx + size},${cy} ${cx + size / 2},${cy - size / 2}`}
-          fill="#0000ff"
-        />
-      );
-    } else if (shape === 'hexagon') {
-      return (
-        <polygon
-          points={`${cx - size},${cy} ${cx - size / 2},${cy - size} ${cx + size / 2},${cy - size} ${cx + size},${cy} ${cx + size / 2},${cy + size} ${cx - size / 2},${cy + size}`}
-          fill="#0000ff"
-        />
-      );
-    }
-    return null;
+    return <circle cx={cx} cy={cy} r={size} fill={color} />;
   };
 
   // カスタムツールチップコンポーネント
