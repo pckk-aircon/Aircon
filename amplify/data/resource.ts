@@ -104,7 +104,7 @@ const schema = a.schema({
   //カスタムサブスクリプションを実装
   receivelistIot: a
     .subscription()
-    .for(a.ref("listIot")) 
+    .for(a.ref("addPost")) 
     .authorization(allow => [allow.publicApiKey()])
     .handler(
         a.handler.custom({
