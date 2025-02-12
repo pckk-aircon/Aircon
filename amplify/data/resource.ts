@@ -33,15 +33,20 @@ const schema = a.schema({
   }),
 
 
-  //カスタムサブスクリプションを実装
-  receivePost: a
-    .subscription()
-    .for(a.ref("addPost")) 
+  //step3にて追加。
+  addPost: a
+    .mutation()
+    .arguments({
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string()
+    })
+    .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
-        a.handler.custom({
-            entry: './receivePost.js'
-        })
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./addPost.js",
+      })
     ),
 
   getPost: a
@@ -59,20 +64,15 @@ const schema = a.schema({
       })
     ),
 
-  //step3にて追加。
-  addPost: a
-    .mutation()
-    .arguments({
-      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
-      Controller: a.string()
-    })
-    .returns(a.ref("Post"))
+  //カスタムサブスクリプションを実装
+  receivePost: a
+    .subscription()
+    .for(a.ref("addPost")) 
     .authorization(allow => [allow.publicApiKey()])
     .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./addPost.js",
-      })
+        a.handler.custom({
+            entry: './receivePost.js'
+        })
     ),
 
   //2025.1.23サポート様より提示。
@@ -100,6 +100,7 @@ const schema = a.schema({
   receivelistIot: a
     .subscription()
     .for(a.ref("addPost")) 
+    //.for(a.ref("getList")) 
     .authorization(allow => [allow.publicApiKey()])
     .handler(
         a.handler.custom({
@@ -107,24 +108,22 @@ const schema = a.schema({
         })
     ),
 
-
-
-  //新しいテーブル（DeviceTableDeviceTable）の設定を追加
-  listIotDataByController: a
-    .query()
+  getList: a
+    .mutation()
     .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string()
     })
-    .returns(a.ref("IotData").array())
+    .returns(a.ref("IotData"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "DeviceDataSource",//★★★
-        //dataSource: "ExternalPostTableDataSource",      
-        entry: "./listIot.js",
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./getList.js",
       })
     ),
+
+
 
 });
 
