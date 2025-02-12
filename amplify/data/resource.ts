@@ -101,6 +101,19 @@ const schema = a.schema({
       })
     ),
 
+  //カスタムサブスクリプションを実装
+  receivelistIot: a
+    .subscription()
+    .for(a.ref("addPost")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivelistIot.js'
+        })
+    ),
+
+
+
   //新しいテーブル（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
     .query()

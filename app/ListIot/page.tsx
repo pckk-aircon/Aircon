@@ -47,7 +47,7 @@ export default function App() {
   useEffect(() => {
     listIot();
 
-    const sub = client.subscriptions.receivePost()
+    const sub = client.subscriptions.receivelistIot()
     .subscribe({
       next: event => {
         console.log(event)
