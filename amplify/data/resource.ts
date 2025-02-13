@@ -83,7 +83,7 @@ const schema = a.schema({
 
   //＊＊＊＊ listIot ＊＊＊＊
 
-  //IoTDataの設定を追加
+  //IoTDataを設定
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
@@ -98,24 +98,24 @@ const schema = a.schema({
     Division: a.string(), 
   }),
 
-  listIot: a
-    .query()
-    .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
-      StartDatetime: a.string(),//範囲検索のため追加。
-      EndDatetime: a.string(),//範囲検索のため追加。
+// listIot（キー部分とキー以外のフィールドを一度に読み込み）
+listIot: a
+  .query()
+  .arguments({
+    Controller: a.string(),
+    StartDatetime: a.string(),
+    EndDatetime: a.string(),
+  })
+  .returns(a.ref("IotData").array())
+  .authorization(allow => [allow.publicApiKey()])
+  .handler(
+    a.handler.custom({
+      dataSource: "ExternalPostTableDataSource",
+      entry: "./listIot.js",
     })
-    .returns(a.ref("IotData").array())//結果は複数件レスポンスされる可能性があるので配列形式とする。
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./listIot.js",
+  ),
 
-      })
-    ),
-
+  /*
   //カスタムサブスクリプションを実装
   receivelistIot: a
     .subscription()
@@ -129,7 +129,7 @@ const schema = a.schema({
 
   //カスタムサブスクリプションのトリガー
   getList: a
-    .mutation()
+    .mutation()//←ミューテーション。
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
@@ -142,7 +142,7 @@ const schema = a.schema({
         entry: "./getList.js",
       })
     ),
-
+    */
 
 });
 

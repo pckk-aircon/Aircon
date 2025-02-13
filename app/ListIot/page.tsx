@@ -48,9 +48,10 @@ export default function App() {
     DeviceType: string;
   }
 
+  //useEffectI()の中に、 listIot()とreceivelistIot()を併記
   useEffect(() => {
     listIot();
-
+    /*
     const sub = client.subscriptions.receivelistIot()
     .subscribe({
       next: event => {
@@ -58,7 +59,7 @@ export default function App() {
       },
     });
     return () => sub.unsubscribe();
-
+    */
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
