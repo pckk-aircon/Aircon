@@ -21,22 +21,6 @@ const schema = a.schema({
   }),
 
 
-  //新しいテーブル（IoTData）の設定を追加
-  IotData: a.customType({
-    Device: a.id().required(),
-    DeviceDatetime: a.string(),
-    Controller: a.string(),
-    ControlStage: a.string(),
-    ReferenceTemp: a.string(), 
-    TargetTemp: a.string(),
-    PresetTemp: a.string(),
-    ActualTemp: a.string(),
-    ActualHumidity: a.string(),
-    DeviceType: a.string(),
-    Division: a.string(), 
-  }),
-
-
   //step3にて追加。
   addPost: a
     .mutation()
@@ -68,67 +52,7 @@ const schema = a.schema({
       })
     ),
 
-  //カスタムサブスクリプションを実装
-  receivePost: a
-    .subscription()
-    .for(a.ref("addPost")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receivePost.js'
-        })
-    ),
-
-  //2025.1.23サポート様より提示。
-  //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
-  //配列をレスポンスするスキーマを追加
-  listIot: a
-    .query()
-    .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
-      StartDatetime: a.string(),//★範囲検索で使用するため、追加。
-      EndDatetime: a.string(),//★範囲検索で使用するため、追加。
-    })
-    .returns(a.ref("IotData").array())
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./listIot.js",
-
-      })
-    ),
-
-  //カスタムサブスクリプションを実装
-  receivelistIot: a
-    .subscription()
-    //.for(a.ref("addPost")) 
-    .for(a.ref("getList")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receivelistIot.js'
-        })
-    ),
-
-  getList: a
-    .mutation()
-    .arguments({
-      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
-      Controller: a.string()
-    })
-    .returns(a.ref("IotData"))
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./getList.js",
-      })
-    ),
-
-
-  //新しいテーブル（DeviceTableDeviceTable）の設定を追加
+  //TableDevice（DeviceTableDeviceTable）の設定を追加
   listIotDataByController: a
     .query()
     .arguments({
@@ -145,6 +69,79 @@ const schema = a.schema({
       })
     ),
 
+  //カスタムサブスクリプションを実装
+  receivePost: a
+    .subscription()
+    .for(a.ref("addPost")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivePost.js'
+        })
+    ),
+
+
+  //＊＊＊＊ listIot ＊＊＊＊
+
+  //IoTDataの設定を追加
+  IotData: a.customType({
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+    Controller: a.string(),
+    ControlStage: a.string(),
+    ReferenceTemp: a.string(), 
+    TargetTemp: a.string(),
+    PresetTemp: a.string(),
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(), 
+  }),
+
+  listIot: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+      DeviceDatetime: a.string(),
+      StartDatetime: a.string(),//範囲検索のため追加。
+      EndDatetime: a.string(),//範囲検索のため追加。
+    })
+    .returns(a.ref("IotData").array())//結果は複数件レスポンスされる可能性があるので配列形式とする。
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./listIot.js",
+
+      })
+    ),
+
+  getList: a
+    .mutation()
+    .arguments({
+      //Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string(),
+      DeviceDatetime: a.string(),
+    })
+    .returns(a.ref("IotData"))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "ExternalPostTableDataSource",
+        entry: "./getList.js",
+      })
+    ),
+
+  //カスタムサブスクリプションを実装
+  receivelistIot: a
+    .subscription()
+    .for(a.ref("getList")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivelistIot.js'
+        })
+    ),
 
 
 });
