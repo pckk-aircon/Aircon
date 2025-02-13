@@ -1,4 +1,4 @@
-//step4にて追加。
+/*
 import { util } from "@aws-appsync/utils";
 import * as ddb from "@aws-appsync/utils/dynamodb";
 
@@ -11,3 +11,15 @@ export function request(ctx) {
 export function response(ctx) {
   return ctx.result;
 }
+
+*/
+
+
+export function request() {
+  return {};
+}
+
+export const response = (ctx) => {
+
+  return ctx.result;
+};

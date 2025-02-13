@@ -21,22 +21,6 @@ const schema = a.schema({
   }),
 
 
-  //新しいテーブル（IoTData）の設定を追加
-  IotData: a.customType({
-    Device: a.id().required(),
-    DeviceDatetime: a.string(),
-    Controller: a.string(),
-    ControlStage: a.string(),
-    ReferenceTemp: a.string(), 
-    TargetTemp: a.string(),
-    PresetTemp: a.string(),
-    ActualTemp: a.string(),
-    ActualHumidity: a.string(),
-    DeviceType: a.string(),
-    Division: a.string(), 
-  }),
-
-
   //step3にて追加。
   addPost: a
     .mutation()
@@ -68,6 +52,23 @@ const schema = a.schema({
       })
     ),
 
+  //TableDevice（DeviceTableDeviceTable）の設定を追加
+  listIotDataByController: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+      DeviceDatetime: a.string(),
+    })
+    .returns(a.ref("IotData").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "DeviceDataSource",//★★★
+        //dataSource: "ExternalPostTableDataSource",      
+        entry: "./listIot.js",
+      })
+    ),
+
   //カスタムサブスクリプションを実装
   receivePost: a
     .subscription()
@@ -78,6 +79,24 @@ const schema = a.schema({
             entry: './receivePost.js'
         })
     ),
+
+
+  //＊＊＊＊ listIot ＊＊＊＊
+
+  //IoTDataの設定を追加
+  IotData: a.customType({
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+    Controller: a.string(),
+    ControlStage: a.string(),
+    ReferenceTemp: a.string(), 
+    TargetTemp: a.string(),
+    PresetTemp: a.string(),
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(), 
+  }),
 
   listIot: a
     .query()
@@ -123,25 +142,6 @@ const schema = a.schema({
             entry: './receivelistIot.js'
         })
     ),
-
-
-  //新しいテーブル（DeviceTableDeviceTable）の設定を追加
-  listIotDataByController: a
-    .query()
-    .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
-    })
-    .returns(a.ref("IotData").array())
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "DeviceDataSource",//★★★
-        //dataSource: "ExternalPostTableDataSource",      
-        entry: "./listIot.js",
-      })
-    ),
-
 
 
 });
