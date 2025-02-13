@@ -51,7 +51,7 @@ export default function App() {
   useEffect(() => {
     listIot();
 
-    /*
+
     const sub = client.subscriptions.receivelistIot()
     .subscribe({
       next: event => {
@@ -60,8 +60,8 @@ export default function App() {
       },
     });
     return () => sub.unsubscribe();
-    */
-   
+ 
+
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
