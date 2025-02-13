@@ -51,16 +51,13 @@ export default function App() {
   useEffect(() => {
     listIot();
 
-
     const sub = client.subscriptions.receivelistIot()
     .subscribe({
       next: event => {
         console.log(event)
-        //setPosts(prevPosts => [...prevPosts, event]);
       },
     });
     return () => sub.unsubscribe();
- 
 
   }, [startDate, endDate, currentDivisionIndex]);
 
