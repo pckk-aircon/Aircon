@@ -143,7 +143,7 @@ export default function App() {
     const { cx, cy, payload } = props;
     //console.log('CustomDot props:', props); // ここでログを確認
     const color = getDotColor(payload.ControlStage);
-    const size = 4;
+    const size = 10;
 
     return <circle cx={cx} cy={cy} r={size} fill={color} />;
   };
