@@ -141,7 +141,7 @@ export default function App() {
 
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
-    console.log('CustomDot props:', props); // ここでログを確認
+    //console.log('CustomDot props:', props); // ここでログを確認
     const color = getDotColor(payload.ControlStage);
     const size = 4;
 
