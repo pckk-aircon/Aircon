@@ -20,4 +20,28 @@ export function request(ctx) {
 
 }
 
-export const response = (ctx) => ctx.result.items;
+//export const response = (ctx) => ctx.result.items;
+
+export const response = (ctx) => {
+    // リクエストからフィールドの値を取得。
+    const deviceType = ctx.args.DeviceType;
+    const division = ctx.args.Division;
+    const controlStage = ctx.args.ControlStage;
+    const referenceTemp = ctx.args.ReferenceTemp;
+    const targetTemp = ctx.args.TargetTemp;
+    const presetTemp = ctx.args.PresetTemp;
+    const actualTemp = ctx.args.ActualTemp;
+    const actualHumidity = ctx.args.ActualHumidity;
+  
+    return {
+      ...ctx.result,
+      DeviceType: deviceType,
+      Division: division,
+      ControlStage: controlStage,
+      ReferenceTemp: referenceTemp,
+      TargetTemp: targetTemp,
+      PresetTemp: presetTemp,
+      ActualTemp: actualTemp,
+      ActualHumidity: actualHumidity,
+    };
+  };

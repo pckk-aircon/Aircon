@@ -116,10 +116,21 @@ const schema = a.schema({
       })
     ),
 
+  //カスタムサブスクリプションを実装
+  receivelistIot: a
+    .subscription()
+    .for(a.ref("getList")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivelistIot.js'
+        })
+    ),
+
+  //カスタムサブスクリプションのトリガー
   getList: a
     .mutation()
     .arguments({
-      //Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
       Controller: a.string(),
       DeviceDatetime: a.string(),
     })
@@ -130,17 +141,6 @@ const schema = a.schema({
         dataSource: "ExternalPostTableDataSource",
         entry: "./getList.js",
       })
-    ),
-
-  //カスタムサブスクリプションを実装
-  receivelistIot: a
-    .subscription()
-    .for(a.ref("getList")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receivelistIot.js'
-        })
     ),
 
 
