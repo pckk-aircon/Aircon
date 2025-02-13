@@ -115,35 +115,6 @@ listIot: a
     })
   ),
 
-  /*
-  //カスタムサブスクリプションを実装
-  receivelistIot: a
-    .subscription()
-    .for(a.ref("getList")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receivelistIot.js'
-        })
-    ),
-
-  //カスタムサブスクリプションのトリガー
-  getList: a
-    .mutation()//←ミューテーション。
-    .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
-    })
-    .returns(a.ref("IotData"))
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
-        entry: "./getList.js",
-      })
-    ),
-    */
-
 });
 
 export type Schema = ClientSchema<typeof schema>;
