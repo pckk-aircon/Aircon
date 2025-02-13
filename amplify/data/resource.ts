@@ -79,18 +79,15 @@ const schema = a.schema({
         })
     ),
 
-  //2025.1.23サポート様より提示。
-  //Query の結果は複数件レスポンスされる可能性があるので、".returns(a.ref("Post").array())" のように
-  //配列をレスポンスするスキーマを追加
   listIot: a
     .query()
     .arguments({
       Controller: a.string(),
       DeviceDatetime: a.string(),
-      StartDatetime: a.string(),//★範囲検索で使用するため、追加。
-      EndDatetime: a.string(),//★範囲検索で使用するため、追加。
+      StartDatetime: a.string(),//範囲検索のため追加。
+      EndDatetime: a.string(),//範囲検索のため追加。
     })
-    .returns(a.ref("IotData").array())
+    .returns(a.ref("IotData").array())//結果は複数件レスポンスされる可能性があるので配列形式とする。
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
@@ -100,23 +97,12 @@ const schema = a.schema({
       })
     ),
 
-  //カスタムサブスクリプションを実装
-  receivelistIot: a
-    .subscription()
-    //.for(a.ref("addPost")) 
-    .for(a.ref("getList")) 
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-        a.handler.custom({
-            entry: './receivelistIot.js'
-        })
-    ),
-
   getList: a
     .mutation()
     .arguments({
-      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
-      Controller: a.string()
+      //Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string(),
+      DeviceDatetime: a.string(),
     })
     .returns(a.ref("IotData"))
     .authorization(allow => [allow.publicApiKey()])
@@ -125,6 +111,17 @@ const schema = a.schema({
         dataSource: "ExternalPostTableDataSource",
         entry: "./getList.js",
       })
+    ),
+
+  //カスタムサブスクリプションを実装
+  receivelistIot: a
+    .subscription()
+    .for(a.ref("getList")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivelistIot.js'
+        })
     ),
 
 
