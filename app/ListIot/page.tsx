@@ -83,15 +83,11 @@ export default function App() {
         .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
-<<<<<<< HEAD
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
           ControlStage: item?.ControlStage ?? null,
-=======
-          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
->>>>>>> d40b9ab00c39a654354be1ec7e6a9ff784a9f7aa
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -138,7 +134,6 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
-<<<<<<< HEAD
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
@@ -188,8 +183,6 @@ export default function App() {
 
 
 
-=======
->>>>>>> d40b9ab00c39a654354be1ec7e6a9ff784a9f7aa
   return (
     <main>
       <div>

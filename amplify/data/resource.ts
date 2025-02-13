@@ -26,11 +26,8 @@ const schema = a.schema({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
     Controller: a.string(),
-<<<<<<< HEAD
     ControlStage: a.string(),
     ReferenceTemp: a.string(), 
-=======
->>>>>>> d40b9ab00c39a654354be1ec7e6a9ff784a9f7aa
     TargetTemp: a.string(),
     PresetTemp: a.string(),
     ActualTemp: a.string(),
