@@ -11,7 +11,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
 
 Amplify.configure(outputs);
 
@@ -48,18 +48,8 @@ export default function App() {
     DeviceType: string;
   }
 
-  //useEffectI()の中に、 listIot()とreceivelistIot()を併記
   useEffect(() => {
     listIot();
-    /*
-    const sub = client.subscriptions.receivelistIot()
-    .subscribe({
-      next: event => {
-        console.log(event)
-      },
-    });
-    return () => sub.unsubscribe();
-    */
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
@@ -79,7 +69,7 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-        .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+        .filter(item => item?.Division === divisions[currentDivisionIndex])
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
@@ -91,7 +81,6 @@ export default function App() {
           Division: item?.Division ?? '',
         }));
 
-      // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
 
       console.log('Formatted Data:', formattedData);
@@ -100,7 +89,6 @@ export default function App() {
     }
   }
 
-  // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.Device]) {
       acc[item.Device] = [];
@@ -111,7 +99,6 @@ export default function App() {
 
   const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
 
-  // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
@@ -133,27 +120,25 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
-  // ControlStageに応じたプロットの色を設定
-  const getDotColor = (controlStage: string | null) => {
-    switch (controlStage) {
+  const getDotColor = (ControlStage: string | null) => {
+    switch (ControlStage) {
       case '1a':
-        return '#ff0000'; // 赤
+        return '#ff0000';
       case '1b':
-        return '#00ff00'; // 緑
+        return '#00ff00';
       case '2a':
-        return '#0000ff'; // 青
+        return '#0000ff';
       case '2b':
-        return '#ffff00'; // 黄
+        return '#ffff00';
       case '3a':
-        return '#ff00ff'; // マゼンタ
+        return '#ff00ff';
       case '3b':
-        return '#00ffff'; // シアン
+        return '#00ffff';
       default:
-        return '#000000'; // 黒
+        return '#000000';
     }
   };
 
-  // カスタムドットコンポーネント
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
     const color = getDotColor(payload.ControlStage);
@@ -162,7 +147,6 @@ export default function App() {
     return <circle cx={cx} cy={cy} r={size} fill={color} />;
   };
 
-  // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -179,8 +163,6 @@ export default function App() {
     }
     return null;
   };
-
-
 
   return (
     <main>
@@ -207,7 +189,7 @@ export default function App() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="DeviceDatetime" />
             <YAxis />
-            <Tooltip />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
             {Object.keys(groupedData).map((device, index) => (
               <Line
@@ -246,6 +228,12 @@ export default function App() {
               dot={false}
               connectNulls
               isAnimationActive={false}
+            />
+            <Scatter
+              name="ControlStage"
+              data={chartData}
+              fill="#000000"
+              shape={<CustomDot />}
             />
           </LineChart>
         </ResponsiveContainer>
