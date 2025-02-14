@@ -11,7 +11,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 Amplify.configure(outputs);
 
@@ -120,33 +120,6 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
-  const getDotColor = (ControlStage: string | null) => {
-    switch (ControlStage) {
-      case '1a':
-        return '#ff0000';
-      case '1b':
-        return '#00ff00';
-      case '2a':
-        return '#0000ff';
-      case '2b':
-        return '#ffff00';
-      case '3a':
-        return '#ff00ff';
-      case '3b':
-        return '#00ffff';
-      default:
-        return '#000000';
-    }
-  };
-
-  const CustomDot = (props: any) => {
-    const { cx, cy, payload } = props;
-    const color = getDotColor(payload.ControlStage);
-    const size = 10;
-
-    return <circle cx={cx} cy={cy} r={size} fill={color} />;
-  };
-
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -228,12 +201,6 @@ export default function App() {
               dot={false}
               connectNulls
               isAnimationActive={false}
-            />
-            <Scatter
-              name="ControlStage"
-              data={chartData.map(item => ({ ...item, y: 0 }))}
-              fill="#000000"
-              shape={<CustomDot />}
             />
           </LineChart>
         </ResponsiveContainer>
