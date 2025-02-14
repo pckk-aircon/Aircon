@@ -171,7 +171,7 @@ export default function App() {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" tickFormatter={(tick) => format(parseISO(tick), "yyyy-MM-dd HH:mm")} angle={45} textAnchor="start" />
+            <XAxis dataKey="DeviceDatetime" tickFormatter={(tick) => format(parseISO(tick), "MM-dd HH")} angle={45} textAnchor="start" />
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
