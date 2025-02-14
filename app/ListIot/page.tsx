@@ -141,7 +141,6 @@ export default function App() {
 
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
-    //console.log('CustomDot props:', props); // ここでログを確認
     const color = getDotColor(payload.ControlStage);
     const size = 10;
 
@@ -232,7 +231,7 @@ export default function App() {
             />
             <Scatter
               name="ControlStage"
-              data={chartData}
+              data={chartData.map(item => ({ ...item, y: 0 }))}
               fill="#000000"
               shape={<CustomDot />}
             />
