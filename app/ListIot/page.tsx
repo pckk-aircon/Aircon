@@ -175,8 +175,6 @@ export default function App() {
     return format(parseISO(tickItem), "MM-dd HH");
   };
 
-
-
   return (
     <main>
       <div>
@@ -200,7 +198,7 @@ export default function App() {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} interval={0} />
+            <XAxis dataKey="DeviceDatetime" />
             <YAxis />
             <Tooltip />
             <Legend />
