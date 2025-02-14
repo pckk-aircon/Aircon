@@ -9,9 +9,9 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 Amplify.configure(outputs);
 
@@ -19,11 +19,7 @@ const client = generateClient<Schema>();
 
 interface ChartData {
   DeviceDatetime: string;
-  ActualTemp: number | null;
-  TargetTemp: number | null;
-  PresetTemp: number | null;
-  ReferenceTemp: number | null;
-  ControlStage: string | null;
+  ActualTemp: number;
   Device: string;
   Division: string;
 }
@@ -50,6 +46,17 @@ export default function App() {
 
   useEffect(() => {
     listIot();
+
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      },
+    });
+
+    return () => sub.unsubscribe();
+
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
@@ -69,18 +76,15 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-        .filter(item => item?.Division === divisions[currentDivisionIndex])
+        .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
-          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
-          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
-          ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
-          ControlStage: item?.ControlStage ?? null,
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
 
+      // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
 
       console.log('Formatted Data:', formattedData);
@@ -89,6 +93,7 @@ export default function App() {
     }
   }
 
+  // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.Device]) {
       acc[item.Device] = [];
@@ -99,16 +104,13 @@ export default function App() {
 
   const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
 
+  // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
-    newItem.TargetTemp = item.TargetTemp;
-    newItem.PresetTemp = item.PresetTemp;
-    newItem.ReferenceTemp = item.ReferenceTemp;
-    newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
@@ -118,47 +120,6 @@ export default function App() {
 
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
-  };
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="custom-tooltip">
-          <p className="label">{`Time: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={`item-${index}`} style={{ color: entry.color }}>
-              {`${entry.name}: ${entry.value}`}
-            </p>
-          ))}
-          {payload[0].payload.ControlStage && (
-            <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomShape = (props: any) => {
-    const { cx, cy, payload } = props;
-    return (
-      <text x={cx} y={cy} dy={-4} fill="#000" fontSize={12} textAnchor="middle">
-        {payload.ControlStage}
-      </text>
-    );
-  };
-
-  const tickInterval = () => {
-    const diffInDays = differenceInDays(endDate, startDate);
-    if (diffInDays <= 1) {
-      return 1; // 1時間毎
-    } else if (diffInDays <= 7) {
-      return 6; // 6時間毎
-    } else if (diffInDays <= 30) {
-      return 24; // 1日毎
-    } else {
-      return 168; // 1週間毎
-    }
   };
 
   return (
@@ -182,12 +143,12 @@ export default function App() {
       <div>
         <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" tickFormatter={(tick) => format(parseISO(tick), "MM-dd HH")} angle={45} textAnchor="start" interval={tickInterval()} />
+            <XAxis dataKey="DeviceDatetime" />
             <YAxis />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ bottom: -20 }} />
+            <Tooltip />
+            <Legend />
             {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
@@ -199,43 +160,6 @@ export default function App() {
                 connectNulls
               />
             ))}
-            <Line
-              type="monotone"
-              dataKey="TargetTemp"
-              name="TargetTemp"
-              stroke="#00ff00"
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="PresetTemp"
-              name="PresetTemp"
-              stroke="#0000ff"
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="ReferenceTemp"
-              name="ReferenceTemp"
-              stroke="#800080"
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Scatter
-              name="ControlStage"
-              data={chartData.filter(item => item.ControlStage !== null).map(item => ({
-                DeviceDatetime: parseISO(item.DeviceDatetime).getTime(),
-                PresetTemp: item.PresetTemp,
-                ControlStage: item.ControlStage
-              }))}
-              fill="#000"
-              shape={<CustomShape />}
-            />
           </LineChart>
         </ResponsiveContainer>
       </div>
