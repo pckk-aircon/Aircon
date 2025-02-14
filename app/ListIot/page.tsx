@@ -130,7 +130,9 @@ export default function App() {
               {`${entry.name}: ${entry.value}`}
             </p>
           ))}
-          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+          {payload[0].payload.ControlStage && (
+            <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+          )}
         </div>
       );
     }
@@ -213,7 +215,7 @@ export default function App() {
             />
             <Scatter
               name="ControlStage"
-              data={chartData.map(item => ({
+              data={chartData.filter(item => item.ControlStage !== null).map(item => ({
                 DeviceDatetime: parseISO(item.DeviceDatetime).getTime(),
                 PresetTemp: item.PresetTemp,
                 ControlStage: item.ControlStage
