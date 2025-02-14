@@ -170,6 +170,11 @@ export default function App() {
     return null;
   };
 
+  // Format function for X-axis labels
+  const formatXAxis = (tickItem: string) => {
+    return format(parseISO(tickItem), "MM-dd HH");
+  };
+
 
 
   return (
