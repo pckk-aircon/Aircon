@@ -170,7 +170,10 @@ export default function App() {
     return null;
   };
 
-
+  // Format function for X-axis labels
+  const formatXAxis = (tickItem: string) => {
+    return format(parseISO(tickItem), "MM-dd HH");
+  };
 
   return (
     <main>
@@ -195,14 +198,10 @@ export default function App() {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="DeviceDatetime"
-              tickFormatter={(tick) => format(parseISO(tick), "MM-dd HH")}
-              interval={0}
-            />
+            <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} angle={45} textAnchor="end" height={70} />
             <YAxis />
             <Tooltip />
-            <Legend />
+            <Legend layout="horizontal" verticalAlign="bottom" align="center" />
             {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
