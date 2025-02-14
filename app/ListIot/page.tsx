@@ -19,7 +19,11 @@ const client = generateClient<Schema>();
 
 interface ChartData {
   DeviceDatetime: string;
-  ActualTemp: number;
+  ActualTemp: number | null;
+  TargetTemp: number | null;
+  PresetTemp: number | null;
+  ReferenceTemp: number | null;
+  ControlStage: string | null;
   Device: string;
   Division: string;
 }
@@ -46,17 +50,6 @@ export default function App() {
 
   useEffect(() => {
     listIot();
-
-    const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        console.log(event)
-        setPosts(prevPosts => [...prevPosts, event]);
-      },
-    });
-
-    return () => sub.unsubscribe();
-
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
@@ -79,7 +72,11 @@ export default function App() {
         .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
-          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
+          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+          ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+          ControlStage: item?.ControlStage ?? null,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -111,6 +108,10 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.TargetTemp = item.TargetTemp;
+    newItem.PresetTemp = item.PresetTemp;
+    newItem.ReferenceTemp = item.ReferenceTemp;
+    newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
@@ -121,6 +122,55 @@ export default function App() {
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
+
+  // ControlStageに応じたプロットの色を設定
+  const getDotColor = (controlStage: string | null) => {
+    switch (controlStage) {
+      case '1a':
+        return '#ff0000'; // 赤
+      case '1b':
+        return '#00ff00'; // 緑
+      case '2a':
+        return '#0000ff'; // 青
+      case '2b':
+        return '#ffff00'; // 黄
+      case '3a':
+        return '#ff00ff'; // マゼンタ
+      case '3b':
+        return '#00ffff'; // シアン
+      default:
+        return '#000000'; // 黒
+    }
+  };
+
+  // カスタムドットコンポーネント
+  const CustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    const color = getDotColor(payload.ControlStage);
+    const size = 4;
+
+    return <circle cx={cx} cy={cy} r={size} fill={color} />;
+  };
+
+  // カスタムツールチップコンポーネント
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Time: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+
 
   return (
     <main>
@@ -160,6 +210,33 @@ export default function App() {
                 connectNulls
               />
             ))}
+            <Line
+              type="monotone"
+              dataKey="TargetTemp"
+              name="TargetTemp"
+              stroke="#00ff00"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="PresetTemp"
+              name="PresetTemp"
+              stroke="#0000ff"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="ReferenceTemp"
+              name="ReferenceTemp"
+              stroke="#800080"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
