@@ -218,8 +218,8 @@ export default function App() {
               tickFormatter={formatXAxis} 
               angle={45} 
               textAnchor="end" 
-              height={40} 
-              interval={23} // １時間ごとにラベルを表示
+              height={70} 
+              interval={0} // すべてのラベルを表示
             />
 
             <YAxis />
