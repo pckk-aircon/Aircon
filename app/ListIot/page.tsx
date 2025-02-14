@@ -199,6 +199,16 @@ export default function App() {
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} angle={45} textAnchor="end" height={70} />
+
+            <XAxis 
+              dataKey="DeviceDatetime" 
+              tickFormatter={formatXAxis} 
+              angle={45} 
+              textAnchor="end" 
+              height={40} 
+              interval={23} // １時間ごとにラベルを表示
+            />
+
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
