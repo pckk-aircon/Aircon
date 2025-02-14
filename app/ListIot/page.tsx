@@ -11,7 +11,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Text } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
 
 Amplify.configure(outputs);
 
@@ -137,6 +137,15 @@ export default function App() {
     return null;
   };
 
+  const CustomShape = (props: any) => {
+    const { cx, cy, payload } = props;
+    return (
+      <text x={cx} y={cy} dy={-4} fill="#000" fontSize={12} textAnchor="middle">
+        {payload.ControlStage}
+      </text>
+    );
+  };
+
   return (
     <main>
       <div>
@@ -202,20 +211,16 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
             />
-            {chartData.map((item, index) => (
-              item.ControlStage && item.PresetTemp !== null && (
-                <Text
-                  key={index}
-                  x={item.DeviceDatetime}
-                  y={item.PresetTemp}
-                  fill="#000"
-                  fontSize={12}
-                  textAnchor="middle"
-                >
-                  {item.ControlStage}
-                </Text>
-              )
-            ))}
+            <Scatter
+              name="ControlStage"
+              data={chartData.map(item => ({
+                DeviceDatetime: parseISO(item.DeviceDatetime).getTime(),
+                PresetTemp: item.PresetTemp,
+                ControlStage: item.ControlStage
+              }))}
+              fill="#000"
+              shape={<CustomShape />}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
