@@ -9,7 +9,7 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInHours, differenceInDays } from "date-fns";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
 
@@ -147,6 +147,20 @@ export default function App() {
       </text>
     );
   };
+
+  const tickInterval = () => {
+    const diffInDays = differenceInDays(endDate, startDate);
+    if (diffInDays <= 1) {
+      return 1; // 1時間毎
+    } else if (diffInDays <= 7) {
+      return 6; // 6時間毎
+    } else if (diffInDays <= 30) {
+      return 24; // 1日毎
+    } else {
+      return 168; // 1週間毎
+    }
+  };
+
 
   return (
     <main>
