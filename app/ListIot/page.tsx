@@ -170,9 +170,22 @@ export default function App() {
     return null;
   };
 
-  // Format function for X-axis labels
+  /*
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH");
+  };
+  */
+
+  const formatXAxis = (tickItem: string) => {
+    const date = parseISO(tickItem);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+  
+    // ちょうどの時間（例：10:00、11:00、12:00）の場合にラベルを表示
+    if (minutes === 0) {
+      return format(date, "HH:mm");
+    }
+    return '';
   };
 
   return (
