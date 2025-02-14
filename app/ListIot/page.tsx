@@ -9,7 +9,7 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO, differenceInHours, differenceInDays } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
 
@@ -161,7 +161,6 @@ export default function App() {
     }
   };
 
-
   return (
     <main>
       <div>
@@ -183,12 +182,12 @@ export default function App() {
       <div>
         <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" tickFormatter={(tick) => format(parseISO(tick), "MM-dd HH")} angle={45} textAnchor="start" />
+            <XAxis dataKey="DeviceDatetime" tickFormatter={(tick) => format(parseISO(tick), "MM-dd HH")} angle={45} textAnchor="start" interval={tickInterval()} />
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
-            <Legend />
+            <Legend wrapperStyle={{ bottom: -20 }} />
             {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
