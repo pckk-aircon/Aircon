@@ -11,7 +11,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Text } from 'recharts';
 
 Amplify.configure(outputs);
 
@@ -202,6 +202,20 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
             />
+            {chartData.map((item, index) => (
+              item.ControlStage && item.PresetTemp !== null && (
+                <Text
+                  key={index}
+                  x={item.DeviceDatetime}
+                  y={item.PresetTemp}
+                  fill="#000"
+                  fontSize={12}
+                  textAnchor="middle"
+                >
+                  {item.ControlStage}
+                </Text>
+              )
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
