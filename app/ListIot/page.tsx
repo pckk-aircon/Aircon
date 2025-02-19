@@ -20,6 +20,7 @@ const client = generateClient<Schema>();
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number | null;
+  WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
@@ -73,6 +74,7 @@ export default function App() {
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+          WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
@@ -223,6 +225,16 @@ export default function App() {
                 connectNulls
               />
             ))}
+
+            <Line
+              type="monotone"
+              dataKey="WeightedTemp"
+              name="WeightedTemp"
+              stroke="red"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
             <Line
               type="monotone"
               dataKey="TargetTemp"
