@@ -50,20 +50,6 @@ export default function App() {
 
   useEffect(() => {
     listIot();
-<<<<<<< HEAD
-
-    const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        console.log(event)
-        setPosts(prevPosts => [...prevPosts, event]);
-      },
-    });
-
-    return () => sub.unsubscribe();
-
-=======
->>>>>>> feature-t3
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
@@ -86,15 +72,11 @@ export default function App() {
         .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
-<<<<<<< HEAD
-          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
-=======
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
           ControlStage: item?.ControlStage ?? null,
->>>>>>> feature-t3
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
