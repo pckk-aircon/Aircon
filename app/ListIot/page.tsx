@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuthenticator } from "@aws-amplify/ui-react"; //login認証
+import { useForm, FormProvider, useFormContext } from 'react-hook-form'; //login認証
+
 
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
