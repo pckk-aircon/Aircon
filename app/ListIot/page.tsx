@@ -19,7 +19,11 @@ const client = generateClient<Schema>();
 
 interface ChartData {
   DeviceDatetime: string;
-  ActualTemp: number;
+  ActualTemp: number | null;
+  TargetTemp: number | null;
+  PresetTemp: number | null;
+  ReferenceTemp: number | null;
+  ControlStage: string | null;
   Device: string;
   Division: string;
 }
@@ -46,6 +50,7 @@ export default function App() {
 
   useEffect(() => {
     listIot();
+<<<<<<< HEAD
 
     const sub = client.subscriptions.receivePost()
     .subscribe({
@@ -57,6 +62,8 @@ export default function App() {
 
     return () => sub.unsubscribe();
 
+=======
+>>>>>>> feature-t3
   }, [startDate, endDate, currentDivisionIndex]);
 
   async function listIot() {
@@ -79,7 +86,15 @@ export default function App() {
         .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
+<<<<<<< HEAD
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+=======
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
+          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+          ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+          ControlStage: item?.ControlStage ?? null,
+>>>>>>> feature-t3
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
         }));
@@ -111,6 +126,10 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.TargetTemp = item.TargetTemp;
+    newItem.PresetTemp = item.PresetTemp;
+    newItem.ReferenceTemp = item.ReferenceTemp;
+    newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
@@ -122,6 +141,59 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
+  // ControlStageに応じたプロットの色を設定
+  const getDotColor = (controlStage: string | null) => {
+    switch (controlStage) {
+      case '1a':
+        return '#ff0000'; // 赤
+      case '1b':
+        return '#00ff00'; // 緑
+      case '2a':
+        return '#0000ff'; // 青
+      case '2b':
+        return '#ffff00'; // 黄
+      case '3a':
+        return '#ff00ff'; // マゼンタ
+      case '3b':
+        return '#00ffff'; // シアン
+      default:
+        return '#000000'; // 黒
+    }
+  };
+
+  // カスタムドットコンポーネント
+  const CustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    const color = getDotColor(payload.ControlStage);
+    const size = 4;
+
+    return <circle cx={cx} cy={cy} r={size} fill={color} />;
+  };
+
+  // カスタムツールチップコンポーネント
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Time: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const formatXAxis = (tickItem: string) => {
+    return format(parseISO(tickItem), "MM-dd HH");
+  };
+
+
+  
   return (
     <main>
       <div>
@@ -145,10 +217,20 @@ export default function App() {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" />
+            <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} angle={45} textAnchor="end" height={70} />
+
+            <XAxis 
+              dataKey="DeviceDatetime" 
+              tickFormatter={formatXAxis} 
+              angle={45} 
+              textAnchor="end" 
+              height={70} 
+              interval={0} // すべてのラベルを表示
+            />
+
             <YAxis />
             <Tooltip />
-            <Legend />
+            <Legend layout="horizontal" verticalAlign="bottom" align="center" />
             {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
@@ -160,6 +242,33 @@ export default function App() {
                 connectNulls
               />
             ))}
+            <Line
+              type="monotone"
+              dataKey="TargetTemp"
+              name="TargetTemp"
+              stroke="#00ff00"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="PresetTemp"
+              name="PresetTemp"
+              stroke="#0000ff"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="ReferenceTemp"
+              name="ReferenceTemp"
+              stroke="#800080"
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
