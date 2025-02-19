@@ -170,10 +170,11 @@ export default function App() {
     return null;
   };
 
-  // Format function for X-axis labels
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH");
   };
+
+  
 
   return (
     <main>
@@ -199,6 +200,16 @@ export default function App() {
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} angle={45} textAnchor="end" height={70} />
+
+            <XAxis 
+              dataKey="DeviceDatetime" 
+              tickFormatter={formatXAxis} 
+              angle={45} 
+              textAnchor="end" 
+              height={70} 
+              interval={0} // すべてのラベルを表示
+            />
+
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
