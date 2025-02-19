@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuthenticator } from "@aws-amplify/ui-react"; //login認証
+
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
@@ -29,6 +31,8 @@ interface ChartData {
 }
 
 export default function App() {
+
+  const { signOut } = useAuthenticator(); //login認証
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
@@ -174,7 +178,7 @@ export default function App() {
     return format(parseISO(tickItem), "MM-dd HH");
   };
 
-  
+
 
   return (
     <main>
@@ -253,7 +257,11 @@ export default function App() {
             />
           </LineChart>
         </ResponsiveContainer>
+
+        <button onClick={signOut}>Sign out</button>
+      
       </div>
+
     </main>
   );
 }

@@ -1,6 +1,10 @@
 import { ReactNode } from 'react';
 import Sidebar from './Sidebar'; // Sidebar.tsxへのパスを調整してください。
 
+
+import { Authenticator } from "@aws-amplify/ui-react"; //login認証
+import "@aws-amplify/ui-react/styles.css"; //login認証
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -12,7 +16,9 @@ export default function Layout({ children }: LayoutProps) {
         <div style={{ display: 'flex' }}>
           <Sidebar />
           <div style={{ flex: 1 }}>
-            {children}
+            <Authenticator>
+              {children}
+            </Authenticator>
           </div>
         </div>
       </body>
