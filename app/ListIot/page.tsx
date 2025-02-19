@@ -33,7 +33,7 @@ interface ChartData {
 
 export default function App() {
 
-  const { signOut } = useAuthenticator(); //login認証
+  //const { signOut } = useAuthenticator(); //login認証
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
@@ -257,8 +257,6 @@ export default function App() {
             />
           </LineChart>
         </ResponsiveContainer>
-
-        <button onClick={signOut}>Sign out</button>
       
       </div>
 
