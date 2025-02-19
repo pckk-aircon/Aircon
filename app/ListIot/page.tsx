@@ -101,8 +101,8 @@ export default function App() {
     return acc;
   }, {});
 
-  //const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
-  const lineStyles = ["solid", "3 3", "5 5", "10 5", "10 10"];
+
+  const colors = ["magenta", "mediumvioletred", "pink", "deeppink", "violet"];
 
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
@@ -222,8 +222,8 @@ export default function App() {
                 type="monotone"
                 dataKey={device}
                 name={device}
-                stroke="#ff0000" // 赤色
-                strokeDasharray={lineStyles[index % lineStyles.length]} // 線種を変更
+                stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                connectNulls
               />
             ))}
             <Line
