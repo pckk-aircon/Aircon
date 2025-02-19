@@ -1,9 +1,6 @@
 import { ReactNode } from 'react';
 import Sidebar from './Sidebar'; // Sidebar.tsxへのパスを調整してください。
 
-import { Authenticator } from "@aws-amplify/ui-react"; //login認証
-import "@aws-amplify/ui-react/styles.css"; //login認証
-
 interface LayoutProps {
   children: ReactNode;
 }
