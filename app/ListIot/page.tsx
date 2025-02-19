@@ -223,6 +223,7 @@ export default function App() {
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
                 connectNulls
               />
             ))}
