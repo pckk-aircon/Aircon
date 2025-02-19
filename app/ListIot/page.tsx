@@ -230,7 +230,8 @@ export default function App() {
               type="monotone"
               dataKey="WeightedTemp"
               name="WeightedTemp"
-              stroke="red"
+              stroke="#ff0000"
+              strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -240,6 +241,7 @@ export default function App() {
               dataKey="TargetTemp"
               name="TargetTemp"
               stroke="#00ff00"
+              strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -249,6 +251,7 @@ export default function App() {
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
+              strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -258,6 +261,7 @@ export default function App() {
               dataKey="ReferenceTemp"
               name="ReferenceTemp"
               stroke="#800080"
+              strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
