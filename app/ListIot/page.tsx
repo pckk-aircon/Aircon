@@ -110,6 +110,7 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
@@ -225,7 +226,16 @@ export default function App() {
                 connectNulls
               />
             ))}
-
+            <Line
+              type="monotone"
+              dataKey="WeightedTemp"
+              name="WeightedTemp"
+              stroke="#ff0000" // 赤色
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
             <Line
               type="monotone"
               dataKey="TargetTemp"
@@ -251,16 +261,6 @@ export default function App() {
               dataKey="ReferenceTemp"
               name="ReferenceTemp"
               stroke="#800080"
-              strokeWidth={3} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="WeightedTemp"
-              name="WeightedTemp"
-              stroke="#ff0000" // 赤色
               strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
