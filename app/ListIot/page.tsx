@@ -102,7 +102,7 @@ export default function App() {
   }, {});
 
 
-  const colors = ["magenta", "mediumvioletred", "pink", "deeppink", "violet"];
+  const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
@@ -131,19 +131,27 @@ export default function App() {
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return '#ff0000'; // 赤
+        return 'aliceblue';
       case '1b':
-        return '#00ff00'; // 緑
+        return 'lightsteelblue';
+      case '1c':
+        return 'steelblue';
+      case '1cD':
+        return 'royalblue';
       case '2a':
-        return '#0000ff'; // 青
+        return 'midnightblue';
       case '2b':
-        return '#ffff00'; // 黄
-      case '3a':
-        return '#ff00ff'; // マゼンタ
-      case '3b':
-        return '#00ffff'; // シアン
+        return 'mediumblue';
+      case '2c1':
+        return 'dodgerblue';
+      case '2c2':
+        return 'deepskyblue';
+      case '2c3':
+        return 'skyblue';
+      case '2d':
+        return 'cyan';
       default:
-        return '#000000'; // 黒
+        return '#000000'; // その他
     }
   };
 
@@ -258,7 +266,7 @@ export default function App() {
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={2} fill={color} />;
+                return <circle cx={cx} cy={cy} r={5} fill={color} />;
               }}
               connectNulls
               isAnimationActive={false}
