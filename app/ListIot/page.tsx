@@ -254,7 +254,12 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              dot={false}
+              //dot={false}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                const color = getDotColor(payload.ControlStage);
+                return <circle cx={cx} cy={cy} r={2} fill={color} />;
+              }}
               connectNulls
               isAnimationActive={false}
             />
