@@ -30,6 +30,7 @@ interface ChartData {
   Division: string;
 }
 
+
 export default function App() {
 
   const { signOut } = useAuthenticator(); //login認証
