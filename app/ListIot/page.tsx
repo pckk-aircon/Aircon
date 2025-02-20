@@ -150,14 +150,15 @@ export default function App() {
     }
   };
 
+  /*
   // カスタムドットコンポーネント
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
     const color = getDotColor(payload.ControlStage);
     const size = 4;
-
     return <circle cx={cx} cy={cy} r={size} fill={color} />;
   };
+  */
 
   // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
