@@ -20,6 +20,7 @@ const client = generateClient<Schema>();
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number | null;
+  WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
@@ -45,11 +46,13 @@ export default function App() {
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
 
+  /*
   interface Device {
     Device: string;
     Controller: string;
     DeviceType: string;
   }
+  */
 
   useEffect(() => {
     listIot();
@@ -76,6 +79,7 @@ export default function App() {
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+          WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
@@ -102,7 +106,8 @@ export default function App() {
     return acc;
   }, {});
 
-  const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
+
+  const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
@@ -111,6 +116,7 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
@@ -126,23 +132,32 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
+  
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return '#ff0000'; // 赤
+        return 'aliceblue';
       case '1b':
-        return '#00ff00'; // 緑
+        return 'lightsteelblue';
+      case '1c':
+        return 'steelblue';
+      case '1cD':
+        return 'royalblue';
       case '2a':
-        return '#0000ff'; // 青
+        return 'midnightblue';
       case '2b':
-        return '#ffff00'; // 黄
-      case '3a':
-        return '#ff00ff'; // マゼンタ
-      case '3b':
-        return '#00ffff'; // シアン
+        return 'mediumblue';
+      case '2c1':
+        return 'dodgerblue';
+      case '2c2':
+        return 'deepskyblue';
+      case '2c3':
+        return 'skyblue';
+      case '2d':
+        return 'cyan';
       default:
-        return '#000000'; // 黒
+        return '#000000'; // その他
     }
   };
 
@@ -200,7 +215,7 @@ export default function App() {
         <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid strokeDasharray="1 1" vertical={false} />
             <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} angle={45} textAnchor="end" height={70} />
 
             <XAxis 
@@ -221,16 +236,28 @@ export default function App() {
                 type="monotone"
                 dataKey={device}
                 name={device}
-                stroke={colors[index % colors.length]}
-                dot={{ r: 0.2, fill: colors[index % colors.length] }}
+                stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                //dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
+                dot={false}
                 connectNulls
               />
             ))}
             <Line
               type="monotone"
+              dataKey="WeightedTemp"
+              name="WeightedTemp"
+              stroke="#ff0000" // 赤色
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
               dataKey="TargetTemp"
               name="TargetTemp"
               stroke="#00ff00"
+              strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -240,7 +267,13 @@ export default function App() {
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
-              dot={false}
+              strokeWidth={3} // 太線にする
+              //dot={false}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                const color = getDotColor(payload.ControlStage);
+                return <circle cx={cx} cy={cy} r={1} fill={color} />;
+              }}
               connectNulls
               isAnimationActive={false}
             />
@@ -249,6 +282,7 @@ export default function App() {
               dataKey="ReferenceTemp"
               name="ReferenceTemp"
               stroke="#800080"
+              strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}

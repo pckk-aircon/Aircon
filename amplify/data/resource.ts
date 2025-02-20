@@ -89,6 +89,7 @@ const schema = a.schema({
     DeviceDatetime: a.string(),
     Controller: a.string(),
     ControlStage: a.string(),
+    WeightedTemp: a.string(),
     ReferenceTemp: a.string(), 
     TargetTemp: a.string(),
     PresetTemp: a.string(),
