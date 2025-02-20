@@ -132,7 +132,7 @@ export default function App() {
       case '1c':
         return 'green';
       case '1cD':
-        return 'darkgreen';
+        return 'pink';
       case '2a':
         return 'blue';
       case '2b':
@@ -261,7 +261,7 @@ export default function App() {
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={3} fill={color} />;
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
               }}
               connectNulls
               isAnimationActive={false}
