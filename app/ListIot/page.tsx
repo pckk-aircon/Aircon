@@ -303,96 +303,10 @@ interface ChartData {
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
-  Power: string | null;
   ControlStage: string | null;
   Device: string;
   Division: string;
 }
-
-  // ControlStageに応じたプロットの色を設定
-  const getDotColor = (controlStage: string | null) => {
-    switch (controlStage) {
-      case '1a':
-        return 'palegreen';
-      case '1b':
-        return 'limegreen';
-      case '1c':
-        return 'green';
-      case '1cD':
-        return 'pink';
-      case '2a':
-        return 'blue';
-      case '2b':
-        return 'royalblue';
-      case '2c1':
-        return 'yellow';
-      case '2c2':
-        return 'orangered';
-      case '2c3':
-        return 'red';
-      case '2d':
-        return 'darkblue';
-      default:
-        return '#000000'; // その他
-    }
-  };
-
-  interface CustomLineProps {
-    dataKey: string;
-    name: string;
-    stroke: string;
-    chartData: ChartData[];
-  }
-  /*
-  const CustomLine: React.FC<CustomLineProps> = ({ dataKey, name, stroke, chartData }) => {
-    return (
-      <>
-        {chartData.map((entry, index) => (
-          <Line
-            key={index}
-            type="monotone"
-            dataKey={dataKey}
-            name={name}
-            stroke={stroke}
-            strokeWidth={entry.Power === 'on' ? 3 : 1} // Powerがonのときは太線、offのときは細線
-            dot={(props) => {
-              const { cx, cy, payload } = props;
-              const color = getDotColor(payload.ControlStage);
-              return <circle cx={cx} cy={cy} r={4} fill={color} />;
-            }}
-            connectNulls
-            isAnimationActive={false}
-          />
-        ))}
-      </>
-    );
-  };
-  */
- 
-  const CustomLine: React.FC<CustomLineProps> = ({ dataKey, name, stroke, chartData }) => {
-    return (
-      <Line
-        type="monotone"
-        dataKey={dataKey}
-        name={name}
-        stroke={stroke}
-        strokeWidth={3} // デフォルトの太さ
-        dot={(props) => {
-          const { cx, cy, payload } = props;
-          const color = getDotColor(payload.ControlStage);
-          const strokeWidth = payload.Power === 'on' ? 3 : 1; // Powerがonのときは太線、offのときは細線
-          return (
-            <>
-              <circle cx={cx} cy={cy} r={4} fill={color} />
-              <line x1={cx} y1={cy} x2={cx + 1} y2={cy} stroke={stroke} strokeWidth={strokeWidth} />
-            </>
-          );
-        }}
-        connectNulls
-        isAnimationActive={false}
-      />
-    );
-  };
 
 export default function App() {
 
@@ -438,7 +352,6 @@ export default function App() {
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
-          Power: item?.Power ?? null,
           ControlStage: item?.ControlStage ?? null,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
@@ -477,7 +390,6 @@ export default function App() {
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
-    newItem.Power = item.Power;
     return newItem;
   });
 
@@ -489,6 +401,33 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
+  // ControlStageに応じたプロットの色を設定
+  const getDotColor = (controlStage: string | null) => {
+    switch (controlStage) {
+      case '1a':
+        return 'palegreen';
+      case '1b':
+        return 'limegreen';
+      case '1c':
+        return 'green';
+      case '1cD':
+        return 'pink';
+      case '2a':
+        return 'blue';
+      case '2b':
+        return 'royalblue';
+      case '2c1':
+        return 'yellow';
+      case '2c2':
+        return 'orangered';
+      case '2c3':
+        return 'red';
+      case '2d':
+        return 'darkblue';
+      default:
+        return '#000000'; // その他
+    }
+  };
 
   // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -581,11 +520,20 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
             />
-            <CustomLine
+            <Line
+              type="monotone"
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
-              chartData={chartData}
+              strokeWidth={3} // 太線にする
+              //dot={false}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                const color = getDotColor(payload.ControlStage);
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
+              }}
+              connectNulls
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
