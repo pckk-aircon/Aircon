@@ -24,7 +24,7 @@ interface ChartData {
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
-  //ControlStage: string | null;
+  ControlStage: string | null;
   Device: string;
   Division: string;
 }
@@ -42,14 +42,6 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
-
-  /*
-  interface Device {
-    Device: string;
-    Controller: string;
-    DeviceType: string;
-  }
-  */
 
 
   useEffect(() => {
@@ -118,7 +110,7 @@ export default function App() {
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
-    //newItem.ControlStage = item.ControlStage;
+    newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
@@ -265,12 +257,14 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              //dot={false}
+              dot={false}
+              /*
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
                 return <circle cx={cx} cy={cy} r={1} fill={color} />;
               }}
+              */
               connectNulls
               isAnimationActive={false}
             />
