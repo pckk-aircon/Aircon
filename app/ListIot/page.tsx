@@ -303,6 +303,7 @@ interface ChartData {
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
+  Power: string | null;
   ControlStage: string | null;
   Device: string;
   Division: string;
@@ -352,6 +353,7 @@ export default function App() {
           TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
           PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
           ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+          Power: item?.Power ?? null,
           ControlStage: item?.ControlStage ?? null,
           Device: item?.Device ?? '',
           Division: item?.Division ?? '',
@@ -390,6 +392,7 @@ export default function App() {
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
+    newItem.Power = item.Power;
     return newItem;
   });
 
