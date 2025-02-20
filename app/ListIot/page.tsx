@@ -213,8 +213,8 @@ export default function App() {
               tickFormatter={formatXAxis} 
               angle={45} 
               textAnchor="end" 
-              height={70} 
-              interval={0} // すべてのラベルを表示
+              height={35} 
+              interval={1} // すべてのラベルを表示
             />
 
             <YAxis />
