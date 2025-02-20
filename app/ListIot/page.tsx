@@ -213,7 +213,7 @@ export default function App() {
               angle={45} 
               textAnchor="end" 
               height={35} 
-              interval={60} // すべてのラベルを表示。1にするとうまくいかない。
+              interval={0} // すべてのラベルを表示。1にするとうまくいかない。
             />
 
             <YAxis />
@@ -261,7 +261,7 @@ export default function App() {
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={0} cy={0} r={4} fill={color} />;
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
               }}
               connectNulls
               isAnimationActive={false}
