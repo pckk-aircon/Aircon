@@ -29,10 +29,7 @@ interface ChartData {
   Division: string;
 }
 
-
 export default function App() {
-
-  //const { signOut } = useAuthenticator(); //login認証
 
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
@@ -46,13 +43,6 @@ export default function App() {
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
 
-  /*
-  interface Device {
-    Device: string;
-    Controller: string;
-    DeviceType: string;
-  }
-  */
 
   useEffect(() => {
     listIot();
@@ -132,7 +122,6 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
   };
 
-  
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
@@ -268,12 +257,14 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              //dot={false}
+              dot={false}
+              /*
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
                 return <circle cx={cx} cy={cy} r={1} fill={color} />;
               }}
+              */
               connectNulls
               isAnimationActive={false}
             />
@@ -289,9 +280,7 @@ export default function App() {
             />
           </LineChart>
         </ResponsiveContainer>
-      
       </div>
-
     </main>
   );
 }
