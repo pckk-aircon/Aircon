@@ -226,8 +226,8 @@ export default function App() {
               tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
               angle={45} 
               textAnchor="end" 
-              height={35} 
-              interval={0} // すべての目盛りを表示
+              height={0} 
+              interval={1000} // すべての目盛りを表示
             />
 
             <YAxis />
