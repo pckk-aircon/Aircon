@@ -151,15 +151,6 @@ export default function App() {
   };
 
   /*
-  // カスタムドットコンポーネント
-  const CustomDot = (props: any) => {
-    const { cx, cy, payload } = props;
-    const color = getDotColor(payload.ControlStage);
-    const size = 4;
-    return <circle cx={cx} cy={cy} r={size} fill={color} />;
-  };
-  */
-
   // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -177,6 +168,29 @@ export default function App() {
     }
     return null;
   };
+  */
+
+
+  // カスタムツールチップコンポーネント
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Time: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          {payload[0].payload.ControlStage && (
+            <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH");
