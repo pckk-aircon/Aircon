@@ -43,11 +43,13 @@ export default function App() {
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
 
+  /*
   interface Device {
     Device: string;
     Controller: string;
     DeviceType: string;
   }
+  */
 
   useEffect(() => {
     listIot();
