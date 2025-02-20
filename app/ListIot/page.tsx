@@ -43,7 +43,6 @@ export default function App() {
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
 
-  
 
   useEffect(() => {
     listIot();
@@ -127,38 +126,39 @@ export default function App() {
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return 'aliceblue';
+        return 'palegreen';
       case '1b':
-        return 'lightsteelblue';
+        return 'limegreen';
       case '1c':
-        return 'steelblue';
+        return 'green';
       case '1cD':
-        return 'royalblue';
+        return 'pink';
       case '2a':
-        return 'midnightblue';
+        return 'blue';
       case '2b':
-        return 'mediumblue';
+        return 'royalblue';
       case '2c1':
-        return 'dodgerblue';
+        return 'yellow';
       case '2c2':
-        return 'deepskyblue';
+        return 'orangered';
       case '2c3':
-        return 'skyblue';
+        return 'red';
       case '2d':
-        return 'cyan';
+        return 'darkblue';
       default:
         return '#000000'; // その他
     }
   };
 
+  /*
   // カスタムドットコンポーネント
   const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
     const color = getDotColor(payload.ControlStage);
     const size = 4;
-
     return <circle cx={cx} cy={cy} r={size} fill={color} />;
   };
+  */
 
   // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -183,7 +183,6 @@ export default function App() {
   };
 
 
-  
   return (
     <main>
       <div>
@@ -207,15 +206,14 @@ export default function App() {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
-            <XAxis dataKey="DeviceDatetime" tickFormatter={formatXAxis} angle={45} textAnchor="end" height={70} />
 
             <XAxis 
               dataKey="DeviceDatetime" 
               tickFormatter={formatXAxis} 
               angle={45} 
               textAnchor="end" 
-              height={70} 
-              interval={0} // すべてのラベルを表示
+              height={35} 
+              //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
             />
 
             <YAxis />
@@ -259,14 +257,12 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              dot={false}
-              /*
+              //dot={false}
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={1} fill={color} />;
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
               }}
-              */
               connectNulls
               isAnimationActive={false}
             />
