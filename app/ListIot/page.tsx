@@ -343,7 +343,7 @@ interface ChartData {
     stroke: string;
     chartData: ChartData[];
   }
-  
+  /*
   const CustomLine: React.FC<CustomLineProps> = ({ dataKey, name, stroke, chartData }) => {
     return (
       <>
@@ -365,6 +365,32 @@ interface ChartData {
           />
         ))}
       </>
+    );
+  };
+  */
+ 
+  const CustomLine: React.FC<CustomLineProps> = ({ dataKey, name, stroke, chartData }) => {
+    return (
+      <Line
+        type="monotone"
+        dataKey={dataKey}
+        name={name}
+        stroke={stroke}
+        strokeWidth={3} // デフォルトの太さ
+        dot={(props) => {
+          const { cx, cy, payload } = props;
+          const color = getDotColor(payload.ControlStage);
+          const strokeWidth = payload.Power === 'on' ? 3 : 1; // Powerがonのときは太線、offのときは細線
+          return (
+            <>
+              <circle cx={cx} cy={cy} r={4} fill={color} />
+              <line x1={cx} y1={cy} x2={cx + 1} y2={cy} stroke={stroke} strokeWidth={strokeWidth} />
+            </>
+          );
+        }}
+        connectNulls
+        isAnimationActive={false}
+      />
     );
   };
 
