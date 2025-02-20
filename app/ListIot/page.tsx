@@ -221,13 +221,13 @@ export default function App() {
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
 
-            <XAxis 
-              dataKey="DeviceDatetime" 
-              tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
-              angle={45} 
-              textAnchor="end" 
-              height={0} 
-              //interval={1000} // すべての目盛りを表示
+            <XAxis
+              dataKey="DeviceDatetime"
+              tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              angle={45}
+              textAnchor="end"
+              height={0}
+              interval={0} // これで全ての目盛りが表示されます。データに応じて調整してください。
             />
 
             <YAxis />
