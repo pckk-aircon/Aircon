@@ -126,25 +126,25 @@ export default function App() {
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return 'aliceblue';
+        return 'palegreen';
       case '1b':
-        return 'lightsteelblue';
+        return 'limegreen';
       case '1c':
-        return 'steelblue';
+        return 'green';
       case '1cD':
-        return 'royalblue';
+        return 'darkgreen';
       case '2a':
-        return 'midnightblue';
+        return 'blue';
       case '2b':
-        return 'mediumblue';
+        return 'royalblue';
       case '2c1':
-        return 'dodgerblue';
+        return 'yellow';
       case '2c2':
-        return 'deepskyblue';
+        return 'orangered';
       case '2c3':
-        return 'skyblue';
+        return 'red';
       case '2d':
-        return 'cyan';
+        return 'darkblue';
       default:
         return '#000000'; // その他
     }
@@ -257,14 +257,12 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              dot={false}
-              /*
+              //dot={false}
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={1} fill={color} />;
+                return <circle cx={cx} cy={cy} r={3} fill={color} />;
               }}
-              */
               connectNulls
               isAnimationActive={false}
             />
