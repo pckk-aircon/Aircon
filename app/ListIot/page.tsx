@@ -227,7 +227,7 @@ export default function App() {
               angle={45} 
               textAnchor="end" 
               height={0} 
-              interval={1000} // すべての目盛りを表示
+              //interval={1000} // すべての目盛りを表示
             />
 
             <YAxis />
