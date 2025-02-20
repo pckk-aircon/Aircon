@@ -223,11 +223,11 @@ export default function App() {
 
             <XAxis 
               dataKey="DeviceDatetime" 
-              tickFormatter={formatXAxis} 
+              tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
               angle={45} 
               textAnchor="end" 
               height={35} 
-              interval={60} // すべてのラベルを表示。1にするとうまくいかない。
+              interval={0} // すべての目盛りを表示
             />
 
             <YAxis />
