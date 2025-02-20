@@ -223,7 +223,8 @@ export default function App() {
 
             <XAxis
               dataKey="DeviceDatetime"
-              tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              //tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              tickFormatter={formatXAxis} 
               angle={45}
               textAnchor="end"
               height={0}
