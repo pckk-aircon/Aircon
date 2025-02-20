@@ -24,7 +24,7 @@ interface ChartData {
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
-  ControlStage: string | null;
+  //ControlStage: string | null;
   Device: string;
   Division: string;
 }
@@ -51,7 +51,7 @@ export default function App() {
   }
   */
 
-  
+
   useEffect(() => {
     listIot();
   }, [startDate, endDate, currentDivisionIndex]);
@@ -118,7 +118,7 @@ export default function App() {
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
-    newItem.ControlStage = item.ControlStage;
+    //newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
