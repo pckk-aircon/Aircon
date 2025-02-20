@@ -228,7 +228,7 @@ export default function App() {
               angle={45}
               textAnchor="end"
               height={0}
-              interval={0} // これで全ての目盛りが表示されます。データに応じて調整してください。
+              //interval={0} // これで全ての目盛りが表示されます。データに応じて調整してください。
             />
 
             <YAxis />
