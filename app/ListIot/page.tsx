@@ -227,7 +227,7 @@ export default function App() {
               angle={45} 
               textAnchor="end" 
               height={35} 
-              //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
+              interval={3600} // すべてのラベルを表示。1にするとうまくいかない。
             />
 
             <YAxis />
