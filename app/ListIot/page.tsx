@@ -378,7 +378,7 @@ export default function App() {
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
-  /*
+
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
@@ -393,22 +393,7 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
-  */
 
-  // デバイスごとのデータを統合して表示
-// デバイスごとのデータを統合して表示
-const mergedData = chartData.map(item => {
-  const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-  Object.keys(groupedData).forEach(device => {
-    const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-    newItem[device] = deviceData ? deviceData.ActualTemp : null;
-    newItem[device] = deviceData ? deviceData.WeightedTemp : null;
-    newItem[device] = deviceData ? deviceData.TargetTemp : null;
-    newItem[device] = deviceData ? deviceData.PresetTemp : null;
-    newItem[device] = deviceData ? deviceData.ReferenceTemp : null;
-  });
-  return newItem;
-});
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisions.length);
