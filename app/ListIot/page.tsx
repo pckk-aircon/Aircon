@@ -427,17 +427,17 @@ export default function App() {
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return 'palegreen';
+        return 'skyblue';
       case '1b':
-        return 'limegreen';
-      case '1c':
-        return 'green';
-      case '1cD':
-        return 'pink';
-      case '2a':
-        return 'blue';
-      case '2b':
         return 'royalblue';
+      case '1c':
+        return 'blue';
+      case '1cD':
+        return 'aqua';
+      case '2a':
+        return 'green';
+      case '2b':
+        return 'darkgreen';
       case '2c1':
         return 'yellow';
       case '2c2':
@@ -445,7 +445,7 @@ export default function App() {
       case '2c3':
         return 'red';
       case '2d':
-        return 'darkblue';
+        return 'lightgreen';
       default:
         return '#000000'; // その他
     }
@@ -488,16 +488,16 @@ export default function App() {
       </div>
 
       <div>
-        <button onClick={handlePrevious}>前のDivision</button>
-        <button onClick={handleNext}>次のDivision</button>
+        <button onClick={handlePrevious}>prevDivision</button>
+        <button onClick={handleNext}>nextDivision</button>
       </div>
       <div>
-        <button onClick={DevicehandlePrevious}>前の Device</button>
-        <button onClick={DevicehandleNext}>次の Device</button>
+        <button onClick={DevicehandlePrevious}>prevDevice</button>
+        <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
 
       <div>
-        <h1>Temperature Data for {divisions[currentDivisionIndex]} / {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {divisions[currentDivisionIndex]} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
