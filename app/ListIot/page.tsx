@@ -396,6 +396,7 @@ export default function App() {
   */
 
   // デバイスごとのデータを統合して表示
+// デバイスごとのデータを統合して表示
 const mergedData = chartData.map(item => {
   const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
   Object.keys(groupedData).forEach(device => {
@@ -406,11 +407,6 @@ const mergedData = chartData.map(item => {
     newItem[`${device}_PresetTemp`] = deviceData ? deviceData.PresetTemp : null;
     newItem[`${device}_ReferenceTemp`] = deviceData ? deviceData.ReferenceTemp : null;
   });
-  newItem.WeightedTemp = item.WeightedTemp;
-  newItem.TargetTemp = item.TargetTemp;
-  newItem.PresetTemp = item.PresetTemp;
-  newItem.ReferenceTemp = item.ReferenceTemp;
-  newItem.ControlStage = item.ControlStage;
   return newItem;
 });
 
