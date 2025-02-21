@@ -427,11 +427,11 @@ export default function App() {
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return 'skyblue';
+        return 'lightsteelblue';
       case '1b':
-        return 'royalblue';
+        return 'steelblue';
       case '1c':
-        return 'blue';
+        return 'royalblue';
       case '1cD':
         return 'aqua';
       case '2a':
@@ -556,7 +556,7 @@ export default function App() {
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={4} fill={color} />;
+                return <circle cx={cx} cy={cy} r={3} fill={color} />;
               }}
               connectNulls
               isAnimationActive={false}
