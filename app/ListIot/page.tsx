@@ -67,7 +67,13 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-        .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+        //.filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+
+        .filter(item => 
+          item?.Division === divisions[currentDivisionIndex] && 
+          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === '1234-kaki2'))
+        )
+
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
@@ -101,6 +107,7 @@ export default function App() {
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
+
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
@@ -115,6 +122,7 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
+
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisions.length);
@@ -204,7 +212,7 @@ export default function App() {
               tickFormatter={formatXAxis} 
               angle={45} 
               textAnchor="end" 
-              height={35} 
+              height={20} 
               //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
             />
 
@@ -319,9 +327,10 @@ export default function App() {
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
-
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
     listIot();
@@ -348,7 +357,7 @@ export default function App() {
 
         .filter(item => 
           item?.Division === divisions[currentDivisionIndex] && 
-          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === '1234-kaki2'))
+          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
         .map(item => ({
