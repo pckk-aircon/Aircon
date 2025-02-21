@@ -7,9 +7,9 @@ export default function Sidebar() {
     <div>
       <h2>メニュー</h2>
       <ul>
-        <li><Link href="/">トップ画面</Link></li>
+        <li><Link href="/">Top</Link></li>
         <li><Link href="/ListIot">ListIot</Link></li>
-        <li><Link href="/TableDevice">TableDeviceページ</Link></li>
+        <li><Link href="/TableDevice">TableDevice</Link></li>
       </ul>
     </div>
   );
