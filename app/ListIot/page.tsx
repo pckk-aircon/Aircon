@@ -401,11 +401,11 @@ const mergedData = chartData.map(item => {
   const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
   Object.keys(groupedData).forEach(device => {
     const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-    newItem[`${device}_ActualTemp`] = deviceData ? deviceData.ActualTemp : null;
-    newItem[`${device}_WeightedTemp`] = deviceData ? deviceData.WeightedTemp : null;
-    newItem[`${device}_TargetTemp`] = deviceData ? deviceData.TargetTemp : null;
-    newItem[`${device}_PresetTemp`] = deviceData ? deviceData.PresetTemp : null;
-    newItem[`${device}_ReferenceTemp`] = deviceData ? deviceData.ReferenceTemp : null;
+    newItem[device] = deviceData ? deviceData.ActualTemp : null;
+    newItem[device] = deviceData ? deviceData.WeightedTemp : null;
+    newItem[device] = deviceData ? deviceData.TargetTemp : null;
+    newItem[device] = deviceData ? deviceData.PresetTemp : null;
+    newItem[device] = deviceData ? deviceData.ReferenceTemp : null;
   });
   return newItem;
 });
