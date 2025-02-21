@@ -492,8 +492,8 @@ export default function App() {
         <button onClick={handleNext}>次のDivision</button>
       </div>
       <div>
-        <button onClick={DevicehandlePrevious}>前のDevice</button>
-        <button onClick={DevicehandleNext}>次のDevice</button>
+        <button onClick={DevicehandlePrevious}>前の Device</button>
+        <button onClick={DevicehandleNext}>次の Device</button>
       </div>
 
       <div>
