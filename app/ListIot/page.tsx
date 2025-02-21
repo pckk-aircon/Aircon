@@ -384,12 +384,17 @@ export default function App() {
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
+      newItem[device] = deviceData ? deviceData.WeightedTemp : null;
+      newItem[device] = deviceData ? deviceData.TargetTemp : null;
+      newItem[device] = deviceData ? deviceData.PresetTemp : null;
+      newItem[device] = deviceData ? deviceData.ReferenceTemp : null;
+      newItem[device] = deviceData ? deviceData.ControlStage : null;
     });
-    newItem.WeightedTemp = item.WeightedTemp;
-    newItem.TargetTemp = item.TargetTemp;
-    newItem.PresetTemp = item.PresetTemp;
-    newItem.ReferenceTemp = item.ReferenceTemp;
-    newItem.ControlStage = item.ControlStage;
+    //newItem.WeightedTemp = item.WeightedTemp;
+    //newItem.TargetTemp = item.TargetTemp;
+    //newItem.PresetTemp = item.PresetTemp;
+    //newItem.ReferenceTemp = item.ReferenceTemp;
+    //newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
