@@ -481,7 +481,7 @@ export default function App() {
               tickFormatter={formatXAxis} 
               angle={45} 
               textAnchor="end" 
-              height={20} 
+              height={-20} 
               //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
             />
 
