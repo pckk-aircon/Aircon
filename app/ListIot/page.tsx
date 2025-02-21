@@ -417,10 +417,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % DeviceLists.length);
+    setCurrentDeviceIndex((DeviceprevIndex) => (DeviceprevIndex + 1) % DeviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
+    setCurrentDeviceIndex((DeviceprevIndex) => (DeviceprevIndex - 1 + DeviceLists.length) % DeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
@@ -492,8 +492,8 @@ export default function App() {
         <button onClick={handleNext}>次へ</button>
       </div>
       <div>
-        <button onClick={DevicehandlePrevious}>前へ</button>
-        <button onClick={DevicehandleNext}>次へ</button>
+        <button onClick={DevicehandlePrevious}>前のDevice</button>
+        <button onClick={DevicehandleNext}>次のDevice</button>
       </div>
 
       <div>
