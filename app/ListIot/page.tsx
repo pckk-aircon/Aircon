@@ -385,11 +385,7 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
-    Object.keys(groupedData).forEach(device => {
-      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.WeightedTemp : null;
-    });
-    //newItem.WeightedTemp = item.WeightedTemp;
+    newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
