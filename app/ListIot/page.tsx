@@ -334,7 +334,7 @@ export default function App() {
 
   useEffect(() => {
     listIot();
-  }, [startDate, endDate, currentDivisionIndex]);
+  }, [startDate, endDate, currentDivisionIndex,currentDeviceIndex]);
 
   async function listIot() {
 
