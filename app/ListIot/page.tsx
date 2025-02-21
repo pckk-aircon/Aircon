@@ -344,7 +344,10 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-        .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+        //.filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+
+        .filter(item => item?.Division === divisions[currentDivisionIndex] && item?.Device === '1234-kaki2') // DivisionとDeviceでフィルタリング
+
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
           ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
