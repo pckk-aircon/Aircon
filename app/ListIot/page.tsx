@@ -417,10 +417,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((DeviceprevIndex) => (DeviceprevIndex + 1) % DeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % DeviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((DeviceprevIndex) => (DeviceprevIndex - 1 + DeviceLists.length) % DeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
@@ -488,8 +488,8 @@ export default function App() {
       </div>
 
       <div>
-        <button onClick={handlePrevious}>前へ</button>
-        <button onClick={handleNext}>次へ</button>
+        <button onClick={handlePrevious}>前のDivision</button>
+        <button onClick={handleNext}>次のDivision</button>
       </div>
       <div>
         <button onClick={DevicehandlePrevious}>前のDevice</button>
@@ -497,7 +497,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
+        <h1>Temperature Data for {divisions[currentDivisionIndex]} - {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
