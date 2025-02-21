@@ -346,7 +346,10 @@ export default function App() {
       const formattedData = data
         //.filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
 
-        .filter(item => item?.Division === divisions[currentDivisionIndex] && item?.Device === '1234-kaki2') // DivisionとDeviceでフィルタリング
+        .filter(item => 
+          item?.Division === divisions[currentDivisionIndex] && 
+          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === '1234-kaki2'))
+        )
 
         .map(item => ({
           DeviceDatetime: item?.DeviceDatetime ?? '',
