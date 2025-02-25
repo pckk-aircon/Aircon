@@ -470,7 +470,7 @@ export default function App() {
   };
 
   const formatXAxis = (tickItem: string) => {
-    return format(parseISO(tickItem), "MM-dd HH");
+    return format(parseISO(tickItem), "MM-dd HH:mm");
   };
 
 
