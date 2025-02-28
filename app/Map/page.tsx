@@ -5,7 +5,6 @@ import { FC, useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 //import Map, { ViewState } from "react-map-gl/maplibre";
 import Map, { ViewState } from "react-map-gl";
-
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const InitialViewState: Partial<ViewState> = {
