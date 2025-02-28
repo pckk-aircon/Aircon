@@ -9,10 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-amplify/geo": "^3.0.71",
     "@aws-amplify/ui-react": "^6.5.5",
     "@babel/plugin-transform-class-properties": "^7.25.9",
     "@babel/plugin-transform-object-rest-spread": "^7.25.9",
-    "aws-amplify": "^6.6.6",
+    "aws-amplify": "^6.13.2",
     "chart.js": "^4.4.7",
     "glob": "^11.0.0",
     "inflight": "^1.0.6",
