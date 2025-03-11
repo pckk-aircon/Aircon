@@ -180,12 +180,12 @@ export default TerrainMap;
 "use client";
 import { FC, useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
+import Map, { ViewState } from "react-map-gl";
 import * as THREE from "three";
-import { FeatureCollection, Geometry } from "geojson";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const InitialViewState = {
+const InitialViewState: Partial<ViewState> = {
   longitude: 140.302994,
   latitude: 35.353503,
   zoom: 15,
@@ -193,7 +193,7 @@ const InitialViewState = {
   bearing: 20,
 };
 
-const buildingData: FeatureCollection<Geometry> = {
+const buildingData: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
   type: "FeatureCollection",
   features: [
     {
@@ -246,9 +246,9 @@ const buildingData: FeatureCollection<Geometry> = {
   ],
 };
 
-const MAX_PITCH = 85;
-const MAX_ZOOM = 30;
-const MIN_ZOOM = 1;
+const MAX_PITCH = 85 as const;
+const MAX_ZOOM = 30 as const;
+const MIN_ZOOM = 1 as const;
 
 const TerrainMap: FC = () => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -257,8 +257,8 @@ const TerrainMap: FC = () => {
     if (mapContainerRef.current) {
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style.json",
-        center: [InitialViewState.longitude, InitialViewState.latitude],
+        style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json",
+        center: [InitialViewState.longitude!, InitialViewState.latitude!],
         zoom: InitialViewState.zoom,
         pitch: InitialViewState.pitch,
         bearing: InitialViewState.bearing,
@@ -297,21 +297,8 @@ const TerrainMap: FC = () => {
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, map.getCanvas().width / map.getCanvas().height, 0.1, 1000);
-        camera.position.set(0, 0, 100); // 地図の中心にカメラを配置
-        camera.lookAt(0, 0, 0); // 球体の位置を向く
-
-        // 緯度経度をThree.jsの座標に変換
-        const lngLatToThreeJS = (lng: number, lat: number): THREE.Vector3 => {
-          const mercatorCoordinate = maplibregl.MercatorCoordinate.fromLngLat([lng, lat]);
-          return new THREE.Vector3(mercatorCoordinate.x, mercatorCoordinate.y, 0);
-        };
-
-        // Three.jsの座標を緯度経度に変換
-        const threeJSToLngLat = (vector: THREE.Vector3): maplibregl.LngLat => {
-          const mercatorCoordinate = new maplibregl.MercatorCoordinate(vector.x, vector.y);
-          const lngLat = mercatorCoordinate.toLngLat();
-          return lngLat;
-        };
+        camera.position.set(-4002585.05, 3322656.83, 3690544.34); // 球体の位置から少し離れた位置にカメラを配置
+        camera.lookAt(-4002585.05, 3322656.83, 3690534.34); // 球体の位置を向く
 
         // 赤い球体の作成
         const geometry = new THREE.SphereGeometry(5, 32, 32); // 半径5mで直径10mの球体
@@ -319,13 +306,7 @@ const TerrainMap: FC = () => {
         const sphere = new THREE.Mesh(geometry, material);
 
         // 球体の位置を設定
-        const spherePosition = lngLatToThreeJS(140.302994, 35.353503); // 地図の中心の緯度経度
-        sphere.position.copy(spherePosition);
-        console.log("Sphere position (Three.js coordinates):", sphere.position);
-
-        // 球体の緯度経度をログに出力
-        const sphereLngLat = threeJSToLngLat(sphere.position);
-        console.log("Sphere position (LngLat):", sphereLngLat);
+        sphere.position.set(0, 100, 0);
 
         // シーンに追加
         scene.add(sphere);
@@ -334,8 +315,6 @@ const TerrainMap: FC = () => {
         const animate = () => {
           requestAnimationFrame(animate);
           renderer.render(scene, camera);
-          console.log("Rendering frame");
-          console.log("Number of objects in scene:", scene.children.length); // シーン内のオブジェクトの数をログに出力
         };
         animate();
 
@@ -344,7 +323,6 @@ const TerrainMap: FC = () => {
           renderer.setSize(map.getCanvas().width, map.getCanvas().height);
           camera.aspect = map.getCanvas().width / map.getCanvas().height;
           camera.updateProjectionMatrix();
-          console.log("Map resized");
         });
 
         // 地図の視点が変わったときにカメラを更新
@@ -358,9 +336,6 @@ const TerrainMap: FC = () => {
           camera.position.set(center.lng, center.lat, zoom * 100); // 適切な高さに調整
           camera.lookAt(center.lng, center.lat, 0); // 球体の位置を向く
           camera.updateProjectionMatrix();
-          console.log("Map moved");
-          console.log("Camera position after move:", camera.position); // カメラの位置をログに出力
-          console.log("Camera lookAt after move:", camera.getWorldDirection(new THREE.Vector3())); // カメラの向きをログに出力
         });
       });
     }
@@ -372,4 +347,3 @@ const TerrainMap: FC = () => {
 };
 
 export default TerrainMap;
-
