@@ -267,21 +267,6 @@ const TerrainMap: FC = () => {
           defaultLights: true,
         });
 
-        const lineMaterial = new tb.THREE.LineBasicMaterial({ color: "black" });
-        const lineGeometry = new tb.THREE.Geometry();
-        lineGeometry.vertices.push(
-          tb.projectToWorld([140.30278407246294, 35.3536506960797, 0]),
-          tb.projectToWorld([140.3028859586707, 35.353561867136904, 6])
-        );
-
-        const line = new tb.THREE.Line(lineGeometry, lineMaterial);
-        tb.add(line);
-
-        // カメラの位置と向きを調整
-        const camera = tb.camera;
-        camera.position.set(140.302994, 35.353503, 20);
-        camera.lookAt(new tb.THREE.Vector3(140.3028859586707, 35.353561867136904, 6));
-
         // 赤い球体を追加
         const sphereGeometry = new tb.THREE.SphereGeometry(1, 32, 32);
         const sphereMaterial = new tb.THREE.MeshBasicMaterial({ color: "red" });
