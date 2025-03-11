@@ -273,7 +273,9 @@ const TerrainMap: FC = () => {
         const sphere = new tb.THREE.Mesh(sphereGeometry, sphereMaterial);
 
         // 球体の位置を設定
-        sphere.position.copy(tb.projectToWorld([140.302994, 35.353503, 10]));
+        const spherePosition = tb.projectToWorld([140.302994, 35.353503, 10]);
+        console.log("Sphere Position:", spherePosition); // 位置をログに出力して確認
+        sphere.position.copy(spherePosition);
         tb.add(sphere);
       });
     }
