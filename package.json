@@ -27,7 +27,8 @@
     "react-dom": "^18",
     "recharts": "^2.15.1",
     "rimraf": "^6.0.1",
-    "threebox": "^0.1.5"
+    "threebox": "^0.1.5",
+    "threelibre-plugin": "^0.0.2"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.5.1",
