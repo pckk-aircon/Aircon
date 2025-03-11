@@ -263,29 +263,6 @@ const TerrainMap: FC = () => {
             "fill-extrusion-opacity": 0.1,
           },
         });
-
-
-
-        // Threeboxの初期化
-        const tb = new Threebox(map, map.getCanvas().getContext("webgl"), {
-          defaultLights: true,
-        });
-        console.log("Threebox properties:", tb); // Threeboxのプロパティをログに出力
-
-        /*
-
-        // 赤い球体を追加
-        const sphereGeometry = new tb.THREE.SphereGeometry(1, 32, 32);
-        const sphereMaterial = new tb.THREE.MeshBasicMaterial({ color: "red" });
-        const sphere = new tb.THREE.Mesh(sphereGeometry, sphereMaterial);
-
-        // 球体の位置を設定
-        const spherePosition = tb.projectToWorld([140.302994, 35.353503, 10]);
-        console.log("Sphere Position:", spherePosition); // 位置をログに出力して確認
-        sphere.position.copy(spherePosition);
-        tb.add(sphere);
-
-        */
        
 
       });
