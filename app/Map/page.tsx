@@ -263,6 +263,8 @@ const TerrainMap: FC = () => {
           },
         });
 
+        /*
+
         // Threeboxの初期化
         const tb = new Threebox(map, map.getCanvas().getContext("webgl"), {
           defaultLights: true,
@@ -279,6 +281,9 @@ const TerrainMap: FC = () => {
         console.log("Sphere Position:", spherePosition); // 位置をログに出力して確認
         sphere.position.copy(spherePosition);
         tb.add(sphere);
+
+        */
+
       });
     }
   }, []);
