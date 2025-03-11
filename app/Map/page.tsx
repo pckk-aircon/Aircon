@@ -263,9 +263,11 @@ const TerrainMap: FC = () => {
           },
         });
 
+        // Threeboxの初期化
         const tb = new Threebox(map, map.getCanvas().getContext("webgl"), {
           defaultLights: true,
         });
+        console.log("Threebox properties:", tb); // Threeboxのプロパティをログに出力
 
         // 赤い球体を追加
         const sphereGeometry = new tb.THREE.SphereGeometry(1, 32, 32);
