@@ -213,6 +213,7 @@ const buildingData: GeoJSON.FeatureCollection<GeoJSON.Geometry> = {
   ],
 };
 
+
 const MAX_PITCH = 85 as const;
 const MAX_ZOOM = 30 as const;
 const MIN_ZOOM = 1 as const;
