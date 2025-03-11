@@ -271,12 +271,18 @@ const TerrainMap: FC = () => {
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, map.getCanvas().width / map.getCanvas().height, 0.1, 1000);
-        camera.position.set(0, 0, 10);
+        camera.position.set(-4002585.05, 3322656.83, 3690544.34); // 球体の位置から少し離れた位置にカメラを配置
+        camera.lookAt(-4002585.05, 3322656.83, 3690534.34); // 球体の位置を向く
 
         // 赤い球体の作成
-        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const geometry = new THREE.SphereGeometry(5, 32, 32); // 半径5mで直径10mの球体
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const sphere = new THREE.Mesh(geometry, material);
+
+        // 球体の位置を設定
+        sphere.position.set(-4002585.05, 3322656.83, 3690534.34);
+
+        // シーンに追加
         scene.add(sphere);
 
         // アニメーションループ
