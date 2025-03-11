@@ -297,6 +297,7 @@ const TerrainMap: FC = () => {
 
         const scene = new THREE.Scene();
 
+  
         // 球体の位置を設定
         scene.position.set(-75.44, 81.92, -24.92);
 
