@@ -301,6 +301,7 @@ const TerrainMap: FC = () => {
         const x = radius * Math.sin(phi) * Math.cos(theta);
         const y = radius * Math.cos(phi); // 高さを追加
         const z = radius * Math.sin(phi) * Math.sin(theta);
+        console.log(`Sphere position: x=${x}, y=${y}, z=${z}`); // 位置情報をコンソールに出力
 
         // Three.jsの初期化
         const renderer = new THREE.WebGLRenderer({ alpha: true });
@@ -312,6 +313,7 @@ const TerrainMap: FC = () => {
 
         camera.position.set(x + cameraDistance, y + cameraDistance, z + cameraDistance);// 球体の位置から少し離れた位置にカメラを配置
         camera.lookAt(x, y, z); // 球体の位置を向く
+        console.log(`Camera position: x=${camera.position.x}, y=${camera.position.y}, z=${camera.position.z}`);
 
         // 赤い球体の作成
         const geometry = new THREE.SphereGeometry(radius, 32, 32);
@@ -321,6 +323,7 @@ const TerrainMap: FC = () => {
 
         // シーンに追加
         scene.add(sphere);
+        console.log(`Sphere added to scene at position: x=${sphere.position.x}, y=${sphere.position.y}, z=${sphere.position.z}`);
 
         // アニメーションループ
         const animate = () => {
