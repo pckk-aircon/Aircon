@@ -292,7 +292,7 @@ const TerrainMap: FC = () => {
 
         const lon = 140.302994;
         const lat = 35.353503;
-        const radius = 50;
+        const radius = 5000;
         const color = 'red';
         const cameraDistance = 50; // 球体からの距離
 
