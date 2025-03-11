@@ -155,6 +155,7 @@ export default TerrainMap;
 import { FC, useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import Map, { ViewState } from "react-map-gl";
+import * as THREE from "three";
 import Threebox from "threebox";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -263,8 +264,23 @@ const TerrainMap: FC = () => {
             "fill-extrusion-opacity": 0.1,
           },
         });
-       
 
+        // Threeboxの初期化
+        const tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
+          defaultLights: true,
+        });
+
+        // 赤い球体の作成
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        // 球体をThreeboxに追加
+        tb.add(sphere, {
+          scale: 10,
+          rotation: { x: 90, y: 0, z: 0 },
+          translation: { x: 140.302994, y: 35.353503, z: 10 },
+        });
       });
     }
   }, []);
