@@ -1,10 +1,13 @@
 //https://zenn.dev/mapbox_japan/articles/21a276dbc52e7c
 //を改変。
 /*
+
+
 "use client";
 import { FC, useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import Map, { ViewState } from "react-map-gl";
+import Threebox from "threebox";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -106,14 +109,26 @@ const TerrainMap: FC = () => {
           source: "buildings",
           type: "fill-extrusion",
           paint: {
-            "fill-extrusion-color": "#aaa", // 塗りつぶし色
+            "fill-extrusion-color": "#aaa",
             "fill-extrusion-height": ["get", "height"],
             "fill-extrusion-base": ["get", "base_height"],
             "fill-extrusion-opacity": 0.1,
           },
         });
 
+        const tb = new Threebox(map, map.getCanvas().getContext("webgl"), {
+          defaultLights: true,
+        });
 
+        const lineMaterial = new tb.THREE.LineBasicMaterial({ color: "black" });
+        const lineGeometry = new tb.THREE.Geometry();
+        lineGeometry.vertices.push(
+          new tb.THREE.Vector3(140.30278407246294, 35.3536506960797, 0),
+          new tb.THREE.Vector3(140.3028859586707, 35.353561867136904, 6)
+        );
+
+        const line = new tb.THREE.Line(lineGeometry, lineMaterial);
+        tb.add(line);
       });
     }
   }, []);
@@ -250,8 +265,8 @@ const TerrainMap: FC = () => {
         const lineMaterial = new tb.THREE.LineBasicMaterial({ color: "black" });
         const lineGeometry = new tb.THREE.Geometry();
         lineGeometry.vertices.push(
-          new tb.THREE.Vector3(140.30278407246294, 35.3536506960797, 0),
-          new tb.THREE.Vector3(140.3028859586707, 35.353561867136904, 6)
+          tb.projectToWorld([140.30278407246294, 35.3536506960797, 0]),
+          tb.projectToWorld([140.3028859586707, 35.353561867136904, 6])
         );
 
         const line = new tb.THREE.Line(lineGeometry, lineMaterial);
