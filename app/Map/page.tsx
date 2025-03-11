@@ -298,6 +298,19 @@ const TerrainMap: FC = () => {
           camera.aspect = map.getCanvas().width / map.getCanvas().height;
           camera.updateProjectionMatrix();
         });
+
+        // 地図の視点が変わったときにカメラを更新
+        map.on('move', () => {
+          const center = map.getCenter();
+          const zoom = map.getZoom();
+          const pitch = map.getPitch();
+          const bearing = map.getBearing();
+
+          // カメラの位置と向きを更新
+          camera.position.set(center.lng, center.lat, zoom * 100); // 適切な高さに調整
+          camera.lookAt(center.lng, center.lat, 0); // 球体の位置を向く
+          camera.updateProjectionMatrix();
+        });
       });
     }
   }, []);
