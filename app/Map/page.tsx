@@ -233,10 +233,10 @@ const TerrainMap: FC = () => {
           source: "buildings",
           type: "fill-extrusion",
           paint: {
-            "fill-extrusion-color": "#aaa",
+            "fill-extrusion-color": "#aaa", // 塗りつぶし色
             "fill-extrusion-height": ["get", "height"],
             "fill-extrusion-base": ["get", "base_height"],
-            "fill-extrusion-opacity": 0.6,
+            "fill-extrusion-opacity": 0.4,
           },
         });
 
