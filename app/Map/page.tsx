@@ -292,12 +292,14 @@ const TerrainMap: FC = () => {
 
         const lon = 140.302994;
         const lat = 35.353503;
-        const radius = 10
+        const radius = 10;
+        const color = 'red';
         const cameraDistance = 50; // 球体からの距離
-        const phi = (90 - lat) * (Math.PI / 180);
-        const theta = (lon + 180) * (Math.PI / 180);
-        const x = -radius * Math.sin(phi) * Math.cos(theta);
-        const y = radius * Math.cos(phi) + 10; // 高さを追加
+
+        const phi = (90 - lat) * (Math.PI / 180); // 緯度を弧度法に変換
+        const theta = (lon + 180) * (Math.PI / 180); // 経度を弧度法に変換
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.cos(phi); // 高さを追加
         const z = radius * Math.sin(phi) * Math.sin(theta);
 
         // Three.jsの初期化
@@ -312,12 +314,10 @@ const TerrainMap: FC = () => {
         camera.lookAt(x, y, z); // 球体の位置を向く
 
         // 赤い球体の作成
-        const geometry = new THREE.SphereGeometry(5, 32, 32); // 半径5mで直径10mの球体
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const geometry = new THREE.SphereGeometry(radius, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color });
         const sphere = new THREE.Mesh(geometry, material);
-
-        // 球体の位置を設定
-        sphere.position.set(x, y, z);
+        sphere.position.set(x, y, z);// 球体の位置を設定
 
         // シーンに追加
         scene.add(sphere);
