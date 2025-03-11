@@ -233,17 +233,14 @@ const TerrainMap: FC = () => {
           source: "buildings",
           type: "fill-extrusion",
           paint: {
+            "fill-extrusion-color": "#aaa",
             "fill-extrusion-height": ["get", "height"],
             "fill-extrusion-base": ["get", "base_height"],
-            'fill-color': '#627BC1',
-            'fill-opacity': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              1,
-              0.5
-            ]
+            "fill-extrusion-opacity": 0.6,
           },
         });
+
+
       });
     }
   }, []);
