@@ -257,7 +257,7 @@ const TerrainMap: FC = () => {
     if (mapContainerRef.current) {
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json",
+        style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style.json",
         center: [InitialViewState.longitude, InitialViewState.latitude],
         zoom: InitialViewState.zoom,
         pitch: InitialViewState.pitch,
@@ -300,13 +300,32 @@ const TerrainMap: FC = () => {
         camera.position.set(0, 0, 100); // 地図の中心にカメラを配置
         camera.lookAt(0, 0, 0); // 球体の位置を向く
 
+        // 緯度経度をThree.jsの座標に変換
+        const lngLatToThreeJS = (lng: number, lat: number): THREE.Vector3 => {
+          const mercatorCoordinate = maplibregl.MercatorCoordinate.fromLngLat([lng, lat]);
+          return new THREE.Vector3(mercatorCoordinate.x, mercatorCoordinate.y, 0);
+        };
+
+        // Three.jsの座標を緯度経度に変換
+        const threeJSToLngLat = (vector: THREE.Vector3): maplibregl.LngLat => {
+          const mercatorCoordinate = new maplibregl.MercatorCoordinate(vector.x, vector.y);
+          const lngLat = mercatorCoordinate.toLngLat();
+          return lngLat;
+        };
+
         // 赤い球体の作成
         const geometry = new THREE.SphereGeometry(5, 32, 32); // 半径5mで直径10mの球体
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const sphere = new THREE.Mesh(geometry, material);
 
         // 球体の位置を設定
-        sphere.position.set(0, 0, 0); // 地図の中心に球体を配置
+        const spherePosition = lngLatToThreeJS(140.302994, 35.353503); // 地図の中心の緯度経度
+        sphere.position.copy(spherePosition);
+        console.log("Sphere position (Three.js coordinates):", sphere.position);
+
+        // 球体の緯度経度をログに出力
+        const sphereLngLat = threeJSToLngLat(sphere.position);
+        console.log("Sphere position (LngLat):", sphereLngLat);
 
         // シーンに追加
         scene.add(sphere);
@@ -315,7 +334,8 @@ const TerrainMap: FC = () => {
         const animate = () => {
           requestAnimationFrame(animate);
           renderer.render(scene, camera);
-          console.log("Rendering frame"); // レンダリングの途中経過をログに出力
+          console.log("Rendering frame");
+          console.log("Number of objects in scene:", scene.children.length); // シーン内のオブジェクトの数をログに出力
         };
         animate();
 
@@ -324,7 +344,7 @@ const TerrainMap: FC = () => {
           renderer.setSize(map.getCanvas().width, map.getCanvas().height);
           camera.aspect = map.getCanvas().width / map.getCanvas().height;
           camera.updateProjectionMatrix();
-          console.log("Map resized"); // リサイズイベントの発生をログに出力
+          console.log("Map resized");
         });
 
         // 地図の視点が変わったときにカメラを更新
@@ -338,7 +358,9 @@ const TerrainMap: FC = () => {
           camera.position.set(center.lng, center.lat, zoom * 100); // 適切な高さに調整
           camera.lookAt(center.lng, center.lat, 0); // 球体の位置を向く
           camera.updateProjectionMatrix();
-          console.log("Map moved"); // 視点変更イベントの発生をログに出力
+          console.log("Map moved");
+          console.log("Camera position after move:", camera.position); // カメラの位置をログに出力
+          console.log("Camera lookAt after move:", camera.getWorldDirection(new THREE.Vector3())); // カメラの向きをログに出力
         });
       });
     }
