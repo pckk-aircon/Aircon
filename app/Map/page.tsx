@@ -144,7 +144,6 @@ export default TerrainMap;
 */
 
 
-
 "use client";
 import { FC, useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
@@ -271,6 +270,11 @@ const TerrainMap: FC = () => {
 
         const line = new tb.THREE.Line(lineGeometry, lineMaterial);
         tb.add(line);
+
+        // カメラの位置と向きを調整
+        const camera = tb.camera;
+        camera.position.set(140.302994, 35.353503, 20);
+        camera.lookAt(new tb.THREE.Vector3(140.3028859586707, 35.353561867136904, 6));
       });
     }
   }, []);
