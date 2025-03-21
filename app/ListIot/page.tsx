@@ -318,16 +318,13 @@ interface ChartData {
 
 export default function App() {
 
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
-  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]);
-
-  const [startDate, setStartDatetime] = useState(new Date());
+  //データ取得の範囲を指定する変数を定義。
+  const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
-  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  const [chartData, setChartData] = useState<ChartData[]>([]);// 取得したデータを保持し、チャートに表示するために使用。
+  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0); //現在選択されているDivisionを保持するために使用。
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0); //現在選択されているDeviceを保持するために使用。
 
   const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
