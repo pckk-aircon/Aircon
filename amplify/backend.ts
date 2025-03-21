@@ -119,7 +119,7 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
 );
 
 //Iotdataの設定
-const DeviceDS = backend.data.addDynamoDbDataSource(
+const IotDS = backend.data.addDynamoDbDataSource(
   "IotDataSource",//データソース名
   //"DeviceDataSource",//データソース名
   //DeviceTable//テーブル名
