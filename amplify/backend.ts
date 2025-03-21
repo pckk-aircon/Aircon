@@ -97,12 +97,12 @@ const externalTable = aws_dynamodb.Table.fromTableName(
 );
 
 //DeviceTableの設定を追加
-//const iotTable = aws_dynamodb.Table.fromTableName(
-const DeviceTable = aws_dynamodb.Table.fromTableName(//★
+const IotTable = aws_dynamodb.Table.fromTableName(
+//const DeviceTable = aws_dynamodb.Table.fromTableName(//★★★
   externalDataSourcesStack,
   "MyDeviceTable",
-  //"IotData"
-  "DeviceTable"//★テーブル名
+  "IotData"//★★★テーブル名
+  //"DeviceTable"//★テーブル名
 );
 
 //2025.1.23サポート様より提示。
@@ -122,7 +122,8 @@ const externalTableDS = backend.data.addDynamoDbDataSource(
 const DeviceDS = backend.data.addDynamoDbDataSource(
   "IotDataSource",//データソース名
   //"DeviceDataSource",//データソース名
-  DeviceTable//テーブル名
+  //DeviceTable//テーブル名
+  IotTable//テーブル名
 );
 
 //dsRoleは、externalTableDSのIAMロールを取得おり、同じロールをDeviceTableにも適用可能。
@@ -143,7 +144,7 @@ const datasourceIamPolicy = new Policy(externalDataSourcesStack, "datasourceIamP
       ],
       resources: [
         `${externalTable.tableArn}/index/*`,
-        `${DeviceTable.tableArn}/index/*`, // DeviceTableのリソースを追加
+        `${IotTable.tableArn}/index/*`, // DeviceTableのリソースを追加
       ],
     })
   ],
