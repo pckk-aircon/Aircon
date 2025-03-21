@@ -114,15 +114,12 @@ import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
   "ExternalPostTableDataSource",
-  //"IotPostTableDataSource",//★★
   externalTable//こちらは変数名。次のRoleと関連か。
 );
 
 //Iotdataの設定
 const IotDS = backend.data.addDynamoDbDataSource(
   "IotDataSource",//データソース名
-  //"DeviceDataSource",//データソース名
-  //DeviceTable//テーブル名
   IotTable//テーブル名
 );
 
