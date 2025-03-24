@@ -108,7 +108,7 @@ function createDynamoDbDataSource(
 /*
 const externalTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
-  "IotData",//DynamoDbtableName
+  "DeviceTable",//DynamoDbtableName 
   "MyExternalPostTable",//tableName
   "ExternalPostTableDataSource",//dataSourceName
   "IotIamPolicy",//
@@ -117,7 +117,7 @@ const externalTableDS = createDynamoDbDataSource(
 
 const DivisionTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
-  "DeviceTable",//DynamoDbtableName  
+  "DivisionTable",//DynamoDbtableName  
   "MyDivisionTable",//tableName
   "DivisionDataSource",//dataSourceName
   "DivisionIamPolicy"

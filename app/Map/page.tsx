@@ -271,7 +271,7 @@ const TerrainMap: FC = () => {
         const navControl = new maplibregl.NavigationControl({
           visualizePitch: true,
         });
-        map.addControl(navControl, "top-left");
+        map.addControl(navControl, "top-right");
 
         map.addSource("buildings", {
           type: "geojson",
