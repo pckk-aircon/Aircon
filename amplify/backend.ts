@@ -113,8 +113,8 @@ const IotTable = aws_dynamodb.Table.fromTableName(
 import { Role, Policy, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const externalTableDS = backend.data.addDynamoDbDataSource(
-  //"ExternalPostTableDataSource",
-  "IotDataSource",//データソース名★★★変更。
+  "ExternalPostTableDataSource",
+  //"IotDataSource",//データソース名★★★変更。
   externalTable//こちらは変数名。次のRoleと関連か。
 );
 
