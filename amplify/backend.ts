@@ -85,7 +85,6 @@ function createDynamoDbDataSource(
   const role = Role.fromRoleArn(stack, `${dataSourceName}Role`, dataSource.ds.serviceRoleArn ?? '');
 
   const policy = new Policy(stack, policyName, {
-    
     //policyName: `amplify-permissions-${dataSourceName}`,
     policyName: "amplify-permissions-external-table",
     statements: [
@@ -103,7 +102,8 @@ function createDynamoDbDataSource(
 }
 
 // ここで関数を呼び出してデータソースを作成します。
-const externalTableDS = createDynamoDbDataSource(
+//const externalTableDS = createDynamoDbDataSource(
+const iotTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
   "MyExternalPostTable",//tableName
   "ExternalPostTableDataSource",//dataSourceName
