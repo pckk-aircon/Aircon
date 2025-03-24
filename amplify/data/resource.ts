@@ -112,8 +112,8 @@ listIot: a
   .authorization(allow => [allow.publicApiKey()])
   .handler(
     a.handler.custom({
-      dataSource: "ExternalPostTableDataSource",
-      //dataSource: "IotDataSource",//★★★変更NGNG。
+      //dataSource: "ExternalPostTableDataSource",
+      dataSource: "IotDataSource",//★★★変更。
       entry: "./listIot.js",
     })
   ),
