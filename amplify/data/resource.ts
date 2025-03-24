@@ -113,7 +113,7 @@ listIot: a
   .handler(
     a.handler.custom({
       //dataSource: "ExternalPostTableDataSource",
-      dataSource: "IotDataSource",//★★★変更。
+      dataSource: "IotSource",//★★★変更。
       entry: "./listIot.js",
     })
   ),
