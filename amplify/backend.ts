@@ -74,11 +74,13 @@ const externalDataSourcesStack = backend.createStack("MyExternalDataSources");
 
 function createDynamoDbDataSource(
   stack: Stack,
+  DynamoDbtableName: string,
   tableName: string,
   dataSourceName: string,
   policyName: string
 ) {
-  const table = aws_dynamodb.Table.fromTableName(stack, tableName, "IotData");
+  //const table = aws_dynamodb.Table.fromTableName(stack, tableName, "IotData");
+  const table = aws_dynamodb.Table.fromTableName(stack, tableName, DynamoDbtableName);
 
   const dataSource = backend.data.addDynamoDbDataSource(dataSourceName, table);
 
@@ -105,6 +107,7 @@ function createDynamoDbDataSource(
 
 const externalTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
+  "IotData",//DynamoDbtableName
   "MyExternalPostTable",//tableName
   "ExternalPostTableDataSource",//dataSourceName
   "datasourceIamPolicy",//
