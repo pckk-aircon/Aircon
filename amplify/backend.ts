@@ -85,7 +85,8 @@ function createDynamoDbDataSource(
   const role = Role.fromRoleArn(stack, `${dataSourceName}Role`, dataSource.ds.serviceRoleArn ?? '');
 
   const policy = new Policy(stack, policyName, {
-    policyName: `amplify-permissions-${dataSourceName}`,
+    //policyName: `amplify-permissions-${dataSourceName}`,
+    policyName: "amplify-permissions-external-table",
     statements: [
       new PolicyStatement({
         effect: Effect.ALLOW,
