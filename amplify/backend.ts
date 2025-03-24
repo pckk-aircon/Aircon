@@ -100,6 +100,7 @@ function createDynamoDbDataSource(
   return dataSource;
 }
 
+// ここで関数を呼び出してデータソースを作成します。
 const externalTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
   "MyExternalPostTable",
