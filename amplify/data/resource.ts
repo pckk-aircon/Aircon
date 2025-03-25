@@ -132,21 +132,19 @@ export const data = defineData({
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 const schema = a.schema({
-  /*
   Todo: a
     .model({
       content: a.string(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
-  */
 
-  //Deviceのデータを設定。
+  //step1にて追加。
   Post: a.customType({
-    Controller: a.id().required(),//こちらをキーにする。
-    Device: a.string(),
-    //Device: a.id().required(),
-    //Controller: a.string(),
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+    Controller: a.string(),
   }),
+
 
   //step3にて追加。
   addPost: a
@@ -159,7 +157,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "DeviceDataSource",
+        dataSource: "ExternalPostTableDataSource",
         entry: "./addPost.js",
       })
     ),
@@ -167,16 +165,32 @@ const schema = a.schema({
   getPost: a
     .query()
     .arguments({
-      Controller: a.id().required(),//こちらをキーにする。
+      Device: a.id().required(),
       //Controller: a.string() // Controllerを追加
-      Device: a.string(),
     })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "DeviceDataSource",
+        dataSource: "ExternalPostTableDataSource",
         entry: "./getPost.js",
+      })
+    ),
+
+  //TableDevice（DeviceTableDeviceTable）の設定を追加
+  listIotDataByController: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+      DeviceDatetime: a.string(),
+    })
+    .returns(a.ref("IotData").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "IotDataSource",//★★★
+        //dataSource: "DeviceDataSource",//★★★    
+        entry: "./listIot.js",
       })
     ),
 
@@ -194,7 +208,7 @@ const schema = a.schema({
 
   //＊＊＊＊ listIot ＊＊＊＊
 
-  //IoTのデータを設定
+  //IoTDataを設定
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
