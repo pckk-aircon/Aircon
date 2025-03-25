@@ -109,8 +109,8 @@ const DeviceTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
   "DeviceTable",//DynamoDbtableName
   "MyDeviceTable",//tableName
-  "ExternalPostTableDataSource",//dataSourceName
-  "DeviceTableIamPolicy"
+  "DeviceDataSource",//dataSourceName
+  "DeviceIamPolicy"
 );
 
 /*
