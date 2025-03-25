@@ -48,9 +48,17 @@ export default function App() {
   }
 
   async function getPost() {
+    
+    /*
     const { data, errors } = await client.queries.getPost({
       Device: "AC233FA3DA16", // 任意のDeviceをキーに1件抽出。
     });
+    */
+
+    const { data, errors } = await client.queries.getPost({
+      Controller: "Mutsu01",//暫定。
+    });
+
     console.log("get=", data);
 
     if (data) {
