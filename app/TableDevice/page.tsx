@@ -34,7 +34,7 @@ export default function App() {
     });
 
     return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
-  }, [posts]); // 依存配列に posts を追加
+  }); // 依存配列に posts を追加
 
   //step5にて追加。
   async function addPost () {
@@ -66,7 +66,7 @@ export default function App() {
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={post.Device}>{post.Controller}</li>
+          <li key={post.Device}>{post.Device}{post.Controller}</li>
         ))}
       </ul>
 
