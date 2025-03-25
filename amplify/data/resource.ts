@@ -132,16 +132,10 @@ export const data = defineData({
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
 
   //step1にて追加。
   Post: a.customType({
     Device: a.id().required(),
-    DeviceDatetime: a.string(),
     Controller: a.string(),
   }),
 
@@ -166,7 +160,6 @@ const schema = a.schema({
     .query()
     .arguments({
       Device: a.id().required(),
-      //Controller: a.string() // Controllerを追加
     })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
@@ -188,8 +181,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "IotDataSource",//★★★
-        //dataSource: "DeviceDataSource",//★★★    
+        dataSource: "IotDataSource",//★★★    
         entry: "./listIot.js",
       })
     ),
@@ -237,7 +229,6 @@ listIot: a
   .authorization(allow => [allow.publicApiKey()])
   .handler(
     a.handler.custom({
-      //dataSource: "ExternalPostTableDataSource",
       dataSource: "IotSource",//★★★変更。
       entry: "./listIot.js",
     })
