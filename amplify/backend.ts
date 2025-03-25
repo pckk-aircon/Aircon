@@ -105,6 +105,15 @@ function createDynamoDbDataSource(
 
 // ここで関数を呼び出してデータソースを作成します。
 
+const DeviceTableDS = createDynamoDbDataSource(
+  externalDataSourcesStack,
+  "DeviceTable",//DynamoDbtableName
+  "MyDeviceTable",//tableName
+  "ExternalPostTableDataSource",//dataSourceName
+  "DeviceTableIamPolicy"
+);
+
+/*
 const DivisionTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
   "DivisionTable",//DynamoDbtableName
@@ -112,6 +121,7 @@ const DivisionTableDS = createDynamoDbDataSource(
   "DivisionDataSource",//dataSourceName
   "DivisionIamPolicy"
 );
+*/
 
 const IotTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
