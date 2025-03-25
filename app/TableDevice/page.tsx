@@ -19,18 +19,7 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-
-  //const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-  //const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-
-  /*
-  interface Device {
-    Device: string;
-    Controller: string;
-    DeviceType: string;
-  }
-  */
 
   useEffect(() => {
     getPost(); // Postの初期表示
@@ -44,18 +33,8 @@ export default function App() {
       },
     });
 
-    // クリーンアップ関数を返してサブスクリプションを解除
-    return () => sub.unsubscribe();
-
-  }, );
-
-  /*
-  function createTodo() {
-    client.models.Todo.create({
-      content: window.prompt("Todo content"),
-    });
-  }
-  */
+    return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
+  }, [posts]); // 依存配列に posts を追加
 
   //step5にて追加。
   async function addPost () {
@@ -79,7 +58,6 @@ export default function App() {
       setPosts(prevPosts => [...prevPosts, data]);
     }
   }
-
 
   return (
     <main>
