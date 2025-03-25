@@ -178,24 +178,6 @@ const schema = a.schema({
       })
     ),
 
-  //TableDevice（DeviceTableDeviceTable）の設定を追加
-  listIotDataByController: a
-    .query()
-    .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
-    })
-    .returns(a.ref("IotData").array())
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",//★★★
-        //dataSource: "DeviceDataSource",//★★★    
-        //entry: "./listIot.js",
-        entry: "./listDeviceByController.js",
-      })
-    ),
-
   //カスタムサブスクリプションを実装
   receivePost: a
     .subscription()

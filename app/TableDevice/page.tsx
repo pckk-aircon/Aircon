@@ -22,17 +22,18 @@ export default function App() {
 
   //const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
+  //const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
+  /*
   interface Device {
     Device: string;
     Controller: string;
     DeviceType: string;
   }
+  */
 
   useEffect(() => {
     getPost(); // Postの初期表示
-    listDeviceByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
@@ -62,7 +63,7 @@ export default function App() {
       Controller: window.prompt("Controller"),
 
     },{authMode: "apiKey"});
-    //console.log(data)
+    console.log('add=',data)
   }
 
   //getPostを追記
@@ -80,32 +81,6 @@ export default function App() {
   }
 
 
-  //listIotByControllerを追記。
-  async function listDeviceByController () {
-
-
-
-    console.log('page called'); // 関数が呼び出されたことを確認
-    try {  
-      const { data, errors } = await client.queries.listIotDataByController({
-        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        DeviceDatetime: "2024-06-30 23:28:28+09:00",
-      });
-    
-      if (errors) {
-        console.error('Query エラー', errors); // エラーがある場合にログ出力
-      } else if (data) {
-        console.log('Query 結果', data); // クエリ結果をログ出力
-      } else {
-        console.log('データ無し'); // データが返されなかった場合
-      }
-
-    } catch (error) {
-      console.error('予期しないエラー', error); // 予期しないエラーをログ出力
-    }
-  }
-
-
   return (
     <main>
 
@@ -114,14 +89,6 @@ export default function App() {
       <ul>
         {posts.map((post) => (
           <li key={post.Device}>{post.Controller}</li>
-        ))}
-      </ul>
-
-      <h1>My lists</h1>
-      <button onClick={addPost}>+ new post</button>
-      <ul>
-        {devices.map((device) => (
-          <li key={device.Device}>{device.Controller}</li>
         ))}
       </ul>
 
