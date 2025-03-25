@@ -185,6 +185,8 @@ import * as THREE from "three";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import { FeatureCollection, Geometry } from 'geojson';
+
 const InitialViewState: Partial<ViewState> = {
   longitude: 140.302994,
   latitude: 35.353503,
