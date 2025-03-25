@@ -140,10 +140,9 @@ const schema = a.schema({
     .authorization((allow) => [allow.publicApiKey()]),
   */
 
-  //step1にて追加。
+  //Deviceのデータを設定。
   Post: a.customType({
     Device: a.id().required(),
-    //DeviceDatetime: a.string(),
     Controller: a.string(),
   }),
 
@@ -192,7 +191,7 @@ const schema = a.schema({
 
   //＊＊＊＊ listIot ＊＊＊＊
 
-  //IoTDataを設定
+  //IoTのデータを設定
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
