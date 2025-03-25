@@ -142,8 +142,10 @@ const schema = a.schema({
 
   //Deviceのデータを設定。
   Post: a.customType({
-    Device: a.id().required(),
-    Controller: a.string(),
+    Controller: a.id().required(),//こちらをキーにする。
+    Device: a.string(),
+    //Device: a.id().required(),
+    //Controller: a.string(),
   }),
 
   //step3にて追加。
