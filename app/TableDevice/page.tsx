@@ -28,7 +28,7 @@ export default function App() {
     const sub = client.subscriptions.receivePost()
     .subscribe({
       next: event => {
-        console.log(event)
+        console.log('event=',event)
         setPosts(prevPosts => [...prevPosts, event]);
       },
     });
