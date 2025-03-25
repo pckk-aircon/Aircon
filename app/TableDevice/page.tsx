@@ -20,7 +20,7 @@ const client = generateClient<Schema>();
 export default function App() {
 
 
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  //const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
   const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
 
@@ -32,7 +32,7 @@ export default function App() {
 
   useEffect(() => {
     getPost(); // Postの初期表示
-    listIotDataByController (); // Postの初期表示
+    listDeviceByController (); // Postの初期表示
 
     //サブスクリプションの設定をuseEffect()の中に移動。
     const sub = client.subscriptions.receivePost()
@@ -48,11 +48,13 @@ export default function App() {
 
   }, );
 
+  /*
   function createTodo() {
     client.models.Todo.create({
       content: window.prompt("Todo content"),
     });
   }
+  */
 
   //step5にて追加。
   async function addPost () {
@@ -79,7 +81,7 @@ export default function App() {
 
 
   //listIotByControllerを追記。
-  async function listIotDataByController () {
+  async function listDeviceByController () {
 
 
 
@@ -106,13 +108,6 @@ export default function App() {
 
   return (
     <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
-        ))}
-      </ul>
 
       <h1>My posts</h1>
       <button onClick={addPost}>+ new post</button>
