@@ -134,11 +134,11 @@ export default function App() {
   }
 
   async function getPost() {
-    const { data, errors } = await client.queries.getPost({
+    const { data, errors } = await client.queries.listDevice({
       //Device: "AC233FA3DA16", // 任意のDeviceをキーに1件抽出。
       Controller: "Mutsu01", // 任意のDeviceをキーに1件抽出。
     });
-    console.log("get=", data);
+    console.log("listDevice=", data);
 
     if (data) {
       setPosts((prevPosts) => {
