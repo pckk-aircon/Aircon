@@ -135,7 +135,7 @@ const schema = a.schema({
   getPost: a
     .query()
     .arguments({
-      Device: a.id().required(),
+      //Device: a.id().required(),
       Controller: a.string() // Controllerを追加
     })
     .returns(a.ref("Post"))
@@ -178,23 +178,23 @@ const schema = a.schema({
     Division: a.string(), 
   }),
 
-// listIot（キー部分とキー以外のフィールドを一度に読み込み）
-listIot: a
-  .query()
-  .arguments({
-    Controller: a.string(),
-    StartDatetime: a.string(),
-    EndDatetime: a.string(),
-  })
-  .returns(a.ref("IotData").array())
-  .authorization(allow => [allow.publicApiKey()])
-  .handler(
-    a.handler.custom({
-      //dataSource: "ExternalPostTableDataSource",
-      dataSource: "IotSource",//★★★変更。
-      entry: "./listIot.js",
+  // listIot（キー部分とキー以外のフィールドを一度に読み込み）
+  listIot: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+      StartDatetime: a.string(),
+      EndDatetime: a.string(),
     })
-  ),
+    .returns(a.ref("IotData").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        //dataSource: "ExternalPostTableDataSource",
+        dataSource: "IotSource",//★★★変更。
+        entry: "./listIot.js",
+      })
+    ),
 
 });
 
