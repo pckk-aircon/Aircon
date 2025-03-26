@@ -132,6 +132,7 @@ const schema = a.schema({
       })
     ),
 
+  /*
   getPost: a
     .query()
     .arguments({
@@ -144,6 +145,22 @@ const schema = a.schema({
       a.handler.custom({
         dataSource: "DeviceDataSource",
         entry: "./getPost.js",
+      })
+    ),
+  */
+
+    listDevice: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+    })
+    .returns(a.ref("Post").array())
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        //dataSource: "ExternalPostTableDataSource",
+        dataSource: "DeviceDataSource",//★★★変更。
+        entry: "./listDeviceByController.js",
       })
     ),
 
