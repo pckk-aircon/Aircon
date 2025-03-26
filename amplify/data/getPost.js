@@ -22,4 +22,10 @@ export function request(ctx) {
     index: 'Controller-index'
   };
 }
-export const response = (ctx) => ctx.result.items;
+//export const response = (ctx) => ctx.result.items;
+
+//log有り。
+export const response = (ctx) => {
+  console.log("Response context:", ctx);
+  return ctx.result.items;
+};
