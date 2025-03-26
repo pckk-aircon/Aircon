@@ -112,8 +112,8 @@ const schema = a.schema({
 
   //Deviceのデータを設定。
   Post: a.customType({
-    Controller: a.id().required(),
-    Device: a.string(),
+    Device: a.id().required(),
+    Controller: a.string(),
   }),
 
   //step3にて追加。
@@ -132,18 +132,9 @@ const schema = a.schema({
       })
     ),
 
-  //IoTのデータを設定
-  getPost: a.customType({
-    Device: a.id().required(),
-    Controller: a.string(), 
-  }),
-
-
   listDevice: a
     .query()
     .arguments({
-      //Device: a.id().required(),
-      //Controller: a.string() // Controllerを追加
       Controller: a.string(),
     })
     .returns(a.ref("Post"))
