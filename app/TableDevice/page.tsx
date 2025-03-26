@@ -95,17 +95,26 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
-  async function listIot() {
+export default function App() {
+
+  useEffect(() => {
+    listDevice();
+  });
+
+  async function listDevice() {
 
     const { data, errors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
-    console.log('listIot=', data)
+    console.log('listDevice=', data)
+
 
   }
+
+}
