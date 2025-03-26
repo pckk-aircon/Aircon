@@ -101,6 +101,7 @@ Amplify.configure(outputs);
 const client = generateClient<Schema>();
 
 export default function App() {
+
   const [posts, setPosts] = useState<Array<{ Device: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
@@ -117,9 +118,20 @@ export default function App() {
     }
   }
 
+  async function addPost() {
+    const { data } = await client.mutations.addPost(
+      {
+        Controller: window.prompt("Controller"),
+      },
+      { authMode: "apiKey" }
+    );
+    console.log("add=", data);
+  }
+
   return (
     <main>
       <h1>Device</h1>
+      <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
           <li key={post.Controller}>
