@@ -34,8 +34,13 @@ export default function App() {
       },
     });
 
+  /*  
     return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
   }, []); // 空の依存配列で一度だけ実行
+  */
+
+  return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
+});
 
   async function addPost() {
     const { data } = await client.mutations.addPost(

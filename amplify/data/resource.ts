@@ -170,8 +170,9 @@ const schema = a.schema({
       })
     ),
 
-  //TableDevice（DeviceTableDeviceTable）の設定を追加
-  listIotDataByController: a
+  /*
+  //TableDevice（DeviceTableDeviceTable）の設定を追加  
+  listDeviceByController: a
     .query()
     .arguments({
       Controller: a.string(),
@@ -182,9 +183,10 @@ const schema = a.schema({
     .handler(
       a.handler.custom({
         dataSource: "IotDataSource",//★★★    
-        entry: "./listIot.js",
+        entry: "./listDeviceByController.js",
       })
     ),
+  */
 
   //カスタムサブスクリプションを実装
   receivePost: a
