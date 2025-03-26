@@ -105,8 +105,24 @@ export default function App() {
   const [posts, setPosts] = useState<Array<{ Device: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
-    listDevice();
-  }, []);
+
+    listDevice(); // Postの初期表示
+
+    const sub = client.subscriptions.receivePost().subscribe({
+      next: (event) => {
+        console.log("event=", event);
+        setPosts((prevPosts) => {
+          // 重複を避けるために投稿が既に存在するか確認
+          if (!prevPosts.some((post) => post.Device === event.Device)) {
+            return [...prevPosts, event];
+          }
+          return prevPosts;
+        });
+      },
+    });
+
+    return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
+  }, []); // 空の依存配列で一度だけ実行
 
   async function listDevice() {
     const { data, errors } = await client.queries.listDevice({
