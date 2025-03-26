@@ -34,13 +34,8 @@ export default function App() {
       },
     });
 
-  /*  
     return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
   }, []); // 空の依存配列で一度だけ実行
-  */
-
-  return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
-});
 
   async function addPost() {
     const { data } = await client.mutations.addPost(
@@ -53,12 +48,10 @@ export default function App() {
   }
 
   async function getPost() {
-
     const { data, errors } = await client.queries.getPost({
       Device: "AC233FA3DA16", // 任意のDeviceをキーに1件抽出。
     });
-
-    console.log("getPost=", data);
+    console.log("get=", data);
 
     if (data) {
       setPosts((prevPosts) => {

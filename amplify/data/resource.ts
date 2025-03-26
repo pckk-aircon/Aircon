@@ -132,13 +132,19 @@ export const data = defineData({
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 const schema = a.schema({
+  /*
+  Todo: a
+    .model({
+      content: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+  */
 
-  //step1にて追加。
+  //Deviceのデータを設定。
   Post: a.customType({
     Device: a.id().required(),
     Controller: a.string(),
   }),
-
 
   //step3にて追加。
   addPost: a
@@ -151,7 +157,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
+        dataSource: "DeviceDataSource",
         entry: "./addPost.js",
       })
     ),
@@ -160,33 +166,16 @@ const schema = a.schema({
     .query()
     .arguments({
       Device: a.id().required(),
+      Controller: a.string() // Controllerを追加
     })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "ExternalPostTableDataSource",
+        dataSource: "DeviceDataSource",
         entry: "./getPost.js",
       })
     ),
-
-  /*
-  //TableDevice（DeviceTableDeviceTable）の設定を追加  
-  listDeviceByController: a
-    .query()
-    .arguments({
-      Controller: a.string(),
-      DeviceDatetime: a.string(),
-    })
-    .returns(a.ref("IotData").array())
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        dataSource: "IotDataSource",//★★★    
-        entry: "./listDeviceByController.js",
-      })
-    ),
-  */
 
   //カスタムサブスクリプションを実装
   receivePost: a
@@ -202,7 +191,7 @@ const schema = a.schema({
 
   //＊＊＊＊ listIot ＊＊＊＊
 
-  //IoTDataを設定
+  //IoTのデータを設定
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
@@ -231,6 +220,7 @@ listIot: a
   .authorization(allow => [allow.publicApiKey()])
   .handler(
     a.handler.custom({
+      //dataSource: "ExternalPostTableDataSource",
       dataSource: "IotSource",//★★★変更。
       entry: "./listIot.js",
     })
