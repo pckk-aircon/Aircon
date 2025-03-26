@@ -103,6 +103,9 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
+  //追加。これは何？。
+  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
+
   useEffect(() => {
     listDevice();
   });
@@ -114,7 +117,19 @@ export default function App() {
     });
     console.log('listDevice=', data)
 
-
   }
+
+  return (
+    <main>
+      <h1>My posts</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.Device}>
+            {post.Device} {post.Controller}
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
 
 }
