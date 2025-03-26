@@ -105,18 +105,15 @@ export default function App() {
 
   //追加。これは何？。
   const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
-
   useEffect(() => {
     listDevice();
   });
 
   async function listDevice() {
-
     const { data, errors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
     console.log('listDevice=', data)
-
   }
 
   return (
@@ -124,7 +121,7 @@ export default function App() {
       <h1>My posts</h1>
       <ul>
         {posts.map((post) => (
-          <li key={post.Device}>
+          <li key={post.Controller}>
             {post.Device} {post.Controller}
           </li>
         ))}
