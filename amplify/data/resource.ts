@@ -112,8 +112,8 @@ const schema = a.schema({
 
   //Deviceのデータを設定。
   Post: a.customType({
-    Device: a.id().required(),
-    Controller: a.string(),
+    Controller: a.id().required(),
+    Device: a.string(),
   }),
 
   //step3にて追加。
@@ -135,8 +135,10 @@ const schema = a.schema({
   getPost: a
     .query()
     .arguments({
-      Device: a.id().required(),
-      Controller: a.string() // Controllerを追加
+      //Device: a.id().required(),
+      //Controller: a.string() // Controllerを追加
+      Controller: a.id().required(),
+      Device: a.string(),
     })
     .returns(a.ref("Post"))
     .authorization(allow => [allow.publicApiKey()])
