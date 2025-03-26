@@ -83,7 +83,6 @@ export default function App() {
 
 */
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -102,23 +101,25 @@ Amplify.configure(outputs);
 const client = generateClient<Schema>();
 
 export default function App() {
+  const [posts, setPosts] = useState<Array<{ Device: string; Controller?: string | null }>>([]);
 
-  //追加。これは何？。
-  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
   useEffect(() => {
     listDevice();
-  });
+  }, []);
 
   async function listDevice() {
     const { data, errors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
-    console.log('listDevice=', data)
+    console.log('listDevice=', data);
+    if (data) {
+      setPosts(data as Array<{ Device: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
   }
 
   return (
     <main>
-      <h1>My posts</h1>
+      <h1>Device</h1>
       <ul>
         {posts.map((post) => (
           <li key={post.Controller}>
@@ -128,5 +129,4 @@ export default function App() {
       </ul>
     </main>
   );
-
 }
