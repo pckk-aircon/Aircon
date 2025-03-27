@@ -110,13 +110,15 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 const schema = a.schema({
 
-  //Deviceのデータを設定。
+ // ＊＊＊＊ Device ＊＊＊＊
+
+  // データを設定。
   Device: a.customType({
     Device: a.id().required(),
     Controller: a.string(),
   }),
 
-  //step3にて追加。
+  // add。
   addDevice: a
     .mutation()
     .arguments({
@@ -132,6 +134,7 @@ const schema = a.schema({
       })
     ),
 
+  // list。
   listDevice: a
   .query()
   .arguments({
@@ -141,14 +144,13 @@ const schema = a.schema({
   .authorization(allow => [allow.publicApiKey()])
   .handler(
     a.handler.custom({
-      //dataSource: "ExternalPostTableDataSource",
       dataSource: "DeviceDataSource",//★★★変更。
       entry: "./listDeviceByController.js",
     })
   ),
 
-  //カスタムサブスクリプションを実装
-  receivePost: a
+  // カスタムサブスクリプション
+  receiveDevice: a
     .subscription()
     .for(a.ref("addDevice")) 
     .authorization(allow => [allow.publicApiKey()])
@@ -158,10 +160,59 @@ const schema = a.schema({
         })
     ),
 
+ // ＊＊＊＊ Division ＊＊＊＊
 
-  //＊＊＊＊ listIot ＊＊＊＊
+  // データを設定。
+  Division: a.customType({
+    Device: a.id().required(),
+    Controller: a.string(),
+  }),
 
-  //IoTのデータを設定
+  // add。
+  addDivision: a
+    .mutation()
+    .arguments({
+      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Controller: a.string()
+    })
+    .returns(a.ref("Device"))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "DeviceDataSource",
+        entry: "./addPost.js",
+      })
+    ),
+
+  // list。
+  listDivision: a
+  .query()
+  .arguments({
+    Controller: a.string(),
+  })
+  .returns(a.ref("Device").array())
+  .authorization(allow => [allow.publicApiKey()])
+  .handler(
+    a.handler.custom({
+      dataSource: "DeviceDataSource",//★★★変更。
+      entry: "./listDeviceByController.js",
+    })
+  ),
+
+  // カスタムサブスクリプション
+  receiveDivision: a
+    .subscription()
+    .for(a.ref("addDivision")) 
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+        a.handler.custom({
+            entry: './receivePost.js'
+        })
+    ),
+
+  // ＊＊＊＊ Iot ＊＊＊＊
+
+  // データを設定。
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
@@ -178,7 +229,7 @@ const schema = a.schema({
     Division: a.string(), 
   }),
 
-  // listIot（キー部分とキー以外のフィールドを一度に読み込み）
+  // list
   listIot: a
     .query()
     .arguments({

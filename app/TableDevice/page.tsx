@@ -102,7 +102,7 @@ export default function App() {
 
     listPost(); // Postの初期表示
 
-    const sub = client.subscriptions.receivePost().subscribe({
+    const sub = client.subscriptions.receiveDevice().subscribe({
       next: (event) => {
         console.log("event=", event);
         setPosts((prevPosts) => {
