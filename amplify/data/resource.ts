@@ -180,7 +180,7 @@ const schema = a.schema({
     .handler(
       a.handler.custom({
         dataSource: "DivisionDataSource",
-        entry: "./addPost.js",
+        entry: "./addDivision.js",
       })
     ),
 
