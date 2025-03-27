@@ -1,4 +1,3 @@
-/*
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,6 +27,12 @@ export default function App() {
       next: (event) => {
         console.log("event=", event);
         setPosts((prevPosts) => {
+          // 重複を避けるために投稿が既に存在するか確認
+          /*
+          if (!prevPosts.some((post) => post.Device === event.Device)) {
+            return [...prevPosts, event];
+          }
+          */
           return prevPosts;
         });
       },
@@ -70,5 +75,3 @@ export default function App() {
     </main>
   );
 }
-
-*/

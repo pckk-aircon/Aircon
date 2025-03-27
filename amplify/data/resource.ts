@@ -159,8 +159,7 @@ const schema = a.schema({
             entry: './receivePost.js'
         })
     ),
-    
-/*
+
  // ＊＊＊＊ Division ＊＊＊＊
 
   // データを設定。
@@ -210,7 +209,6 @@ const schema = a.schema({
             entry: './receivePost.js'
         })
     ),
-  */
 
   // ＊＊＊＊ Iot ＊＊＊＊
 
