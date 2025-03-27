@@ -111,7 +111,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 const schema = a.schema({
 
   //Deviceのデータを設定。
-  Post: a.customType({
+  Device: a.customType({
     Device: a.id().required(),
     Controller: a.string(),
   }),
@@ -123,7 +123,7 @@ const schema = a.schema({
       Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
       Controller: a.string()
     })
-    .returns(a.ref("Post"))
+    .returns(a.ref("Device"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
@@ -137,7 +137,7 @@ const schema = a.schema({
   .arguments({
     Controller: a.string(),
   })
-  .returns(a.ref("Post").array())
+  .returns(a.ref("Device").array())
   .authorization(allow => [allow.publicApiKey()])
   .handler(
     a.handler.custom({
