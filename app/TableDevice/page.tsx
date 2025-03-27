@@ -107,9 +107,11 @@ export default function App() {
         console.log("event=", event);
         setPosts((prevPosts) => {
           // 重複を避けるために投稿が既に存在するか確認
+          /*
           if (!prevPosts.some((post) => post.Device === event.Device)) {
             return [...prevPosts, event];
           }
+          */
           return prevPosts;
         });
       },
@@ -123,9 +125,11 @@ export default function App() {
       Controller: "Mutsu01",
     });
     console.log('listDevice=', data);
+    /*
     if (data) {
       setPosts(data as Array<{ Device: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
+    */
   }
 
   async function addPost() {
