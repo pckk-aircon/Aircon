@@ -164,7 +164,7 @@ const schema = a.schema({
 
   // データを設定。
   Division: a.customType({
-    Device: a.id().required(),
+    Division: a.id().required(),
     Controller: a.string(),
   }),
 
