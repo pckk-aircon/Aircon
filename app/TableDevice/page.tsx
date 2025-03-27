@@ -125,11 +125,9 @@ export default function App() {
       Controller: "Mutsu01",
     });
     console.log('listDevice=', data);
-    /*
     if (data) {
       setPosts(data as Array<{ Device: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
-    */
   }
 
   async function addPost() {

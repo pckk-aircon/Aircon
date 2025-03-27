@@ -175,7 +175,7 @@ const schema = a.schema({
       Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
       Controller: a.string()
     })
-    .returns(a.ref("Device"))
+    .returns(a.ref("Division"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
@@ -190,11 +190,11 @@ const schema = a.schema({
   .arguments({
     Controller: a.string(),
   })
-  .returns(a.ref("Device").array())
+  .returns(a.ref("Division").array())
   .authorization(allow => [allow.publicApiKey()])
   .handler(
     a.handler.custom({
-      dataSource: "DeviceDataSource",//★★★変更。
+      dataSource: "DivisionDataSource",//★★★変更。
       entry: "./listDeviceByController.js",
     })
   ),
