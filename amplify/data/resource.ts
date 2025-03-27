@@ -172,14 +172,14 @@ const schema = a.schema({
   addDivision: a
     .mutation()
     .arguments({
-      Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      Division: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
       Controller: a.string()
     })
     .returns(a.ref("Division"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "DeviceDataSource",
+        dataSource: "DivisionDataSource",
         entry: "./addPost.js",
       })
     ),
