@@ -206,7 +206,7 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
         a.handler.custom({
-            entry: './receivePost.js'
+            entry: './receiveDivision.js'
         })
     ),
 
