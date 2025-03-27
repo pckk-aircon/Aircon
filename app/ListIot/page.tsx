@@ -326,7 +326,7 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0); //現在選択されているDivisionを保持するために使用。
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0); //現在選択されているDeviceを保持するために使用。
 
-  const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
+  const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
@@ -353,7 +353,7 @@ export default function App() {
         //.filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
 
         .filter(item => 
-          item?.Division === divisions[currentDivisionIndex] && 
+          item?.Division === divisionLists[currentDivisionIndex] && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
@@ -407,10 +407,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisions.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
   const DevicehandleNext = () => {
@@ -494,7 +494,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for {divisions[currentDivisionIndex]} _ {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex]} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
