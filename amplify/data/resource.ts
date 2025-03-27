@@ -117,7 +117,7 @@ const schema = a.schema({
   }),
 
   //step3にて追加。
-  addPost: a
+  addDevice: a
     .mutation()
     .arguments({
       Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
@@ -132,25 +132,25 @@ const schema = a.schema({
       })
     ),
 
-    listDevice: a
-    .query()
-    .arguments({
-      Controller: a.string(),
+  listDevice: a
+  .query()
+  .arguments({
+    Controller: a.string(),
+  })
+  .returns(a.ref("Post").array())
+  .authorization(allow => [allow.publicApiKey()])
+  .handler(
+    a.handler.custom({
+      //dataSource: "ExternalPostTableDataSource",
+      dataSource: "DeviceDataSource",//★★★変更。
+      entry: "./listDeviceByController.js",
     })
-    .returns(a.ref("Post").array())
-    .authorization(allow => [allow.publicApiKey()])
-    .handler(
-      a.handler.custom({
-        //dataSource: "ExternalPostTableDataSource",
-        dataSource: "DeviceDataSource",//★★★変更。
-        entry: "./listDeviceByController.js",
-      })
-    ),
+  ),
 
   //カスタムサブスクリプションを実装
   receivePost: a
     .subscription()
-    .for(a.ref("addPost")) 
+    .for(a.ref("addDevice")) 
     .authorization(allow => [allow.publicApiKey()])
     .handler(
         a.handler.custom({

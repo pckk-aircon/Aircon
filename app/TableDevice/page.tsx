@@ -100,7 +100,7 @@ export default function App() {
 
   useEffect(() => {
 
-    listDevice(); // Postの初期表示
+    listPost(); // Postの初期表示
 
     const sub = client.subscriptions.receivePost().subscribe({
       next: (event) => {
@@ -118,7 +118,7 @@ export default function App() {
     return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
   }, []); // 空の依存配列で一度だけ実行
 
-  async function listDevice() {
+  async function listPost() {
     const { data, errors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
@@ -129,7 +129,7 @@ export default function App() {
   }
 
   async function addPost() {
-    const { data } = await client.mutations.addPost(
+    const { data } = await client.mutations.addDevice(
       {
         Controller: window.prompt("Controller"),
       },
