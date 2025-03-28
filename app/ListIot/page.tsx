@@ -41,7 +41,12 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
+  const divisionLists = [
+    ["MUTS-Flower", "花卉室"],
+    ["MUTS-Dining", "飲食室"],
+    ["MUTS-Rest", "休憩室"]
+  ];
+  //const divisionLists = ["MUTS-Dining", "MUTS-Flower", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
@@ -83,7 +88,7 @@ export default function App() {
       const formattedData = data
 
         .filter(item => 
-          item?.Division === divisionLists[currentDivisionIndex] && 
+          item?.Division === divisionLists[currentDivisionIndex][0] && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
@@ -222,7 +227,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex]} _ {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex][1]} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
@@ -346,15 +351,19 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
+  /*
   const divisionLists = [
     ["MUTS-Flower", "花卉室"],
     ["MUTS-Dining", "飲食室"],
     ["MUTS-Rest", "休憩室"]
   ];
+  */
   //const divisionLists = ["MUTS-Dining", "MUTS-Flower", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
+  const divisionLists = posts.map(post => [post.Division, post.Controller]); //オブジェクトの配列を通常の配列に変換。
+  
 
   useEffect(() => {
     async function fetchData() {
