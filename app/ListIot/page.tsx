@@ -29,17 +29,17 @@ interface ChartData {
   ControlStage: string | null;
   Device: string;
   Division: string;
+  DivisionName?: string; // DivisionNameを追加
 }
 
 export default function App() {
 
-  //データ取得の範囲を指定する変数を定義。
   const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
-  const [chartData, setChartData] = useState<ChartData[]>([]);// 取得したデータを保持し、チャートに表示するために使用。
-  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0); //現在選択されているDivisionを保持するために使用。
-  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0); //現在選択されているDeviceを保持するために使用。
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
   const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
@@ -60,7 +60,7 @@ export default function App() {
     });
     console.log('listDivision=', data);
     if (data) {
-      setPosts(data as Array<{ Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; Controller?: string | null }>);
     }
   }
 
@@ -87,19 +87,22 @@ export default function App() {
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
-        .map(item => ({
-          DeviceDatetime: item?.DeviceDatetime ?? '',
-          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-          WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
-          TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
-          PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
-          ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
-          ControlStage: item?.ControlStage ?? null,
-          Device: item?.Device ?? '',
-          Division: item?.Division ?? '',
-        }));
+        .map(item => {
+          const divisionName = posts.find(post => post.Division === item?.Division)?.Division || '';
+          return {
+            DeviceDatetime: item?.DeviceDatetime ?? '',
+            ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+            WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
+            TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
+            PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+            ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+            ControlStage: item?.ControlStage ?? null,
+            Device: item?.Device ?? '',
+            Division: item?.Division ?? '',
+            DivisionName: divisionName, // DivisionNameを追加
+          };
+        });
 
-      // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
     }
@@ -343,7 +346,8 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
+  //const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
+  const divisionLists = ["花卉室", "飲食室", "事務室"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
