@@ -346,8 +346,7 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
-  const divisionLists = ["花卉室", "飲食室", "事務室"];
+  const divisionLists = ["MUTS-Dining", "MUTS-Flower", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
