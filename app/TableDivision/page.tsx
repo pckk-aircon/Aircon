@@ -17,11 +17,12 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
-
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string ;Controller?: string | null }>>([]);
+    /*
   useEffect(() => {
 
     listPost(); // Postの初期表示
+
 
     const sub = client.subscriptions.receiveDivision().subscribe({
       next: (event) => {
@@ -38,6 +39,24 @@ export default function App() {
     return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
   
   }, []); // 空の依存配列で一度だけ実行
+  */
+
+  useEffect(() => {
+    listPost();
+  
+    const sub = client.subscriptions.receiveDivision().subscribe({
+      next: (event) => {
+        console.log("event=", event);
+        setPosts((prevPosts) => {
+          if (!prevPosts.some((post) => post.Division === event.Division)) {
+            return [...prevPosts, event as { Division: string; DivisionName: string; Controller?: string | null }];
+          }
+          return prevPosts;
+        });
+      },
+    });
+    return () => sub.unsubscribe();
+  }, []);
 
   async function listPost() {
     const { data, errors } = await client.queries.listDivision({
@@ -45,7 +64,7 @@ export default function App() {
     });
     console.log('listDivision=', data);
     if (data) {
-      setPosts(data as Array<{ Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
@@ -66,7 +85,7 @@ export default function App() {
       <ul>
         {posts.map((post) => (
           <li key={post.Controller}>
-            {post.Division} {post.Controller}
+            {post.Division}{post.DivisionName}{post.Controller}
           </li>
         ))}
       </ul>
