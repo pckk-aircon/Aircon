@@ -130,7 +130,7 @@ const schema = a.schema({
     .handler(
       a.handler.custom({
         dataSource: "DeviceDataSource",
-        entry: "./addPost.js",
+        entry: "./addDevice.js",
       })
     ),
 
