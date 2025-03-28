@@ -361,8 +361,8 @@ export default function App() {
   //const divisionLists = ["MUTS-Dining", "MUTS-Flower", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
-  const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
-  const divisionLists = posts.map(post => [post.Division, post.Controller]); //オブジェクトの配列を通常の配列に変換。
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const divisionLists = posts.map(post => [post.Division, post.DivisionName, post.Controller]); //オブジェクトの配列を通常の配列に変換。
   
 
   useEffect(() => {
@@ -379,7 +379,7 @@ export default function App() {
     });
     console.log('listDivision=', data);
     if (data) {
-      setPosts(data as Array<{ Division: string; Controller?: string | null }>);
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
     }
   }
 
