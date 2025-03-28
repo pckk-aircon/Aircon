@@ -118,7 +118,7 @@ const schema = a.schema({
     Controller: a.string(),
   }),
 
-  // add。
+  // add
   addDevice: a
     .mutation()
     .arguments({
@@ -134,7 +134,7 @@ const schema = a.schema({
       })
     ),
 
-  // list。
+  // list
   listDevice: a
   .query()
   .arguments({
@@ -169,7 +169,7 @@ const schema = a.schema({
     Controller: a.string(),
   }),
 
-  // add。
+  // add
   addDivision: a
     .mutation()
     .arguments({
@@ -186,7 +186,7 @@ const schema = a.schema({
       })
     ),
 
-  // list。
+  // list
   listDivision: a
   .query()
   .arguments({

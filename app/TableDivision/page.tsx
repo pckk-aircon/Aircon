@@ -71,6 +71,7 @@ export default function App() {
   async function addPost() {
     const { data } = await client.mutations.addDivision(
       {
+        DivisionName: window.prompt("DivisionName"),
         Controller: window.prompt("Controller"),
       },
       { authMode: "apiKey" }
