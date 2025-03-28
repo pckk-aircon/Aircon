@@ -350,7 +350,6 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-        //.filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
 
         .filter(item => 
           item?.Division === divisionLists[currentDivisionIndex] && 
@@ -371,9 +370,6 @@ export default function App() {
 
       // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
-
-      console.log('Formatted Data:', formattedData);
-
       setChartData(formattedData);
     }
   }
@@ -387,9 +383,7 @@ export default function App() {
     return acc;
   }, {});
 
-
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
-
 
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
