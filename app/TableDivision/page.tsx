@@ -18,28 +18,6 @@ const client = generateClient<Schema>();
 export default function App() {
 
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string ;Controller?: string | null }>>([]);
-    /*
-  useEffect(() => {
-
-    listPost(); // Postの初期表示
-
-
-    const sub = client.subscriptions.receiveDivision().subscribe({
-      next: (event) => {
-        console.log("event=", event);
-        setPosts((prevPosts) => {
-          // 重複を避けるために投稿が既に存在するか確認。これがないとreceiveが機能しない。
-          if (!prevPosts.some((post) => post.Division === event.Division)) {
-            return [...prevPosts, event];
-          }
-          return prevPosts;
-        });
-      },
-    });
-    return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
-  
-  }, []); // 空の依存配列で一度だけ実行
-  */
 
   useEffect(() => {
     listPost();
