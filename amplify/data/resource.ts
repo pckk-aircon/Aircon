@@ -165,6 +165,7 @@ const schema = a.schema({
   // データを設定。
   Division: a.customType({
     Division: a.id().required(),
+    DivisionName: a.string(),
     Controller: a.string(),
   }),
 
@@ -173,6 +174,7 @@ const schema = a.schema({
     .mutation()
     .arguments({
       Division: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
+      DivisionName: a.string(),
       Controller: a.string()
     })
     .returns(a.ref("Division"))
@@ -188,6 +190,8 @@ const schema = a.schema({
   listDivision: a
   .query()
   .arguments({
+    Division: a.id(),
+    DivisionName: a.string(),
     Controller: a.string(),
   })
   .returns(a.ref("Division").array())
