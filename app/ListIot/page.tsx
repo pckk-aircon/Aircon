@@ -33,22 +33,20 @@ interface ChartData {
 
 export default function App() {
 
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
-  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]);
-
-  const [startDate, setStartDatetime] = useState(new Date());
+  //データ取得の範囲を指定する変数を定義。
+  const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
+  const [chartData, setChartData] = useState<ChartData[]>([]);// 取得したデータを保持し、チャートに表示するために使用。
+  const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0); //現在選択されているDivisionを保持するために使用。
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0); //現在選択されているDeviceを保持するために使用。
 
-  const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
-
+  const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
     listIot();
-  }, [startDate, endDate, currentDivisionIndex]);
+  }, [startDate, endDate, currentDivisionIndex,currentDeviceIndex]);
 
   async function listIot() {
 
@@ -67,11 +65,10 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-        //.filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
 
         .filter(item => 
-          item?.Division === divisions[currentDivisionIndex] && 
-          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === '1234-kaki2'))
+          item?.Division === divisionLists[currentDivisionIndex] && 
+          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
         .map(item => ({
@@ -88,9 +85,6 @@ export default function App() {
 
       // DeviceDatetime順にソート（Deviceをソートキーに含めない）
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
-
-      console.log('Formatted Data:', formattedData);
-
       setChartData(formattedData);
     }
   }
@@ -104,9 +98,7 @@ export default function App() {
     return acc;
   }, {});
 
-
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
-
 
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
@@ -123,30 +115,35 @@ export default function App() {
     return newItem;
   });
 
-
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisions.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+  };
+  const handlePrevious = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
-  const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
+  const DevicehandleNext = () => {
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % DeviceLists.length);
+  };
+  const DevicehandlePrevious = () => {
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
       case '1a':
-        return 'palegreen';
+        return 'lightsteelblue';
       case '1b':
-        return 'limegreen';
-      case '1c':
-        return 'green';
-      case '1cD':
-        return 'pink';
-      case '2a':
-        return 'blue';
-      case '2b':
         return 'royalblue';
+      case '1c':
+        return 'darkblue';
+      case '1cD':
+        return 'aqua';
+      case '2a':
+        return 'darkgreen';
+      case '2b':
+        return 'green';
       case '2c1':
         return 'yellow';
       case '2c2':
@@ -154,7 +151,7 @@ export default function App() {
       case '2c3':
         return 'red';
       case '2d':
-        return 'darkblue';
+        return 'lightgreen';
       default:
         return '#000000'; // その他
     }
@@ -179,7 +176,7 @@ export default function App() {
   };
 
   const formatXAxis = (tickItem: string) => {
-    return format(parseISO(tickItem), "MM-dd HH");
+    return format(parseISO(tickItem), "MM-dd HH:mm");
   };
 
 
@@ -197,12 +194,16 @@ export default function App() {
       </div>
 
       <div>
-        <button onClick={handlePrevious}>前へ</button>
-        <button onClick={handleNext}>次へ</button>
+        <button onClick={handlePrevious}>prevDivision</button>
+        <button onClick={handleNext}>nextDivision</button>
+      </div>
+      <div>
+        <button onClick={DevicehandlePrevious}>prevDevice</button>
+        <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
 
       <div>
-        <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex]} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
@@ -329,9 +330,25 @@ export default function App() {
   const divisionLists = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
+  const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
+
   useEffect(() => {
-    listIot();
-  }, [startDate, endDate, currentDivisionIndex,currentDeviceIndex]);
+    async function fetchData() {
+      await listPost();
+      await listIot();
+    }
+    fetchData();
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+
+  async function listPost() {
+    const { data, errors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    console.log('listDivision=', data);
+    if (data) {
+      setPosts(data as Array<{ Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+  }
 
   async function listIot() {
 
