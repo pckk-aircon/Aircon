@@ -199,6 +199,7 @@ const schema = a.schema({
     })
   ),
 
+
   // カスタムサブスクリプション
   receiveDivision: a
     .subscription()
@@ -209,7 +210,8 @@ const schema = a.schema({
             entry: './receivePost.js'
         })
     ),
-
+ 
+ 
   // ＊＊＊＊ Iot ＊＊＊＊
 
   // データを設定。

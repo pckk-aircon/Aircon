@@ -292,6 +292,7 @@ const TerrainMap: FC = () => {
           },
         });
 
+        /*
         const lon = 140.302994;
         const lat = 35.353503;
         const radius = 5;
@@ -354,6 +355,9 @@ const TerrainMap: FC = () => {
           camera.lookAt(center.lng, center.lat, 0); // 球体の位置を向く
           camera.updateProjectionMatrix();
         });
+
+        */
+
       });
     }
   }, []);
