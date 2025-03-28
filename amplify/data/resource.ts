@@ -145,7 +145,7 @@ const schema = a.schema({
   .handler(
     a.handler.custom({
       dataSource: "DeviceDataSource",//★★★変更。
-      entry: "./listDeviceByController.js",
+      entry: "./listPostByController.js",
     })
   ),
 
@@ -195,7 +195,7 @@ const schema = a.schema({
   .handler(
     a.handler.custom({
       dataSource: "DivisionDataSource",//★★★変更。
-      entry: "./listDeviceByController.js",
+      entry: "./listPostByController.js",
     })
   ),
 
