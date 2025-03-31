@@ -41,15 +41,15 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
+
   const divisionLists = [
     ["MUTS-Flower", "花卉室"],
     ["MUTS-Dining", "飲食室"],
     ["MUTS-Rest", "休憩室"]
   ];
-  //const divisionLists = ["MUTS-Dining", "MUTS-Flower", "MUTS-Rest"];
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
-  const [posts, setPosts] = useState<Array<{ Division: string; Controller?: string | null }>>([]);
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -65,8 +65,11 @@ export default function App() {
     });
     console.log('listDivision=', data);
     if (data) {
-      setPosts(data as Array<{ Division: string; Controller?: string | null }>);
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
     }
+
+
+    
   }
 
   async function listIot() {
@@ -308,6 +311,7 @@ export default function App() {
   );
 }
 
+
 */
 
 "use client";
@@ -377,6 +381,20 @@ export default function App() {
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
     }
+
+    if (data && Array.isArray(data)) {
+      const twoDimensionalArray = data.map(item => {
+        if (item) {
+          return [item.Division, item.DivisionName];
+        } else {
+          return ["", ""];
+        }
+      });
+      console.log(twoDimensionalArray);
+    } else {
+      console.log('data is null or undefined');
+    }
+
   }
 
   async function listIot() {
