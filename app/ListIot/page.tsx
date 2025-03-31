@@ -355,15 +355,17 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-
+  /*
   const divisionLists = [
     ["MUTS-Flower", "花卉室"],
     ["MUTS-Dining", "飲食室"],
     ["MUTS-Rest", "休憩室"]
   ];
+  */
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [divisionLists, setDivisionLists] = useState<Array<[string, string]>>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -383,14 +385,14 @@ export default function App() {
     }
 
     if (data && Array.isArray(data)) {
-      const twoDimensionalArray = data.map(item => {
+      const divisionLists = data.map(item => {
         if (item) {
           return [item.Division, item.DivisionName];
         } else {
           return ["", ""];
         }
       });
-      console.log(twoDimensionalArray);
+      console.log(divisionLists);
     } else {
       console.log('data is null or undefined');
     }
