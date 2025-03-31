@@ -412,7 +412,7 @@ export default function App() {
       const formattedData = data
 
         .filter(item => 
-          item?.Division === divisionLists[currentDivisionIndex].Division && 
+          item?.Division === updatedDivisionLists[currentDivisionIndex].Division && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
@@ -434,6 +434,12 @@ export default function App() {
       setChartData(formattedData);
     }
   }
+
+  // postsのデータをdivisionListsに紐づける★★★★★★
+  const updatedDivisionLists = divisionLists.map((division) => {
+  const post = posts.find((post) => post.Division === division.Division);
+  return post ? { ...division, ...post } : division;
+  });
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -462,10 +468,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % updatedDivisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + updatedDivisionLists.length) % updatedDivisionLists.length);
   };
 
   const DevicehandleNext = () => {
@@ -549,7 +555,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {updatedDivisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
