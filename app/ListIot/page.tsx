@@ -351,19 +351,20 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
- 
+ /*
   const divisionLists = [
     ["MUTS-Flower", "花卉室"],
     ["MUTS-Dining", "飲食室"],
     ["MUTS-Rest", "休憩室"]
   ];
+  */
   
   //const divisionLists = ["MUTS-Dining", "MUTS-Flower", "MUTS-Rest"];
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   //const divisionLists = posts.map(post => [post.Division, post.DivisionName, post.Controller]); //オブジェクトの配列を通常の配列に変換。
-  
+  const divisionLists = posts.map(item => [item.Division, item.DivisionName]);
 
   useEffect(() => {
     async function fetchData() {
