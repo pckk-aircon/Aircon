@@ -355,24 +355,15 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  interface Division {
-    Division: string;
-    DivisionName: string;
-  }
 
-  /*
-  const divisionLists: Division[] = [
-    { Division: "MUTS-Flower", DivisionName: "花卉室" },
-    { Division: "MUTS-Dining", DivisionName: "飲食室" },
-    { Division: "MUTS-Rest", DivisionName: "休憩室" }
+  const divisionLists = [
+    ["MUTS-Flower", "花卉室"],
+    ["MUTS-Dining", "飲食室"],
+    ["MUTS-Rest", "休憩室"]
   ];
-  */
-
-
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -413,22 +404,13 @@ export default function App() {
     if (data) {
       const formattedData = data
 
-        /*
         .filter(item => 
           item?.Division === divisionLists[currentDivisionIndex][0] && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
-        */
-
-        //オブジェクト型の配列に変更。
-        .filter(item => 
-          item?.Division === divisionLists[currentDivisionIndex].Division && 
-          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
-        )
 
         .map(item => {
-          //const divisionName = posts.find(post => post.Division === item?.Division)?.Division || '';
-          //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';          
+          const divisionName = posts.find(post => post.Division === item?.Division)?.Division || '';
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
@@ -439,7 +421,7 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
-            //DivisionName: divisionName, // DivisionNameを追加
+            DivisionName: divisionName, // DivisionNameを追加
           };
         });
 
@@ -562,7 +544,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for </h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex][1]} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
