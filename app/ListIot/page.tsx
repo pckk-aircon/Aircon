@@ -416,7 +416,7 @@ export default function App() {
         )
 
         .map(item => {
-          const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
+          //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
@@ -427,7 +427,7 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
-            DivisionName: divisionName, // DivisionNameを追加
+            //DivisionName: divisionName, // DivisionNameを追加
           };
         });
 
