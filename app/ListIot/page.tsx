@@ -360,19 +360,20 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-
+  /*
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室"},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室"},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室"},
   ];
+  */
  
-
-  
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [divisionLists, setDivisionLists] = useState<Array<{ Division: string; DivisionName: string }>>([
+  ]);
 
   useEffect(() => {
     async function fetchData() {
