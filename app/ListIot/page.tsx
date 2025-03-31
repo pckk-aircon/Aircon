@@ -360,14 +360,17 @@ export default function App() {
     DivisionName: string;
   }
 
+  /*
   const divisionLists: Division[] = [
     { Division: "MUTS-Flower", DivisionName: "花卉室" },
     { Division: "MUTS-Dining", DivisionName: "飲食室" },
     { Division: "MUTS-Rest", DivisionName: "休憩室" }
   ];
+  */
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -422,7 +425,8 @@ export default function App() {
         )
 
         .map(item => {
-          const divisionName = posts.find(post => post.Division === item?.Division)?.Division || '';
+          //const divisionName = posts.find(post => post.Division === item?.Division)?.Division || '';
+          const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';          
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
