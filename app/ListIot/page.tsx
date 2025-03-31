@@ -360,37 +360,26 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  /*
+
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室"},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室"},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室"},
   ];
-  */
+
   
 
-
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('divisionLists=', divisionLists);
-  const [postData, setPostData] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
     async function fetchData() {
       await listPost();
+      await listIot();
     }
     fetchData();
-  }, []);
-  
-  useEffect(() => {
-    async function fetchData() {
-      if (postData.length > 0) {
-        await listIot();
-      }
-    }
-    fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex, postData]);
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
   async function listPost() {
     const { data, errors } = await client.queries.listDivision({
@@ -398,31 +387,38 @@ export default function App() {
     });
     console.log('listDivision=', data);
     if (data) {
-      setPostData(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
     }
+
+
+    
   }
 
   async function listIot() {
+
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
-  
+
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
-  
+
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
-    console.log('listIot=', data);
-  
+    console.log('listIot=', data)
+
     if (data) {
       const formattedData = data
+
         .filter(item => 
           item?.Division === divisionLists[currentDivisionIndex].Division && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
+
         .map(item => {
+          //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
@@ -433,9 +429,10 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
+            //DivisionName: divisionName, // DivisionNameを追加
           };
         });
-  
+
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
     }
