@@ -428,7 +428,7 @@ export default function App() {
 
         .map(item => {
           //const divisionName = posts.find(post => post.Division === item?.Division)?.Division || '';
-          const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';          
+          //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';          
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
