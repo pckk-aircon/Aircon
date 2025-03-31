@@ -360,20 +360,18 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  /*
+
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室"},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室"},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室"},
   ];
-  */
- 
+
+  
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  const [divisionLists, setDivisionLists] = useState<Array<{ Division: string; DivisionName: string }>>([
-  ]);
 
   useEffect(() => {
     async function fetchData() {
@@ -387,10 +385,13 @@ export default function App() {
     const { data, errors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
-    console.log('data=', data);
+    console.log('listDivision=', data);
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
     }
+
+
+    
   }
 
   async function listIot() {
@@ -412,11 +413,12 @@ export default function App() {
       const formattedData = data
 
         .filter(item => 
-          item?.Division === updatedDivisionLists[currentDivisionIndex].Division && 
+          item?.Division === divisionLists[currentDivisionIndex].Division && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
 
         .map(item => {
+          //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
@@ -427,6 +429,7 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
+            //DivisionName: divisionName, // DivisionNameを追加
           };
         });
 
@@ -434,12 +437,6 @@ export default function App() {
       setChartData(formattedData);
     }
   }
-
-  // postsのデータをdivisionListsに紐づける★★★★★★
-  const updatedDivisionLists = divisionLists.map((division) => {
-  const post = posts.find((post) => post.Division === division.Division);
-  return post ? { ...division, ...post } : division;
-  });
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -468,10 +465,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % updatedDivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + updatedDivisionLists.length) % updatedDivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
   const DevicehandleNext = () => {
@@ -555,7 +552,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for {updatedDivisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
