@@ -362,9 +362,10 @@ export default function App() {
 
 
   const divisionLists = [
-    {'Division':"MUTS-Flower", 'DivisionName':"花卉室"},
-    {'Division':"MUTS-Dining", 'DivisionName':"飲食室"},
-    {'Division':"MUTS-Rest", 'DivisionName':"休憩室"},
+    {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
