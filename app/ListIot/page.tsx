@@ -380,35 +380,24 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+
   console.log('posts0=', posts);
 
   useEffect(() => {
     async function fetchData() {
       await listPost();
-      //await listIot();
+      await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
   
   async function listPost() {
-    try {
-      const { data, errors } = await client.queries.listDivision({
-        Controller: "Mutsu01",
-      });
-      if (errors) {
-        console.error('errors=', errors);
-        return;
-      }
-      if (data) {
-        setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-        console.log('data=', data);
-        // listIotをlistPostの後に呼び出す
-        await listIot();
-      } else {
-        console.log('nodata');
-      }
-    } catch (error) {
-      console.error('An error occurred:', error);
+    const { data, errors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    console.log('listDivision=', data);
+    if (data) {
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
   
