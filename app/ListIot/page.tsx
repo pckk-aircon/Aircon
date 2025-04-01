@@ -44,37 +44,45 @@ export default function App() {
 
 
   const divisionLists = [
-    {'Division':"MUTS-Flower", 'DivisionName':"花卉室"},
-    {'Division':"MUTS-Dining", 'DivisionName':"飲食室"},
-    {'Division':"MUTS-Rest", 'DivisionName':"休憩室"},
+    {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
-
-  
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  //const [divisionLists, setPosts] = useState<Array<{ Division: sting; DivisionName: string; Controller?: string | null }>>([]);
-r
+  console.log('posts0=', posts);
+
   useEffect(() => {
     async function fetchData() {
       await listPost();
       await listIot();
     }
     fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);// 依存関係が変更されるたびにlistIotを実行
+ 
 
   async function listPost() {
-    const { data, errors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-    console.log('listDivision=', data);
-    if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
+    try {
+        const { data, errors } = await client.queries.listDivision({
+            Controller: "Mutsu01",
+        });
+        if (errors) {
+            console.error('errors=', errors);
+            return;
+        }
+        if (data) {
+            setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
+            console.log('data=', data);
+        } else {
+            console.log('nodata');
+        }
+    } catch (error) {
+        console.error('An error occurred:', error);
     }
+}
 
-
-    
-  }
 
   async function listIot() {
 
@@ -83,6 +91,8 @@ r
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
+    console.log('divisionLists=', divisionLists);
+    console.log('posts=', posts); 
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -378,28 +388,30 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);// 依存関係が変更されるたびにlistIotを実行
- 
-
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  
   async function listPost() {
     try {
-        const { data, errors } = await client.queries.listDivision({
-            Controller: "Mutsu01",
-        });
-        if (errors) {
-            console.error('errors=', errors);
-            return;
-        }
-        if (data) {
-            setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-            console.log('data=', data);
-        } else {
-            console.log('nodata');
-        }
+      const { data, errors } = await client.queries.listDivision({
+        Controller: "Mutsu01",
+      });
+      if (errors) {
+        console.error('errors=', errors);
+        return;
+      }
+      if (data) {
+        setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
+        console.log('data=', data);
+        // listIotをlistPostの後に呼び出す
+        await listIot();
+      } else {
+        console.log('nodata');
+      }
     } catch (error) {
-        console.error('An error occurred:', error);
+      console.error('An error occurred:', error);
     }
-}
+  }
+  
 
 
   async function listIot() {
