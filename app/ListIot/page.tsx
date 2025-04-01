@@ -388,7 +388,7 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  }, [posts, startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
   
   async function listPost() {
     const { data, errors } = await client.queries.listDivision({
