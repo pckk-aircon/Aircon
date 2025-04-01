@@ -370,6 +370,7 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log('posts0=', posts); 
 
   // useEffect フックを一つにまとめる
   useEffect(() => {
@@ -385,9 +386,9 @@ export default function App() {
     const { data, errors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
-    console.log('listDivision=', data);
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
+      console.log('data=', data);  
     }
     else{
       console.log('nodata');   
