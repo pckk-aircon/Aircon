@@ -384,8 +384,8 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-      //await listPost();
-      await listIot();
+      await listPost();
+      //await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
