@@ -381,12 +381,10 @@ export default function App() {
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
 
-  console.log('posts0=', posts);
-
   useEffect(() => {
     async function fetchData() {
       await listPost();
-      await listIot();
+      //await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
@@ -399,12 +397,14 @@ export default function App() {
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
+    console.log('posts1=', posts);
+    await listIot();
   }
   
 
 
   async function listIot() {
-
+    console.log('posts2=', posts);
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
