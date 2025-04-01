@@ -380,8 +380,6 @@ export default function App() {
 
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('divisionLists=', divisionLists);
-  console.log('posts=', posts); 
   
   useEffect(() => {
     async function fetchData() {
@@ -390,6 +388,7 @@ export default function App() {
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
+
   async function listPost() {
     const { data, errors } = await client.queries.listDivision({
       Controller: "Mutsu01",
@@ -397,10 +396,7 @@ export default function App() {
     console.log('listDivision=', data);
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-    }
-
-
-    
+    }  
   }
 
   async function listIot() {
@@ -410,6 +406,8 @@ export default function App() {
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
+    console.log('divisionLists=', divisionLists);
+    console.log('posts=', posts); 
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
