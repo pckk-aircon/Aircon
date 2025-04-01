@@ -374,7 +374,7 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-      await listPost();
+      //await listPost();
       await listIot();
     }
     fetchData();
