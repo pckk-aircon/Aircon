@@ -422,13 +422,13 @@ export default function App() {
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
     console.log('divisionLists=', divisionLists);
-    console.log('posts=', posts); 
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
+    console.log('posts=', posts); 
     console.log('listIot=', data)
 
     if (data) {
