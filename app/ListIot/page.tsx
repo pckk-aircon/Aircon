@@ -370,9 +370,9 @@ export default function App() {
 
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts=', posts);
+  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log('divisionLists=', divisionLists);
 
   useEffect(() => {
     async function fetchData() {
