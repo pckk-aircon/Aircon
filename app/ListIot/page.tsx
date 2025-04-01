@@ -372,10 +372,16 @@ export default function App() {
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   console.log('posts0=', posts); 
 
-  // useEffect フックを一つにまとめる
+  // useEffect フックを二つに分ける
   useEffect(() => {
     async function fetchData() {
       await listPost();
+    }
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    async function fetchData() {
       await listIot();
     }
     fetchData();
