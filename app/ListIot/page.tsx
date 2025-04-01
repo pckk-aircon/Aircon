@@ -373,12 +373,19 @@ export default function App() {
   console.log('posts0=', posts); 
 
   // useEffect フックを二つに分ける
+
+  useEffect(() => {
+    listPost();
+  }, []);
+  
+  /*
   useEffect(() => {
     async function fetchData() {
       listPost();
     }
     fetchData();
   }, []);//初回レンダリング時にlistPostを実行
+  */
 
   /*
   useEffect(() => {
