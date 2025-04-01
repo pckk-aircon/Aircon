@@ -380,13 +380,14 @@ export default function App() {
     fetchData();
   }, []);//初回レンダリング時にlistPostを実行
 
+  /*
   useEffect(() => {
     async function fetchData() {
       listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);// 依存関係が変更されるたびにlistIotを実行
-
+  */
 
   async function listPost() {
     try {
