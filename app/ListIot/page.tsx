@@ -370,18 +370,15 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
-
   // useEffect フックを二つに分ける
-
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts0=', posts); 
-  
- 
   useEffect(() => {
-    listPost();
+    async function fetchData() {
+      listPost();
+    }
   }, []);//初回レンダリング時にlistPostを実行
  
-
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log('posts0=', posts);
 
   useEffect(() => {
     async function fetchData() {
