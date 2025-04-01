@@ -388,7 +388,11 @@ export default function App() {
     console.log('listDivision=', data);
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-    }  
+    }
+    else{
+      console.log('nodata');   
+    }
+
   }
 
   async function listIot() {
