@@ -375,7 +375,7 @@ export default function App() {
   // useEffect フックを二つに分ける
   useEffect(() => {
     async function fetchData() {
-      await listPost();
+      listPost();
     }
     fetchData();
   }, []);//初回レンダリング時にlistPostを実行
