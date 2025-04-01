@@ -370,9 +370,9 @@ export default function App() {
 
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('divisionLists=', divisionLists);
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log('posts=', posts);
 
   useEffect(() => {
     async function fetchData() {
@@ -559,7 +559,7 @@ export default function App() {
       </div>
 
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {posts[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
