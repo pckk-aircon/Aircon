@@ -369,14 +369,16 @@ export default function App() {
   ];
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts0=', posts); 
+
 
   // useEffect フックを二つに分ける
 
   useEffect(() => {
     listPost();
   }, []);
+
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log('posts0=', posts); 
   
   /*
   useEffect(() => {
