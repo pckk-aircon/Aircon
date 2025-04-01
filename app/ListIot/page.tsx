@@ -380,14 +380,15 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log('posts1=', posts);
 
   useEffect(() => {
     async function fetchData() {
       await listPost();
-      //await listIot();
+      await listIot();
     }
     fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [posts, startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
   
   async function listPost() {
     const { data, errors } = await client.queries.listDivision({
@@ -397,8 +398,6 @@ export default function App() {
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
-    console.log('posts1=', posts);
-    await listIot();
   }
   
 
