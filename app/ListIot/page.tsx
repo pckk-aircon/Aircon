@@ -380,21 +380,28 @@ export default function App() {
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  
+
 
   async function listPost() {
-    const { data, errors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-    if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-      console.log('data=', data);  
+    try {
+        const { data, errors } = await client.queries.listDivision({
+            Controller: "Mutsu01",
+        });
+        if (errors) {
+            console.error('errors=', errors);
+            return;
+        }
+        if (data) {
+            setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
+            console.log('data=', data);
+        } else {
+            console.log('nodata');
+        }
+    } catch (error) {
+        console.error('An error occurred:', error);
     }
-    else{
-      console.log('nodata');   
-    }
+}
 
-  }
 
   async function listIot() {
 
