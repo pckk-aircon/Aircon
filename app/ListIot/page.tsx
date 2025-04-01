@@ -382,7 +382,7 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-      await listIot();
+      listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);// 依存関係が変更されるたびにlistIotを実行
