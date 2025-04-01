@@ -138,6 +138,6 @@ const IotTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
   "IotData",//DynamoDbtableName
   "MyIotTable",//tableName
-  "IotSource",//dataSourceName
+  "IotDataSource",//dataSourceName
   "IotIamPolicy",//
 );
