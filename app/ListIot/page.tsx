@@ -53,8 +53,8 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  //const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-
+  //const [divisionLists, setPosts] = useState<Array<{ Division: sting; DivisionName: string; Controller?: string | null }>>([]);
+r
   useEffect(() => {
     async function fetchData() {
       await listPost();
@@ -369,20 +369,13 @@ export default function App() {
   ];
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-
-  // useEffect フックを二つに分ける
-  useEffect(() => {
-    async function fetchData() {
-      listPost();
-    }
-  }, []);//初回レンダリング時にlistPostを実行
- 
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts0=', posts);
+  console.log('posts1=', posts);
 
   useEffect(() => {
     async function fetchData() {
-      listIot();
+      await listPost();
+      await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);// 依存関係が変更されるたびにlistIotを実行
