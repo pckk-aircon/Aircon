@@ -373,21 +373,14 @@ export default function App() {
 
   // useEffect フックを二つに分ける
 
-  useEffect(() => {
-    listPost();
-  }, []);
-
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   console.log('posts0=', posts); 
   
-  /*
+ 
   useEffect(() => {
-    async function fetchData() {
-      listPost();
-    }
-    fetchData();
+    listPost();
   }, []);//初回レンダリング時にlistPostを実行
-  */
+ 
 
   /*
   useEffect(() => {
