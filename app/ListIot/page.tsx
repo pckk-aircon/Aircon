@@ -359,12 +359,12 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
-  useEffect(() => {
-    async function fetchData() {
-        await listIot();
-    }
-    fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  const DivisionLists = [
+    {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
+    {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
+  ];
 
   useEffect(() => {
     async function fetchDivisions() {
@@ -373,12 +373,20 @@ export default function App() {
       });
       if (divisions) {
         setDivisionLists(divisionLists);
+        console.log("Effect内divisionLists=", divisionLists);
       } else {
         console.error("Division data could not be fetched:", errors);
       }
     }
     fetchDivisions();
   }, []);
+
+  useEffect(() => {
+    async function fetchData() {
+        await listIot();
+    }
+    fetchData();
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
@@ -393,8 +401,8 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
-    console.log('data=', data)
-    console.log('divisionLists=', divisionLists)
+    console.log('IoTdata=', data)
+    console.log('listIot()内divisionLists=', divisionLists)
 
     if (data) { 
 
@@ -455,10 +463,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + DivisionLists.length) % DivisionLists.length);
   };
 
   const DevicehandleNext = () => {
