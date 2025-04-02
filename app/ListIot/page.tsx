@@ -358,25 +358,24 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const [divisionListsState, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
-  console.log('divisionListsState=', divisionListsState);
-  if (divisionListsState) {
-    const divisionLists =  divisionListsState; // これでいいのか。
-    console.log('divisionLists=', divisionLists);
-  }
+  const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
 
+  /*
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
+  */
   
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
     async function fetchData() {
-      await listIot();
+      if (divisionLists) {
+        await listIot();
+      }
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
@@ -395,7 +394,7 @@ export default function App() {
 
     if (fetchedDivisionLists) {
       const filteredDivisionLists = fetchedDivisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
-        setDivisionLists(filteredDivisionLists); // Update divisionLists state
+      setDivisionLists(filteredDivisionLists); // Update divisionLists state
     }
 
     const { data, errors } = await client.queries.listIot({
