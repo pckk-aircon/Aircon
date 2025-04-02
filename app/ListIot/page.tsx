@@ -1,7 +1,6 @@
 /*
 
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -43,7 +42,10 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
+  //const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
 
+
+ 
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
@@ -51,55 +53,55 @@ export default function App() {
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
+
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts1=', posts);
 
   useEffect(() => {
     async function fetchData() {
-      await listPost();
+      //await listPost();
       await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  
-  async function listPost() {
-    const { data, errors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-    console.log('listDivision=', data);
-    if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
-    }
-  }
-  
-
 
   async function listIot() {
-    console.log('posts2=', posts);
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
-    console.log('divisionLists=', divisionLists);
 
+    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+   
+
+    if (divisionLists) {
+      const filtereddivisionLists = divisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
+      setDivisionLists(filtereddivisionLists); // Update divisionLists state
+    }
+
+    
+    console.log('divisionLists=', divisionLists);    
+  
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
-    console.log('posts=', posts); 
+    //console.log('posts=', posts); 
     console.log('listIot=', data)
 
     if (data) {
       const formattedData = data
 
         .filter(item => 
+          divisionLists && // divisionListsが存在することを確認
+          divisionLists[currentDivisionIndex] && // currentDivisionIndexが有効であることを確認
           item?.Division === divisionLists[currentDivisionIndex].Division && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
-
+      
         .map(item => {
           //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
           return {
@@ -361,23 +363,22 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
+  const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
+  console.log('divisionListsState=', divisionLists); 
 
-
- 
+  /*
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
-
+  */
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
     async function fetchData() {
-      //await listPost();
       await listIot();
     }
     fetchData();
@@ -408,7 +409,7 @@ export default function App() {
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
-    //console.log('posts=', posts); 
+  
     console.log('listIot=', data)
 
     if (data) {
