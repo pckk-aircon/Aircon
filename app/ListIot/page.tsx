@@ -361,7 +361,8 @@ export default function App() {
   const [divisionListsState, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
   console.log('divisionListsState=', divisionListsState);
   if (divisionListsState) {
-    const DivisionLists =  divisionListsState; // これでいいのか。
+    const divisionLists =  divisionListsState; // これでいいのか。
+    console.log('divisionLists=', divisionLists);
   }
 
   const divisionLists = [
