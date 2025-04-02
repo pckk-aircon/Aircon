@@ -401,14 +401,13 @@ export default function App() {
           setDivisionLists(filteredDivisionLists); // Update divisionLists state
     }
 
-    console.log('divisionLists=', divisionLists);   
-  
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
-  
+
+    console.log('divisionLists=', divisionLists);
     console.log('listIot=', data)
 
     if (data) {
