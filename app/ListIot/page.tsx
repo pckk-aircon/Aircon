@@ -361,22 +361,19 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
+  const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
 
 
- 
+ /*
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
-
-  
+  */
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  //console.log('posts1=', posts);
 
   useEffect(() => {
     async function fetchData() {
@@ -387,32 +384,21 @@ export default function App() {
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
   async function listIot() {
-    //console.log('posts2=', posts);
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
-    //console.log('divisionLists=', divisionLists);
 
-   
     const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
    
-
-    /*
-    const { data: divisionData, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-    */
-
-    /*
-    if (divisionData) {
-      setDivisionLists(divisionLists); // Update divisionLists state
+    if (divisionLists) {
+      const filtereddivisionLists = divisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
+      setDivisionLists(filtereddivisionLists); // Update divisionLists state
     }
-    */
-
+    
     console.log('divisionLists=', divisionLists);    
   
     const { data, errors } = await client.queries.listIot({
