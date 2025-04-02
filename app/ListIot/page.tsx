@@ -534,6 +534,7 @@ export default function App() {
 
   return (
     <main>
+      {divisionLists.length > 0 ? (
       <div>
         <label>
           StartDatetime:
@@ -544,16 +545,17 @@ export default function App() {
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
       </div>
-
+      ) : (
       <div>
         <button onClick={handlePrevious}>prevDivision</button>
         <button onClick={handleNext}>nextDivision</button>
       </div>
+      )} : (
       <div>
         <button onClick={DevicehandlePrevious}>prevDevice</button>
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
-
+      ) : (
       <div>
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
@@ -632,6 +634,7 @@ export default function App() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+    )
     </main>
   );
 }
