@@ -42,10 +42,6 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const [divisionListsState, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
-  console.log("divisionListsState=", divisionListsState);
-
-  
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
@@ -53,7 +49,6 @@ export default function App() {
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
-  
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
@@ -76,11 +71,6 @@ export default function App() {
     });
 
     console.log('divisionLists1=', divisionLists)
-
-    if (divisionLists) {
-      const filteredivisionLists = divisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
-      setDivisionLists(filteredivisionLists); // Update divisionLists state
-    }
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -224,7 +214,6 @@ export default function App() {
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
       </div>
-
       <div>
         <button onClick={handlePrevious}>prevDivision</button>
         <button onClick={handleNext}>nextDivision</button>
@@ -233,7 +222,6 @@ export default function App() {
         <button onClick={DevicehandlePrevious}>prevDevice</button>
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
-
       <div>
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
@@ -352,6 +340,12 @@ interface ChartData {
   DivisionName?: string; // DivisionNameを追加
 }
 
+interface Division {
+  Division: string;
+  DivisionName?: string;
+  Controller?: string;
+}
+
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
@@ -361,17 +355,8 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
-  //console.log("divisionListsState=", divisionLists);
+  const [divisionLists, setDivisionLists] = useState<Division[]>([]);
 
-  const divisionLists = [
-    {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
-    {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
-    {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
-    {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
-  ];
-
-  
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
@@ -381,26 +366,24 @@ export default function App() {
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
+  useEffect(() => {
+    async function fetchDivisions() {
+      const { data: divisions, errors } = await client.queries.listDivision({
+        Controller: "Mutsu01",
+      });
+      if (divisions) {
+        setDivisionLists(divisionLists);
+      }
+    }
+    fetchDivisions();
+  }, []);
+
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
-
-    // 追記部分: divisionListsのデータ取得と状態更新
-    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-
-    console.log('divisionLists1=', divisionLists)
-  
-    /*
-    if (divisionLists) {
-      const filteredivisionLists = divisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
-      setDivisionLists(filteredivisionLists); // Update divisionLists state
-    }
-    */
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -409,14 +392,14 @@ export default function App() {
     });
 
     console.log('data=', data)
-    console.log('divisionLists2=', divisionLists)
+    console.log('divisionLists=', divisionLists)
 
     if (data) { 
 
       const formattedData = data
 
       .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        divisionLists[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
       )
@@ -432,7 +415,7 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
-            DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
+            DivisionName: divisionLists[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
         });
 
@@ -534,7 +517,6 @@ export default function App() {
 
   return (
     <main>
-      {divisionLists.length > 0 ? (
       <div>
         <label>
           StartDatetime:
@@ -545,17 +527,14 @@ export default function App() {
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
       </div>
-      ) : (
       <div>
         <button onClick={handlePrevious}>prevDivision</button>
         <button onClick={handleNext}>nextDivision</button>
       </div>
-      )} : (
       <div>
         <button onClick={DevicehandlePrevious}>prevDevice</button>
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
-      ) : (
       <div>
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
         <ResponsiveContainer width="100%" height={400}>
@@ -634,7 +613,6 @@ export default function App() {
           </LineChart>
         </ResponsiveContainer>
       </div>
-    )
     </main>
   );
 }
