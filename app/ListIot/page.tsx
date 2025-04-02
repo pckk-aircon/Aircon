@@ -391,18 +391,17 @@ export default function App() {
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
 
-    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
+    // 追記部分: divisionListsのデータ取得と状態更新
+    const { data: fetchedDivisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
-   
-    /*
-    if (divisionLists) {
-      const filtereddivisionLists = divisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
-      setDivisionLists(filtereddivisionLists); // Update divisionLists state
+
+    if (fetchedDivisionLists) {
+      const filteredDivisionLists = fetchedDivisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
+          setDivisionLists(filteredDivisionLists); // Update divisionLists state
     }
-    */
-    
-    console.log('divisionLists=', divisionLists);    
+
+    console.log('divisionLists=', divisionLists);   
   
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
