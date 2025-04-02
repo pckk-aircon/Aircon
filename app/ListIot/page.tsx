@@ -361,17 +361,18 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-
+  
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
+  
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts1=', posts);
+  //const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  //console.log('posts1=', posts);
 
   useEffect(() => {
     async function fetchData() {
@@ -381,39 +382,39 @@ export default function App() {
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
-
-
   async function listIot() {
-    console.log('posts2=', posts);
+    //console.log('posts2=', posts);
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
-    console.log('divisionLists=', divisionLists);
+    //console.log('divisionLists=', divisionLists);
 
-    const { data: divisionData, errors: divisionErrors } = await client.queries.listDivision({
+    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
 
-    console.log('divisionData=', divisionData);    
+    console.log('divisionLists=', divisionLists);    
   
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
-    console.log('posts=', posts); 
+    //console.log('posts=', posts); 
     console.log('listIot=', data)
 
     if (data) {
       const formattedData = data
 
         .filter(item => 
+          divisionLists && // divisionListsが存在することを確認
+          divisionLists[currentDivisionIndex] && // currentDivisionIndexが有効であることを確認
           item?.Division === divisionLists[currentDivisionIndex].Division && 
           (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
         )
-
+      
         .map(item => {
           //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
           return {
