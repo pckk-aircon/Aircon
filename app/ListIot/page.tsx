@@ -373,9 +373,7 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-      if (divisionLists) {
         await listIot();
-      }
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
@@ -403,9 +401,12 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
-    console.log('listIot=', data)
+    console.log('data=', data)
+    console.log('divisionLists=', divisionLists)
 
-    if (data) {
+    //if (data) {
+    if (data && divisionLists.length > 0) { //これでどうだ。
+
       const formattedData = data
 
       .filter(item => 
