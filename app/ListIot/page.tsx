@@ -361,13 +361,17 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  
+  const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
+
+
+  /*
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
+  */
   
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
@@ -391,9 +395,20 @@ export default function App() {
     console.log("EndDatetime=", endDate);
     //console.log('divisionLists=', divisionLists);
 
+    /*
     const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
+    */
+
+  
+    const { data: divisionData, errors: divisionErrors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+
+    if (divisionData) {
+      setDivisionLists(divisionLists); // Update divisionLists state
+    }
 
     console.log('divisionLists=', divisionLists);    
   
