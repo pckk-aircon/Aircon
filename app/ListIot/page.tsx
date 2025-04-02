@@ -619,5 +619,5 @@ export default function App() {
         </ResponsiveContainer>
       </div>
     </main>
-  );
+  )
 }
