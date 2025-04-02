@@ -361,10 +361,10 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
-  console.log("divisionListsState=", divisionLists);
+  //const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
+  //console.log("divisionListsState=", divisionLists);
 
-  const DivisionLists = [
+  const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
@@ -394,11 +394,13 @@ export default function App() {
     });
 
     console.log('divisionLists1=', divisionLists)
-
+  
+    /*
     if (divisionLists) {
       const filteredivisionLists = divisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
       setDivisionLists(filteredivisionLists); // Update divisionLists state
     }
+    */
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -466,10 +468,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + DivisionLists.length) % DivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
   const DevicehandleNext = () => {
