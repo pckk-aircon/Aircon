@@ -364,14 +364,12 @@ export default function App() {
   const [divisionLists, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
   console.log("divisionListsState=", divisionLists);
 
-  /*
-  const divisionLists = [
+  const DivisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
-  */
 
   
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
@@ -468,10 +466,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + DivisionLists.length) % DivisionLists.length);
   };
 
   const DevicehandleNext = () => {
