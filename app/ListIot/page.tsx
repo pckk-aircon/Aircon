@@ -414,13 +414,11 @@ export default function App() {
 
     if (data) {
       const formattedData = data
-
-        .filter(item => 
-          divisionLists && // divisionListsが存在することを確認
-          divisionLists[currentDivisionIndex] && // currentDivisionIndexが有効であることを確認
-          item?.Division === divisionLists[currentDivisionIndex].Division && 
-          (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
-        )
+      .filter(item => 
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        item?.Division === divisionLists[currentDivisionIndex].Division && 
+        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
+      )
       
         .map(item => {
           //const divisionName = divisionLists.find(post => post.Division === item?.Division)?.Division || '';
