@@ -364,9 +364,11 @@ export default function App() {
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
   const [divisionListsState, setDivisionLists] = useState<{ Division: string; DivisionName: string; Controller: string }[]>([]); // ここに追加
-  console.log('divisionListsState=', divisionListsState); 
+  console.log('divisionListsState=', divisionListsState);
+  if (divisionListsState) {
+    const DivisionLists =  divisionListsState; // これでいいのか。
+  }
 
-  
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
@@ -374,7 +376,6 @@ export default function App() {
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
   
-
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
@@ -396,8 +397,6 @@ export default function App() {
       Controller: "Mutsu01",
     });
 
-    console.log("fetchedDivisionLists=", fetchedDivisionLists);
-
     if (fetchedDivisionLists) {
       const filteredDivisionLists = fetchedDivisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
         setDivisionLists(filteredDivisionLists); // Update divisionLists state
@@ -409,7 +408,6 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
-    console.log('divisionLists=', divisionLists);
     console.log('listIot=', data)
 
     if (data) {
