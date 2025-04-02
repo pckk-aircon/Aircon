@@ -396,9 +396,11 @@ export default function App() {
       Controller: "Mutsu01",
     });
 
+    console.log("fetchedDivisionLists=", fetchedDivisionLists);
+
     if (fetchedDivisionLists) {
       const filteredDivisionLists = fetchedDivisionLists.filter(item => item !== null && item !== undefined) as { Division: string; DivisionName: string; Controller: string }[];
-          setDivisionLists(filteredDivisionLists); // Update divisionLists state
+        setDivisionLists(filteredDivisionLists); // Update divisionLists state
     }
 
     const { data, errors } = await client.queries.listIot({
