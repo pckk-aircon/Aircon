@@ -1,6 +1,7 @@
 /*
 
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -52,7 +53,7 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  console.log('posts0=', posts);
+  console.log('posts1=', posts);
 
   useEffect(() => {
     async function fetchData() {
@@ -60,45 +61,35 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);// 依存関係が変更されるたびにlistIotを実行
- 
-
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  
   async function listPost() {
-    try {
-        const { data, errors } = await client.queries.listDivision({
-            Controller: "Mutsu01",
-        });
-        if (errors) {
-            console.error('errors=', errors);
-            return;
-        }
-        if (data) {
-            setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-            console.log('data=', data);
-        } else {
-            console.log('nodata');
-        }
-    } catch (error) {
-        console.error('An error occurred:', error);
+    const { data, errors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    console.log('listDivision=', data);
+    if (data) {
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
-}
+  }
+  
 
 
   async function listIot() {
-
+    console.log('posts2=', posts);
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
     console.log('divisionLists=', divisionLists);
-    console.log('posts=', posts); 
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
+    console.log('posts=', posts); 
     console.log('listIot=', data)
 
     if (data) {
@@ -384,22 +375,12 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-      await listPost();
+      //await listPost();
       await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  
-  async function listPost() {
-    const { data, errors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-    console.log('listDivision=', data);
-    if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
-    }
-  }
-  
+
 
 
   async function listIot() {
@@ -411,6 +392,12 @@ export default function App() {
     console.log("EndDatetime=", endDate);
     console.log('divisionLists=', divisionLists);
 
+    const { data: divisionData, errors: divisionErrors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+
+    console.log('divisionData=', divisionData);    
+  
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
