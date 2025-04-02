@@ -373,6 +373,8 @@ export default function App() {
       });
       if (divisions) {
         setDivisionLists(divisionLists);
+      } else {
+        console.error("Division data could not be fetched:", errors);
       }
     }
     fetchDivisions();
@@ -415,12 +417,14 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
-            DivisionName: divisionLists[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
+            DivisionName: divisionLists[currentDivisionIndex]?.DivisionName ?? 'Unknown', // デフォルト値を設定
           };
         });
 
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
+    } else {
+      console.error("IoT data could not be fetched:", errors);
     }
   }
 
@@ -463,6 +467,7 @@ export default function App() {
   const DevicehandlePrevious = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
   };
+
 
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
