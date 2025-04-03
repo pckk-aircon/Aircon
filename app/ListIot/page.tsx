@@ -49,6 +49,8 @@ export default function App() {
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
+  console.log('divisionLists（定義後）=', divisionLists)
+
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export default function App() {
       Controller: "Mutsu01",
     });
 
-    console.log('divisionLists1=', divisionLists)
+    console.log('divisionLists（queries後）=', divisionLists)
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -78,8 +80,7 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
-    console.log('data=', data)
-    console.log('divisionLists2=', divisionLists)
+    console.log('Iotdata=', data)
 
     if (data) { 
 
@@ -348,16 +349,45 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const divisionLists = [
+  const DivisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
-  console.log('divisionLists（定義後）=', divisionLists)
+  console.log('divisionLists（定義後）=', DivisionLists)
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string ;Controller?: string | null }>>([]);
+  
+  useEffect(() => {
+    listPost();
+    
+    const sub = client.subscriptions.receiveDivision().subscribe({
+      next: (event) => {
+        console.log("event=", event);
+        setPosts((prevPosts) => {
+          if (!prevPosts.some((post) => post.Division === event.Division)) {
+            return [...prevPosts, event as { Division: string; DivisionName: string; Controller?: string | null }];
+          }
+          return prevPosts;
+        });
+      },
+    });
+    return () => sub.unsubscribe();
+  }, []);
+  
+  async function listPost() {
+    const { data, errors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    console.log('listDivision=', data);
+    if (data) {
+      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -373,12 +403,7 @@ export default function App() {
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
 
-    // 追記部分: divisionListsのデータ取得と状態更新
-    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-
-    console.log('divisionLists（queries後）=', divisionLists)
+    console.log('divisionLists（listIot内）=', divisionLists)
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -445,10 +470,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + DivisionLists.length) % DivisionLists.length);
   };
 
   const DevicehandleNext = () => {
