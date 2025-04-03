@@ -376,7 +376,11 @@ export default function App() {
   
     fetchData();
   }, []);
-  
+
+  // データが存在しない場合はローディング表示やスキップ
+  if (divisionLists.length === 0) {
+    return <div>Loading...</div>;
+  }  
 
   useEffect(() => {
     async function fetchData() {
