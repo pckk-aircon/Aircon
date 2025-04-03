@@ -370,10 +370,12 @@ export default function App() {
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-  
+
+  /*
   if (divisionLists.length === 0 || deviceLists.length === 0) {
     return <div>Loading...</div>;
   }
+  */
 
   useEffect(() => {
     async function fetchData() {
