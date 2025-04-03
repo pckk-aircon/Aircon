@@ -457,7 +457,8 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
-
+  console.log("divisionLists（handle直前）=", divisionLists);
+  console.log("DivisionLists（handle直前）=", DivisionLists);
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
   };
