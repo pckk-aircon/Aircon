@@ -307,7 +307,6 @@ export default function App() {
 
 */
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -340,12 +339,6 @@ interface ChartData {
   DivisionName?: string; // DivisionNameを追加
 }
 
-interface Division {
-  Division: string;
-  DivisionName?: string;
-  Controller?: string;
-}
-
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
@@ -355,31 +348,16 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const [divisionLists, setDivisionLists] = useState<Division[]>([]);
-
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-
-  const DivisionLists = [
+  const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
-  useEffect(() => {
-    async function fetchDivisions() {
-      const { data: divisions, errors } = await client.queries.listDivision({
-        Controller: "Mutsu01",
-      });
-      if (divisions) {
-        setDivisionLists(divisionLists);
-        console.log("Effect内divisionLists=", divisionLists);
-      } else {
-        console.error("Division data could not be fetched:", errors);
-      }
-    }
-    fetchDivisions();
-  }, []);
+  console.log('divisionLists（定義後）=', divisionLists)
+
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   useEffect(() => {
     async function fetchData() {
@@ -395,21 +373,27 @@ export default function App() {
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
 
+    // 追記部分: divisionListsのデータ取得と状態更新
+    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+
+    console.log('divisionLists（queries後）=', divisionLists)
+
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
 
-    console.log('IoTdata=', data)
-    console.log('listIot()内divisionLists=', divisionLists)
+    console.log('Iotdata=', data)
 
     if (data) { 
 
       const formattedData = data
 
       .filter(item => 
-        divisionLists[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
       )
@@ -425,14 +409,12 @@ export default function App() {
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
-            DivisionName: divisionLists[currentDivisionIndex]?.DivisionName ?? 'Unknown', // デフォルト値を設定
+            DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
         });
 
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
-    } else {
-      console.error("IoT data could not be fetched:", errors);
     }
   }
 
@@ -463,10 +445,10 @@ export default function App() {
   });
 
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + DivisionLists.length) % DivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
   const DevicehandleNext = () => {
@@ -475,7 +457,6 @@ export default function App() {
   const DevicehandlePrevious = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
   };
-
 
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
@@ -627,5 +608,5 @@ export default function App() {
         </ResponsiveContainer>
       </div>
     </main>
-  )
+  );
 }
