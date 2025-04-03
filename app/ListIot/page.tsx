@@ -448,9 +448,10 @@ export default function App() {
   }
 
   // データが存在しない場合はローディング表示やスキップ
-  if (divisionLists.length === 0) {
+
+  if (divisionLists.length === 0 || deviceLists.length === 0) {
     return <div>Loading...</div>;
-  } 
+  }
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
