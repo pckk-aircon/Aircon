@@ -402,9 +402,7 @@ export default function App() {
       }
 
     } catch (error) {
-      if (divisionLists.length === 0 || deviceLists.length === 0) {
-        return <div>Loading...</div>;
-      }
+      return <div>Loading...</div>;
     }
     console.log('divisionLists（queries後）=', divisionLists)
     console.log('deviceLists（queries後）=', deviceLists)
