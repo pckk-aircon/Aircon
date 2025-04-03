@@ -356,27 +356,18 @@ export default function App() {
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
 
-  console.log('divisionLists（定義後）=', DivisionLists)
+  console.log('DivisionLists（定義後）=', DivisionLists)
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string ;Controller?: string | null }>>([]);
-  
+  console.log("divisionLists（State直後）=", startDate);
+
   useEffect(() => {
-    listPost();
-    
-    const sub = client.subscriptions.receiveDivision().subscribe({
-      next: (event) => {
-        console.log("event=", event);
-        setPosts((prevPosts) => {
-          if (!prevPosts.some((post) => post.Division === event.Division)) {
-            return [...prevPosts, event as { Division: string; DivisionName: string; Controller?: string | null }];
-          }
-          return prevPosts;
-        });
-      },
-    });
-    return () => sub.unsubscribe();
+    async function fetchData() {
+        await listPost();
+    }
+    fetchData();
   }, []);
   
   async function listPost() {
