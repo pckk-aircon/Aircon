@@ -360,25 +360,23 @@ export default function App() {
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string ;Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
-
+  
   useEffect(() => {
-    async function fetchData() {
-        await listPost();
-    }
+    const fetchData = async () => {
+      const { data, errors } = await client.queries.listDivision({
+        Controller: "Mutsu01",
+      });
+      console.log('listDivision=', data);
+      if (data) {
+        setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
+      }
+    };
+  
     fetchData();
   }, []);
   
-  async function listPost() {
-    const { data, errors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
-    });
-    console.log('listDivision=', data);
-    if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
-    }
-  }
 
   useEffect(() => {
     async function fetchData() {
