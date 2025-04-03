@@ -402,14 +402,13 @@ export default function App() {
       }
 
     } catch (error) {
-      console.error("Error fetching data:", error);
+      if (divisionLists.length === 0 || deviceLists.length === 0) {
+        return <div>Loading...</div>;
+      }
     }
-
     console.log('divisionLists（queries後）=', divisionLists)
     console.log('deviceLists（queries後）=', deviceLists)
-    if (divisionLists.length === 0 || deviceLists.length === 0) {
-      return <div>Loading...</div>;
-    }
+
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
