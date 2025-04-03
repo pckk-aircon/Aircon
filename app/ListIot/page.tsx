@@ -355,7 +355,7 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   
   useEffect(() => {
-    //const fetchData = async () => {
+
     async function fetchData() {
       const { data, errors } = await client.queries.listDivision({
         Controller: "Mutsu01",
@@ -364,17 +364,22 @@ export default function App() {
       if (data) {
         setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
       }
+      
+      await listIot();
+
     };
   
     fetchData();
-  }, []); 
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]); 
 
+  /*
   useEffect(() => {
     async function fetchData() {
         await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  */
 
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
