@@ -355,7 +355,8 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   
   useEffect(() => {
-    const fetchData = async () => {
+    //const fetchData = async () => {
+    async function fetchData() {
       const { data, errors } = await client.queries.listDivision({
         Controller: "Mutsu01",
       });
