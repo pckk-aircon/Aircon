@@ -378,9 +378,14 @@ export default function App() {
     console.log("EndDatetime=", endDate);
 
     // 追記部分: divisionListsのデータ取得と状態更新
-    const { data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
+
+    const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
+    if (divisionLists) {
+      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+
 
     console.log('divisionLists（queries後）=', divisionLists)
 
