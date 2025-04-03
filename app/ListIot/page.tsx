@@ -349,17 +349,6 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  /*
-  const DivisionLists = [
-    {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
-    {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
-    {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
-    {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
-  ];
-  */
-
-  //console.log('DivisionLists（定義後）=', DivisionLists)
-
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
