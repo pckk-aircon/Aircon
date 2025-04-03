@@ -387,25 +387,27 @@ export default function App() {
 
     // 追記部分: divisionListsのデータ取得と状態更新
 
-    try {
-      const [divisionResponse, deviceResponse] = await Promise.all([
-        client.queries.listDivision({ Controller: "Mutsu01" }),
-        client.queries.listDevice({ Controller: "Mutsu01" })
-      ]);
-
-      if (divisionResponse.data) {
-        setPosts(divisionResponse.data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>);
-      }
-
-      if (deviceResponse.data) {
-        setDevices(deviceResponse.data as Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>);
-      }
-
-    } catch (error) {
-      return <div>Loading...</div>;
+    const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    if (divisionLists) {
+      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
+
+    const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
+      Controller: "Mutsu01",
+    });
+    if (deviceLists) {
+      setDevices(deviceLists as Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+
     console.log('divisionLists（queries後）=', divisionLists)
     console.log('deviceLists（queries後）=', deviceLists)
+    
+    if (divisionLists && deviceLists && divisionLists.length > 0 && deviceLists.length > 0) {
+      return <div>Loading...</div>;
+    }
+  
 
 
     const { data, errors } = await client.queries.listIot({
@@ -420,11 +422,21 @@ export default function App() {
 
       const formattedData = data
 
+      
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
       )
+      
+      /*
+      .filter(item => 
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        item?.Division === divisionLists[currentDivisionIndex].Division && 
+        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && Device.Division === DeviceLists[currentDeviceIndex]))
+      )
+      */
+    
 
         .map(item => {
           return {
