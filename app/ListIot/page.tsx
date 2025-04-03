@@ -464,10 +464,10 @@ export default function App() {
   console.log("divisionLists（handle直前）=", divisionLists);
   console.log("DivisionLists（handle直前）=", DivisionLists);
   const handleNext = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % DivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
   const handlePrevious = () => {
-    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + DivisionLists.length) % DivisionLists.length);
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
   const DevicehandleNext = () => {
