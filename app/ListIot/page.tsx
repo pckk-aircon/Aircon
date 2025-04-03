@@ -349,16 +349,19 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
+  /*
   const divisionLists = [
     {'Division':"MUTS-Flower", 'DivisionName':"花卉室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Office", 'DivisionName':"事務室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Dining", 'DivisionName':"飲食室", Controller: 'Mutsu01'},
     {'Division':"MUTS-Rest", 'DivisionName':"休憩室", Controller: 'Mutsu01'},
   ];
-
-  console.log('divisionLists（定義後）=', divisionLists)
+  */
 
   const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  console.log("divisionLists（State直後）=", divisionLists);
 
   useEffect(() => {
     async function fetchData() {
@@ -419,6 +422,11 @@ export default function App() {
     }
   }
 
+  // データが存在しない場合はローディング表示やスキップ
+  if (divisionLists.length === 0) {
+    return <div>Loading...</div>;
+  } 
+
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.Device]) {
@@ -444,6 +452,8 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
+
+
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
