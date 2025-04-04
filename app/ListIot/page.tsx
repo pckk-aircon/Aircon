@@ -390,11 +390,6 @@ export default function App() {
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  console.log("selectedDivision（Effect直後）=", selectedDivision); 
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
-  console.log("filtereddeviceLists（Effect直後）=", filtereddeviceLists);
-
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
@@ -499,8 +494,13 @@ export default function App() {
     return newItem;
   });
 
-  console.log("divisionLists（handle直前1）=", divisionLists);
-  console.log("deviceLists（handle直前1）=", deviceLists);
+  console.log("divisionLists（handle直前）=", divisionLists);
+  console.log("deviceLists（handle直前）=", deviceLists);
+
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  console.log("selectedDivision（handle直前）=", selectedDivision); 
+  console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
