@@ -371,6 +371,8 @@ export default function App() {
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
+  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
+  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
   useEffect(() => {
     async function fetchData() {
@@ -444,6 +446,7 @@ export default function App() {
 
   // データが存在しない場合はローディング表示やスキップ
   if (divisionLists.length === 0 || deviceLists.length === 0)  {
+    console.log("return");
     return <div>Loading...</div>;
   }
 
