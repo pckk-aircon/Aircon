@@ -366,20 +366,25 @@ export default function App() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
+  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
   //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  /*
   const DeviceLists = [
     { 'Device': "1234-kaki2", 'DeviceName': "花卉空調２", 'Division': "MUTS-Flower" },
     { 'Device': "1234-kaki3", 'DeviceName': "花卉空調３", 'Division': "MUTS-Flower" }
   ];
+  */
   
-
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
-  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
+
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  const filtereddeviceLists = deviceLists.filter(Device => Device.Division === selectedDivision);
+  console.log("filtereddeviceLists（State直後）=", filtereddeviceLists);
 
   useEffect(() => {
     async function fetchData() {
