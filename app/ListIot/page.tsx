@@ -375,13 +375,18 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
+  console.log("currentDivisionName（State直後）=", divisionLists[currentDivisionIndex].DivisionName);
+  console.log("currentDeviceIndex（State直後）=", deviceLists[currentDeviceIndex].DeviceName);
+  
+  /*
   //テスト
   const FilteredDeviceList = () => {
     const filteredDevices = deviceLists.filter(Device => Device.Division === "1234-kaisitu");
     return filteredDevices;
   };
-  console.log("filteredDevices（State直後）=", FilteredDeviceList);
-
+  console.log("filteredDevices（State直後）=", filteredDevices);
+  */
+ 
   useEffect(() => {
     async function fetchData() {
         await listIot();
@@ -491,8 +496,6 @@ export default function App() {
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
-
-
 
   const DevicehandleNext = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
