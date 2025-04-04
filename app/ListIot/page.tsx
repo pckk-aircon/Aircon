@@ -501,8 +501,6 @@ export default function App() {
   const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
   console.log("filtereddeviceLists（連携）=", filtereddeviceLists);
 
-  console.log("divisionLists（handle直前2）=", divisionLists);
-  console.log("deviceLists（handle直前2）=", deviceLists);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
@@ -512,10 +510,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + deviceLists.length) % deviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
