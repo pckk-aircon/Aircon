@@ -326,7 +326,6 @@ export default function App() {
 
 */
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -367,16 +366,15 @@ export default function App() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
-  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
-  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
-  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-
+  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
+  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
   useEffect(() => {
     async function fetchData() {
