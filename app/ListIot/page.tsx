@@ -382,6 +382,11 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  console.log("selectedDivision（State直後）=", selectedDivision); 
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  console.log("filtereddeviceLists（State直後）=", filtereddeviceLists);
+
   useEffect(() => {
     async function fetchData() {
         await listIot();
@@ -495,12 +500,6 @@ export default function App() {
 
   console.log("divisionLists（handle直前1）=", divisionLists);
   console.log("deviceLists（handle直前1）=", deviceLists);
-
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  console.log("selectedDivision（連携）=", selectedDivision); 
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
-  console.log("filtereddeviceLists（連携）=", filtereddeviceLists);
-
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
