@@ -115,7 +115,10 @@ const schema = a.schema({
   // データを設定。
   Device: a.customType({
     Device: a.id().required(),
+    DeviceName: a.string(),
     Controller: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(),
   }),
 
   // add
@@ -123,7 +126,10 @@ const schema = a.schema({
     .mutation()
     .arguments({
       Device: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
-      Controller: a.string()
+      DeviceName: a.string(),
+      Controller: a.string(),
+      DeviceType: a.string(),
+      Division: a.string(),
     })
     .returns(a.ref("Device"))
     .authorization(allow => [allow.publicApiKey()])
@@ -138,7 +144,11 @@ const schema = a.schema({
   listDevice: a
   .query()
   .arguments({
+    Device: a.id(),
+    DeviceName: a.string(),
     Controller: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(),
   })
   .returns(a.ref("Device").array())
   .authorization(allow => [allow.publicApiKey()])
