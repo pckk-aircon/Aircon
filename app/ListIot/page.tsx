@@ -443,7 +443,7 @@ export default function App() {
   }
 
   // データが存在しない場合はローディング表示やスキップ
-  if (divisionLists.length === 0) {
+  if (divisionLists.length === 0 || deviceLists.length === 0)  {
     return <div>Loading...</div>;
   } 
 
