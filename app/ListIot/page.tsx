@@ -368,14 +368,12 @@ export default function App() {
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
+  
+  console.log("StartDatetime=", startDate);
+  console.log("EndDatetime=", endDate);
+  
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-
-  /*
-  if (divisionLists.length === 0 || deviceLists.length === 0) {
-    return <div>Loading...</div>;
-  }
-  */
 
   useEffect(() => {
     async function fetchData() {
@@ -387,9 +385,6 @@ export default function App() {
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
-
-    console.log("StartDatetime=", startDate);
-    console.log("EndDatetime=", endDate);
 
     // 追記部分: divisionListsのデータ取得と状態更新
 
@@ -410,8 +405,6 @@ export default function App() {
     console.log('divisionLists（queries後）=', divisionLists)
     console.log('deviceLists（queries後）=', deviceLists)
   
-
-
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
@@ -424,21 +417,11 @@ export default function App() {
 
       const formattedData = data
 
-      
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
       )
-      
-      /*
-      .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && Device.Division === DeviceLists[currentDeviceIndex]))
-      )
-      */
-    
 
         .map(item => {
           return {
@@ -503,10 +486,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % DeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + deviceLists.length) % deviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
