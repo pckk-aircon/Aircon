@@ -375,8 +375,8 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
-  console.log("currentDivisionName（State直後）=", divisionLists[currentDivisionIndex].DivisionName);
-  console.log("currentDeviceIndex（State直後）=", deviceLists[currentDeviceIndex].DeviceName);
+  //console.log("currentDivisionName（State直後）=", divisionLists[currentDivisionIndex].DivisionName);
+  //console.log("currentDeviceIndex（State直後）=", deviceLists[currentDeviceIndex].DeviceName);
   
   /*
   //テスト
@@ -386,7 +386,7 @@ export default function App() {
   };
   console.log("filteredDevices（State直後）=", filteredDevices);
   */
- 
+
   useEffect(() => {
     async function fetchData() {
         await listIot();
