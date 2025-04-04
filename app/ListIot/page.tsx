@@ -367,7 +367,12 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  const DeviceLists = [
+    { 'Device': "1234-kaki2", 'DeviceName': "花卉空調２", 'Division': "MUTS-Flower" },
+    { 'Device': "1234-kaki3", 'DeviceName': "花卉空調３", 'Division': "MUTS-Flower" }
+  ];
+  
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
