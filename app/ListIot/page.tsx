@@ -383,9 +383,8 @@ export default function App() {
   console.log("deviceLists（State直後）=", deviceLists);
 
   const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filteredList = deviceLists.filter(item => item.Division === selectedDivision);
-
-  console.log("filtereddeviceLists（State直後）=", filteredList);
+  //const filteredList = deviceLists.filter(item => item.Division === selectedDivision);
+  console.log("filtereddeviceLists（State直後）=", selectedDivision);
 
   useEffect(() => {
     async function fetchData() {
