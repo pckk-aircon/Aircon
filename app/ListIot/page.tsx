@@ -420,10 +420,19 @@ export default function App() {
 
       const formattedData = data
 
+      /*
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
+      )
+      */
+
+      .filter(item => 
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        item?.Division === divisionLists[currentDivisionIndex].Division && 
+        (item?.DeviceType === 'Temp' || 
+        (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
       )
 
         .map(item => {
