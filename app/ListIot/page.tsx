@@ -382,9 +382,9 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  //const filteredList = deviceLists.filter(item => item.Division === selectedDivision);
-  console.log("filtereddeviceLists（State直後）=", selectedDivision);
+  //const selectedDivision = divisionLists[currentDivisionIndex].Division
+  const filteredList = deviceLists.filter(item => item.Division === "MUTS-Flower");
+  console.log("filtereddeviceLists（State直後）=", filteredList);
 
   useEffect(() => {
     async function fetchData() {
