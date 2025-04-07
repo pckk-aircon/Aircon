@@ -98,7 +98,7 @@ export default function App() {
   console.log('divisionLists（State直後）=', divisionLists);
 
   const divisionNames = divisionLists.map(divisionLists => divisionLists.DivisionName);
-  console.log('DivisionGeojson（State直後）=', divisionNames); 
+  console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
 
   useEffect(() => {
     listPost();
