@@ -237,7 +237,10 @@ export default function App() {
     console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
     console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
 
-    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = {
+    //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = divisionGeojsons[0] ;
+    const buildingData = divisionGeojsons[0] ;
+    /*
+    {
       "type": "FeatureCollection",
       "features": [
         { 
@@ -286,6 +289,7 @@ export default function App() {
         },
       ] 
     }
+    */
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -322,11 +326,14 @@ export default function App() {
     });
 
     map.on('load', () => {
+      //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
+      const geojsonData = JSON.parse(buildingData);
+    
       map.addSource('floorplan', {
         type: 'geojson',
-        data: buildingData,
+        data: geojsonData,
       });
-
+    
       map.addLayer({
         id: 'room-extrusion',
         type: 'fill-extrusion',
@@ -338,7 +345,11 @@ export default function App() {
           'fill-extrusion-opacity': 0.5,
         },
       });
+      
     });
+    
+
+
   }
 
   return <div id="map" style={{ height: '100vh' }} />;
