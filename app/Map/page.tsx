@@ -199,15 +199,13 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; divisionGeojson: string; GeojsonUrl: string ;Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; DivisionGeojson: string ;Controller?: string | null }>>([]);
   console.log('divisionLists（State直後）=', divisionLists);
 
   const divisionNames = divisionLists.map(divisionLists => divisionLists.DivisionName);
-  const divisionGeojsons = divisionLists.map(divisionLists => divisionLists.divisionGeojson);
-  const GeojsonUrls = divisionLists.map(divisionLists => divisionLists.GeojsonUrl);
-  console.log('Divisionnames[0]（State直後）=', divisionNames[0]); 
-  console.log('divisionGeojsons[0]（State直後）=', divisionGeojsons[0]); 
-  console.log('divisionGeojsons[0]（State直後）=', GeojsonUrls[0]); 
+  const divisionGeojsons = divisionLists.map(divisionLists => divisionLists.DivisionGeojson);
+  console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
+  console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
 
   useEffect(() => {
     async function fetchData() {
@@ -231,19 +229,63 @@ export default function App() {
     console.log('data（関数内）=', data);
     //divisionLists の状態を更新
     if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; divisionGeojson: string; GeojsonUrl: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; DivisionName: string; DivisionGeojson: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
   async function renderMap() {
     console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
     console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
-    console.log('GeojsonUrlss（renderMap内）=', GeojsonUrls[0]);
 
-    //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = divisionGeojsons[0] ;
-    // JSON.parseを使用して文字列をオブジェクトに変換
-    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(divisionGeojsons[0]);
-    //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(GeojsonUrls[0]);
+    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = {
+      "type": "FeatureCollection",
+      "features": [
+        { 
+          "type": "Feature", 
+          "properties": { 
+            "level": 1, 
+            "name": "outer-walls", 
+            "height": 6, 
+            "base_height": 0, 
+            "color": "transparent"
+          }, 
+          "geometry": { 
+            "type": "Polygon", 
+            "coordinates": [
+              [
+                [140.30278407246294,35.3536506960797],
+                [140.3028859586707,35.353561867136904],
+                [140.30279109909793,35.35349309627546],
+                [140.3029544683622,35.35335412164743],
+                [140.30308270445295,35.35344868172962],
+                [140.30303878798242,35.35349166354854],
+                [140.30326539696347,35.353659292423814],
+                [140.30329174684482,35.35364066701038],
+                [140.3033163400674,35.35366359059552],
+                [140.30334093328997,35.35364639790731],
+                [140.30337079648882,35.35367218693828],
+                [140.30334971658374,35.35368937962103],
+                [140.3036044321032,35.35387993161025],
+                [140.3035499756818,35.353928644076575],
+                [140.30353592241175,35.35392148048041],
+                [140.30349903257797,35.35395156757994],
+                [140.30353943572925,35.35397878923173],
+                [140.3034111996402,35.3540833775981],
+                [140.30328472020983,35.35398308738647],
+                [140.30331107009107,35.35396302932918],
+                [140.3031933739545,35.35387706617017],
+                [140.30314243085064,35.35392434591894],
+                [140.30304757127618,35.35385270992512],
+                [140.30311081099296,35.35380256469101],
+                [140.30308270445295,35.35377964114534],
+                [140.30301946473617,35.353828353672114],
+                [140.30278407246294,35.35364783063146]
+              ]
+            ]
+          } 
+        },
+      ] 
+    }
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -282,11 +324,7 @@ export default function App() {
     map.on('load', () => {
       map.addSource('floorplan', {
         type: 'geojson',
-        //data: buildingData,
-        //data: 'path/to/your/geojson/file.geojson'
-        //data: GeojsonUrls[0],
-        //data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/test.json',
-        data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/test.json',
+        data: buildingData,
       });
 
       map.addLayer({
