@@ -27,13 +27,11 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; DivisionGeojson: string ;Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
   console.log('divisionLists（State直後）=', divisionLists);
 
-  const divisionNames = divisionLists.map(divisionLists => divisionLists.DivisionName);
-  const divisionGeojsons = divisionLists.map(divisionLists => divisionLists.DivisionGeojson);
-  console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
-  console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
+  const Geojsons = divisionLists.map(divisionLists => divisionLists.Geojson);
+  console.log('divisionGeojsons（State直後）=', Geojsons[0]); 
 
   useEffect(() => {
     async function fetchData() {
@@ -57,15 +55,14 @@ export default function App() {
     console.log('data（関数内）=', data);
     //divisionLists の状態を更新
     if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; DivisionGeojson: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; DivisionName: string; Geojson: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
   async function renderMap() {
-    console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
-    console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
+    console.log('Geojsons（renderMap内）=', Geojsons[0]);
 
-    const buildingData = divisionGeojsons[0] ;
+    const buildingData = Geojsons[0] ;
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -161,8 +158,8 @@ export default function App() {
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
   console.log('divisionLists（State直後）=', divisionLists);
 
-  const Geojsons = divisionLists.map(divisionLists => divisionLists.Geojson);
-  console.log('divisionGeojsons（State直後）=', Geojsons[0]); 
+  //const Geojsons = divisionLists.map(divisionLists => divisionLists.Geojson);
+  //console.log('divisionGeojsons（State直後）=', Geojsons[0]); 
 
   useEffect(() => {
     async function fetchData() {
@@ -191,9 +188,8 @@ export default function App() {
   }
 
   async function renderMap() {
-    console.log('Geojsons（renderMap内）=', Geojsons[0]);
 
-    const buildingData = Geojsons[0] ;
+    //const buildingData = Geojsons[0] ;
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -231,8 +227,9 @@ export default function App() {
 
     map.on('load', () => {
       //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
-      const geojsonData = JSON.parse(buildingData);
-    
+      //const geojsonData = JSON.parse(buildingData);
+      const geojsonData = JSON.parse(divisionLists[0].Geojson);
+      console.log('geojsonData（renderMap内）=', geojsonData);
       map.addSource('floorplan', {
         type: 'geojson',
         data: geojsonData,
