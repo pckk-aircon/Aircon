@@ -102,9 +102,12 @@ export default function App() {
   console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
   console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
 
-  useEffect(() => {
-    listPost();
 
+  useEffect(() => {
+    async function fetchData() {
+        await listPost();
+    }
+    fetchData();
   }, []);
 
   async function listPost() {
