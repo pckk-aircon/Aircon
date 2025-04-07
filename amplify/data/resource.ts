@@ -177,6 +177,7 @@ const schema = a.schema({
     Division: a.id().required(),
     DivisionName: a.string(),
     DivisionGeojson: a.string(),
+    GeojsonUrl: a.string(),
     Controller: a.string(),
   }),
 
@@ -187,6 +188,7 @@ const schema = a.schema({
       Division: a.id(),//page.tsxでのエラーを防ぐため.required()をはずす。
       DivisionName: a.string(),
       DivisionGeojson: a.string(),
+      GeojsonUrl: a.string(),
       Controller: a.string()
     })
     .returns(a.ref("Division"))
@@ -205,6 +207,7 @@ const schema = a.schema({
     Division: a.id(),
     DivisionName: a.string(),
     DivisionGeojson: a.string(),
+    GeojsonUrl: a.string(),
     Controller: a.string(),
   })
   .returns(a.ref("Division").array())

@@ -199,13 +199,13 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; DivisionGeojson: string ;Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; GeojsonUrl: string ;Controller?: string | null }>>([]);
   console.log('divisionLists（State直後）=', divisionLists);
 
   const divisionNames = divisionLists.map(divisionLists => divisionLists.DivisionName);
-  const divisionGeojsons = divisionLists.map(divisionLists => divisionLists.DivisionGeojson);
+  const GeojsonUrls = divisionLists.map(divisionLists => divisionLists.GeojsonUrl);
   console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
-  console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
+  console.log('divisionGeojsons（State直後）=', GeojsonUrls[0]); 
 
   useEffect(() => {
     async function fetchData() {
@@ -229,13 +229,13 @@ export default function App() {
     console.log('data（関数内）=', data);
     //divisionLists の状態を更新
     if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; DivisionGeojson: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; DivisionName: string; GeojsonUrl: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
   async function renderMap() {
     console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
-    console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
+    console.log('divisionGeojsons（renderMap内）=', GeojsonUrls[0]);
 
     //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = divisionGeojsons[0] ;
     // JSON.parseを使用して文字列をオブジェクトに変換
@@ -279,7 +279,7 @@ export default function App() {
       map.addSource('floorplan', {
         type: 'geojson',
         //data: buildingData,
-        data: divisionGeojsons[0]
+        data: GeojsonUrls[0]
       });
 
       map.addLayer({
