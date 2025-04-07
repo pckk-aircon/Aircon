@@ -239,7 +239,7 @@ export default function App() {
 
     //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = divisionGeojsons[0] ;
     // JSON.parseを使用して文字列をオブジェクトに変換
-    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(divisionGeojsons[0]);
+    //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(divisionGeojsons[0]);
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -278,7 +278,8 @@ export default function App() {
     map.on('load', () => {
       map.addSource('floorplan', {
         type: 'geojson',
-        data: buildingData,
+        //data: buildingData,
+        data: divisionGeojsons[0]
       });
 
       map.addLayer({

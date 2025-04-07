@@ -41,15 +41,16 @@ export default function App() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
+  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-
+  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
-  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
+
 
   useEffect(() => {
     async function fetchData() {
@@ -98,7 +99,8 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
+        (item?.DeviceType === 'Temp' || 
+        (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
       )
 
         .map(item => {
@@ -126,6 +128,11 @@ export default function App() {
     console.log("return");
     return <div>Loading...</div>;
   }
+
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  console.log("selectedDivision（handle直前）=", selectedDivision); 
+  console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -156,6 +163,8 @@ export default function App() {
   console.log("divisionLists（handle直前）=", divisionLists);
   console.log("deviceLists（handle直前）=", deviceLists);
 
+
+
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
@@ -164,10 +173,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + deviceLists.length) % deviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
@@ -370,12 +379,6 @@ export default function App() {
   console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
   //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  /*
-  const DeviceLists = [
-    { 'Device': "1234-kaki2", 'DeviceName': "花卉空調２", 'Division': "MUTS-Flower" },
-    { 'Device': "1234-kaki3", 'DeviceName': "花卉空調３", 'Division': "MUTS-Flower" }
-  ];
-  */
   
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
@@ -426,14 +429,6 @@ export default function App() {
     if (data) { 
 
       const formattedData = data
-
-      /*
-      .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
-      )
-      */
 
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
