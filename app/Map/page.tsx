@@ -103,7 +103,8 @@ export default function App() {
   console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
 
   useEffect(() => {
-    renderMap(); 
+    listPost();
+
   }, []);
 
   async function listPost() {
@@ -114,11 +115,12 @@ export default function App() {
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; DivisionGeojson: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
+
+    renderMap();
+
   }
 
   async function renderMap() {
-
-    listPost();
 
     /*
     // データが存在しない場合はローディング表示やスキップ
