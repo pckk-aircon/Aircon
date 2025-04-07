@@ -282,9 +282,11 @@ export default function App() {
     map.on('load', () => {
       map.addSource('floorplan', {
         type: 'geojson',
-        data: buildingData,
+        //data: buildingData,
+        //data: 'path/to/your/geojson/file.geojson'
         //data: GeojsonUrls[0],
         //data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/test.json',
+        data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/test.json',
       });
 
       map.addLayer({
