@@ -122,14 +122,12 @@ export default function App() {
 
   async function renderMap() {
 
-    /*
     // データが存在しない場合はローディング表示やスキップ
     if (divisionLists.length === 0) {
       console.log("return");
       return <div>Loading...</div>;
     }
-    */
-
+   
     console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
     console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
 
