@@ -17,7 +17,7 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; GeojsonUrl: string ;Controller?: string | null }>>([]);
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
 
   useEffect(() => {
     listPost();
@@ -27,7 +27,7 @@ export default function App() {
         console.log("event=", event);
         setPosts((prevPosts) => {
           if (!prevPosts.some((post) => post.Division === event.Division)) {
-            return [...prevPosts, event as { Division: string; DivisionName: string; GeojsonUrl: string; Controller?: string | null }];
+            return [...prevPosts, event as { Division: string; DivisionName: string; Geojson: string; Controller?: string | null }];
           }
           return prevPosts;
         });
@@ -42,7 +42,7 @@ export default function App() {
     });
     console.log('listDivision=', data);
     if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; GeojsonUrl: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; DivisionName: string; Geojson: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
@@ -64,7 +64,7 @@ export default function App() {
       <ul>
         {posts.map((post) => (
           <li key={post.Controller}>
-            {post.Division}{post.DivisionName}{post.GeojsonUrl}{post.Controller}
+            {post.Division}{post.DivisionName}{post.Geojson}{post.Controller}
           </li>
         ))}
       </ul>
