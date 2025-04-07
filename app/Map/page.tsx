@@ -239,7 +239,7 @@ export default function App() {
 
     //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = divisionGeojsons[0] ;
     // JSON.parseを使用して文字列をオブジェクトに変換
-    //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(divisionGeojsons[0]);
+    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(GeojsonUrls[0]);
 
     const map = new maplibregl.Map({
       container: 'map',
@@ -278,9 +278,9 @@ export default function App() {
     map.on('load', () => {
       map.addSource('floorplan', {
         type: 'geojson',
-        //data: buildingData,
+        data: buildingData,
         //data: GeojsonUrls[0],
-        data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/test.json',
+        //data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/test.json',
       });
 
       map.addLayer({
