@@ -333,6 +333,8 @@ export default function App() {
 
 
 */
+
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -382,9 +384,6 @@ export default function App() {
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-
-
-  const [filtereddeviceLists, setfilterPosts] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
 
 
   useEffect(() => {
@@ -464,7 +463,10 @@ export default function App() {
     return <div>Loading...</div>;
   }
 
-
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  console.log("selectedDivision（handle直前）=", selectedDivision); 
+  console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -495,13 +497,7 @@ export default function App() {
   console.log("divisionLists（handle直前）=", divisionLists);
   console.log("deviceLists（handle直前）=", deviceLists);
 
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filterLists = deviceLists.filter(item => item.Division === selectedDivision);
 
-  setfilterPosts(filterLists) ; //★★ここでセット。
-
-  console.log("selectedDivision（handle直前）=", selectedDivision); 
-  console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
