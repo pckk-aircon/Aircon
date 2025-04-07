@@ -103,6 +103,7 @@ export default function App() {
   console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
 
   useEffect(() => {
+    listPost();
     renderMap(); 
   }, []);
 
@@ -110,7 +111,7 @@ export default function App() {
     const { data, errors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
-    console.log('divisionLists（関数内）=', data);
+    console.log('data（関数内）=', data);
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; DivisionGeojson: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
@@ -118,8 +119,8 @@ export default function App() {
 
   async function renderMap() {
 
-    listPost();
-    console.log('DivisionGeojson（renderMap内）=', divisionGeojsons[0]);
+    console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
+    console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
 
     const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = {
       "type": "FeatureCollection",
