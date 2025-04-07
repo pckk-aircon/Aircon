@@ -98,6 +98,7 @@ export default function App() {
   console.log('divisionLists（State直後）=', divisionLists);
 
   const divisionNames = divisionLists.map(divisionLists => divisionLists.DivisionName);
+  const divisionGeojsons = divisionLists.map(divisionLists => divisionLists.DivisionGeojson);
   console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
 
   useEffect(() => {
@@ -118,6 +119,8 @@ export default function App() {
 
   async function renderMap() {
 
+    console.log('DivisionGeojson（renderMap内）=', divisionGeojsons[0]);
+     
     const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = {
       "type": "FeatureCollection",
       "features": [
