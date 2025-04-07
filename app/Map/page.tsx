@@ -158,9 +158,6 @@ export default function App() {
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
   console.log('divisionLists（State直後）=', divisionLists);
 
-  //const Geojsons = divisionLists.map(divisionLists => divisionLists.Geojson);
-  //console.log('divisionGeojsons（State直後）=', Geojsons[0]); 
-
   useEffect(() => {
     async function fetchData() {
         await listPost();
