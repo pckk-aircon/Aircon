@@ -384,6 +384,9 @@ export default function App() {
   console.log("deviceLists（State直後）=", deviceLists);
 
 
+  const [filtereddeviceLists, setfilterPosts] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
+
+
   useEffect(() => {
     async function fetchData() {
         await listIot();
@@ -493,7 +496,10 @@ export default function App() {
   console.log("deviceLists（handle直前）=", deviceLists);
 
   const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  const filterLists = deviceLists.filter(item => item.Division === selectedDivision);
+
+  setfilterPosts(filterLists) ; //★★ここでセット。
+
   console.log("selectedDivision（handle直前）=", selectedDivision); 
   console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
 
