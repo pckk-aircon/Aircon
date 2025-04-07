@@ -213,6 +213,8 @@ export default function App() {
     fetchData();
   }, []);
 
+
+  //divisionLists の状態が更新された後に renderMap 関数を呼び出す
   useEffect(() => {
     if (divisionLists.length > 0) {
       renderMap();
@@ -224,6 +226,7 @@ export default function App() {
       Controller: "Mutsu01",
     });
     console.log('data（関数内）=', data);
+    //divisionLists の状態を更新
     if (data) {
       setPosts(data as Array<{ Division: string; DivisionName: string; DivisionGeojson: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
