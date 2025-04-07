@@ -199,13 +199,15 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; GeojsonUrl: string ;Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; divisionGeojson: string; GeojsonUrl: string ;Controller?: string | null }>>([]);
   console.log('divisionLists（State直後）=', divisionLists);
 
   const divisionNames = divisionLists.map(divisionLists => divisionLists.DivisionName);
+  const divisionGeojsons = divisionLists.map(divisionLists => divisionLists.divisionGeojson);
   const GeojsonUrls = divisionLists.map(divisionLists => divisionLists.GeojsonUrl);
-  console.log('DivisionGeojson（State直後）=', divisionNames[0]); 
-  console.log('divisionGeojsons（State直後）=', GeojsonUrls[0]); 
+  console.log('Divisionnames[0]（State直後）=', divisionNames[0]); 
+  console.log('divisionGeojsons[0]（State直後）=', divisionGeojsons[0]); 
+  console.log('divisionGeojsons[0]（State直後）=', GeojsonUrls[0]); 
 
   useEffect(() => {
     async function fetchData() {
@@ -229,17 +231,19 @@ export default function App() {
     console.log('data（関数内）=', data);
     //divisionLists の状態を更新
     if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; GeojsonUrl: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(data as Array<{ Division: string; DivisionName: string; divisionGeojson: string; GeojsonUrl: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
   async function renderMap() {
     console.log('DivisionGeojson（renderMap内）=', divisionNames[0]); 
-    console.log('divisionGeojsons（renderMap内）=', GeojsonUrls[0]);
+    console.log('divisionGeojsons（renderMap内）=', divisionGeojsons[0]);
+    console.log('GeojsonUrlss（renderMap内）=', GeojsonUrls[0]);
 
     //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = divisionGeojsons[0] ;
     // JSON.parseを使用して文字列をオブジェクトに変換
-    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(GeojsonUrls[0]);
+    const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(divisionGeojsons[0]);
+    //const buildingData: FeatureCollection<Geometry, GeoJsonProperties> = JSON.parse(GeojsonUrls[0]);
 
     const map = new maplibregl.Map({
       container: 'map',
