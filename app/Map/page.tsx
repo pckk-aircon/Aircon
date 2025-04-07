@@ -103,7 +103,6 @@ export default function App() {
   console.log('divisionGeojsons（State直後）=', divisionGeojsons[0]); 
 
   useEffect(() => {
-    listPost();
     renderMap(); 
   }, []);
 
@@ -118,6 +117,8 @@ export default function App() {
   }
 
   async function renderMap() {
+
+    listPost();
 
     // データが存在しない場合はローディング表示やスキップ
     if (divisionLists.length === 0) {
