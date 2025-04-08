@@ -398,7 +398,7 @@ export default function App() {
         await rendergraph();
     }
     fetchData();
-  }, [currentDivisionIndex]);
+  }, []);
 
 
   async function listIot() {
