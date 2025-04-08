@@ -466,7 +466,8 @@ export default function App() {
   }
 
   const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  //const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
 
   console.log("selectedDivision（handle直前1）=", selectedDivision); 
   console.log("divisionLists（handle直前1）=", divisionLists);
