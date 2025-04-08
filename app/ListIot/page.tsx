@@ -434,7 +434,7 @@ export default function App() {
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
-         //item?.DeviceType === 'Temp' || 
+         item?.DeviceType === 'Temp' || 
         (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
       )
      
