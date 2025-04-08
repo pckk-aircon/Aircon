@@ -380,8 +380,8 @@ export default function App() {
 
   //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
   
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
-  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; DeviceType:string; Controller?: string | null }>>([]);
+  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType:string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
@@ -406,14 +406,14 @@ export default function App() {
       Controller: "Mutsu01",
     });
     if (divisionLists) {
-      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; DeviceType:string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
     if (deviceLists) {
-      setDevices(deviceLists as Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType:string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     console.log('divisionLists（queries後）=', divisionLists)
@@ -437,6 +437,7 @@ export default function App() {
          //item?.DeviceType === 'Temp' || 
         (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
       )
+     
 
         .map(item => {
           return {
@@ -465,7 +466,8 @@ export default function App() {
   }
 
   const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+
   console.log("selectedDivision（handle直前1）=", selectedDivision); 
   console.log("divisionLists（handle直前1）=", divisionLists);
   console.log("deviceLists（handle直前1）=", deviceLists);
