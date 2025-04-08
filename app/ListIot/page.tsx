@@ -335,7 +335,6 @@ export default function App() {
 
 */
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -386,10 +385,10 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
+
   useEffect(() => {
     async function fetchData() {
         await listIot();
-        await rendergraph();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
@@ -458,115 +457,109 @@ export default function App() {
     }
   }
 
+  // データが存在しない場合はローディング表示やスキップ
+  if (divisionLists.length === 0 || deviceLists.length === 0)  {
+    console.log("return");
+    return <div>Loading...</div>;
+  }
 
-  async function rendergraph() { 
-    
-    // データが存在しない場合はローディング表示やスキップ
-    if (divisionLists.length === 0 || deviceLists.length === 0)  {
-      console.log("return");
-      return <div>Loading...</div>;
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  console.log("selectedDivision（handle直前）=", selectedDivision); 
+  console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
+
+  // デバイスごとにデータをグループ化
+  const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
+    if (!acc[item.Device]) {
+      acc[item.Device] = [];
     }
+    acc[item.Device].push(item);
+    return acc;
+  }, {});
 
-    // selectedDivisionからfiltereddeviceListsを抽出。
-    const selectedDivision = divisionLists[currentDivisionIndex].Division
-    const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
-    console.log("selectedDivision（handle直前）=", selectedDivision); 
-    console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
+  const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
-    // デバイスごとにデータをグループ化
-    const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-      if (!acc[item.Device]) {
-        acc[item.Device] = [];
-      }
-      acc[item.Device].push(item);
-      return acc;
-    }, {});
-
-    const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
-
-    // デバイスごとのデータを統合して表示
-    const mergedData = chartData.map(item => {
-      const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-      Object.keys(groupedData).forEach(device => {
-        const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-        newItem[device] = deviceData ? deviceData.ActualTemp : null;
-      });
-      newItem.WeightedTemp = item.WeightedTemp;
-      newItem.TargetTemp = item.TargetTemp;
-      newItem.PresetTemp = item.PresetTemp;
-      newItem.ReferenceTemp = item.ReferenceTemp;
-      newItem.ControlStage = item.ControlStage;
-      return newItem;
+  // デバイスごとのデータを統合して表示
+  const mergedData = chartData.map(item => {
+    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
+    Object.keys(groupedData).forEach(device => {
+      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
+      newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.WeightedTemp = item.WeightedTemp;
+    newItem.TargetTemp = item.TargetTemp;
+    newItem.PresetTemp = item.PresetTemp;
+    newItem.ReferenceTemp = item.ReferenceTemp;
+    newItem.ControlStage = item.ControlStage;
+    return newItem;
+  });
 
-    console.log("divisionLists（handle直前）=", divisionLists);
-    console.log("deviceLists（handle直前）=", deviceLists);
+  console.log("divisionLists（handle直前）=", divisionLists);
+  console.log("deviceLists（handle直前）=", deviceLists);
 
-    const handleNext = () => {
-      setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
-    };
+  const handleNext = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+  };
+  const handlePrevious = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+  };
 
-    const handlePrevious = () => {
-      setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
-    };
+  const DevicehandleNext = () => {
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
+  };
+  const DevicehandlePrevious = () => {
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
+  };
 
-    const DevicehandleNext = () => {
-      setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
-    };
-    const DevicehandlePrevious = () => {
-      setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
-    };
+  // ControlStageに応じたプロットの色を設定
+  const getDotColor = (controlStage: string | null) => {
+    switch (controlStage) {
+      case '1a':
+        return 'lightsteelblue';
+      case '1b':
+        return 'royalblue';
+      case '1c':
+        return 'darkblue';
+      case '1cD':
+        return 'aqua';
+      case '2a':
+        return 'darkgreen';
+      case '2b':
+        return 'green';
+      case '2c1':
+        return 'yellow';
+      case '2c2':
+        return 'orangered';
+      case '2c3':
+        return 'red';
+      case '2d':
+        return 'lightgreen';
+      default:
+        return '#000000'; // その他
+    }
+  };
 
-    // ControlStageに応じたプロットの色を設定
-    const getDotColor = (controlStage: string | null) => {
-      switch (controlStage) {
-        case '1a':
-          return 'lightsteelblue';
-        case '1b':
-          return 'royalblue';
-        case '1c':
-          return 'darkblue';
-        case '1cD':
-          return 'aqua';
-        case '2a':
-          return 'darkgreen';
-        case '2b':
-          return 'green';
-        case '2c1':
-          return 'yellow';
-        case '2c2':
-          return 'orangered';
-        case '2c3':
-          return 'red';
-        case '2d':
-          return 'lightgreen';
-        default:
-          return '#000000'; // その他
-      }
-    };
+  // カスタムツールチップコンポーネント
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Time: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
-    // カスタムツールチップコンポーネント
-    const CustomTooltip = ({ active, payload, label }: any) => {
-      if (active && payload && payload.length) {
-        return (
-          <div className="custom-tooltip">
-            <p className="label">{`Time: ${label}`}</p>
-            {payload.map((entry: any, index: number) => (
-              <p key={`item-${index}`} style={{ color: entry.color }}>
-               {`${entry.name}: ${entry.value}`}
-              </p>
-            ))}
-            <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
-          </div>
-        );
-      }
-      return null;
-    };
-
-    const formatXAxis = (tickItem: string) => {
-      return format(parseISO(tickItem), "MM-dd HH:mm");
-    };
-
+  const formatXAxis = (tickItem: string) => {
+    return format(parseISO(tickItem), "MM-dd HH:mm");
+  };
 
 
   return (
@@ -669,7 +662,4 @@ export default function App() {
       </div>
     </main>
   );
-
-  }
-
 }
