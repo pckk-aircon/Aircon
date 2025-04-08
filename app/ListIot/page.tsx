@@ -465,8 +465,10 @@ export default function App() {
 
   const selectedDivision = divisionLists[currentDivisionIndex].Division
   const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
-  console.log("selectedDivision（handle直前）=", selectedDivision); 
-  console.log("filtereddeviceLists（handle直前）=", filtereddeviceLists);
+  console.log("selectedDivision（handle直前1）=", selectedDivision); 
+  console.log("divisionLists（handle直前1）=", divisionLists);
+  console.log("deviceLists（handle直前1）=", deviceLists);
+  console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -493,9 +495,11 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
-
-  console.log("divisionLists（handle直前）=", divisionLists);
-  console.log("deviceLists（handle直前）=", deviceLists);
+  
+  console.log("selectedDivision（handle直前1）=", selectedDivision); 
+  console.log("divisionLists（handle直前2）=", divisionLists);
+  console.log("deviceLists（handle直前2）=", deviceLists);
+  console.log("filtereddeviceLists（handle直前2）=", filtereddeviceLists);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
