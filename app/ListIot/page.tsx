@@ -389,17 +389,10 @@ export default function App() {
   useEffect(() => {
     async function fetchData() {
         await listIot();
-    }
-    fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-
-  useEffect(() => {
-    async function fetchData() {
         await rendergraph();
     }
     fetchData();
-  }, []);
-
+  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
@@ -504,7 +497,7 @@ export default function App() {
       newItem.ReferenceTemp = item.ReferenceTemp;
       newItem.ControlStage = item.ControlStage;
       return newItem;
-   });
+    });
 
     console.log("divisionLists（handle直前）=", divisionLists);
     console.log("deviceLists（handle直前）=", deviceLists);
