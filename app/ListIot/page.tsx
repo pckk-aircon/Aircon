@@ -436,8 +436,7 @@ export default function App() {
         (
          item?.DeviceType === 'Temp' || 
         (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
-      )
-     
+      ) //ここはグラフ表示部分なので、'Temp'と'Aircon'両方を抽出する。
 
         .map(item => {
           return {
