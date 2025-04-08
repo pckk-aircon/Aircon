@@ -479,6 +479,12 @@ export default function App() {
     return acc;
   }, {});
 
+  //deviceNameMapを作成。
+  const deviceNameMap = deviceLists.reduce<Record<string, string>>((acc, item) => {
+    acc[item.Device] = item.DeviceName;
+    return acc;
+  }, {});
+
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示
@@ -609,7 +615,7 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey={device}
-                name={device}
+                name={deviceNameMap[device]} // ★★★Use DeviceName here
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 //dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
                 dot={false}
