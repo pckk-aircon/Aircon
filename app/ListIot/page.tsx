@@ -459,6 +459,8 @@ export default function App() {
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
         });
+      
+
 
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
@@ -493,8 +495,10 @@ export default function App() {
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
+    console.log("PresetTemp（map内）=", newItem.PresetTemp);
     return newItem;
   });
+
   console.log("divisionLists（handle直前）=", divisionLists);
   //console.log("DivisionLists（handle直前）=", DivisionLists);
   const handleNext = () => {
