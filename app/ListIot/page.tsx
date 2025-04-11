@@ -385,38 +385,23 @@ export default function App() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
+  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; DeviceType:string; Controller?: string | null }>>([]);
+  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType:string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
-  
-  useEffect(() => {
+  console.log("deviceLists（State直後）=", deviceLists);
 
-    async function fetchData() {
-      const { data, errors } = await client.queries.listDivision({
-        Controller: "Mutsu01",
-      });
-      console.log('listDivision=', data);
-      if (data) {
-        setPosts(data as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
-      }
-      
-      await listIot();
 
-    };
-  
-    fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]); 
-
-  /*
   useEffect(() => {
     async function fetchData() {
         await listIot();
     }
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  */
 
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
@@ -425,7 +410,23 @@ export default function App() {
     console.log("StartDatetime=", startDate);
     console.log("EndDatetime=", endDate);
 
-    console.log('divisionLists（listIot内）=', divisionLists)
+    // 追記部分: divisionListsのデータ取得と状態更新
+
+    const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    if (divisionLists) {
+      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; DeviceType:string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+
+    const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
+      Controller: "Mutsu01",
+    });
+    if (deviceLists) {
+      setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType:string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+
+    console.log('divisionLists（queries後）=', divisionLists)
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
@@ -442,8 +443,10 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
-      )
+        (
+         item?.DeviceType === 'Temp' || 
+        (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
+      ) //ここはグラフ表示部分なので、'Temp'と'Aircon'両方を抽出する。
 
         .map(item => {
           return {
@@ -459,8 +462,6 @@ export default function App() {
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
         });
-      
-
 
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
@@ -468,9 +469,19 @@ export default function App() {
   }
 
   // データが存在しない場合はローディング表示やスキップ
-  if (divisionLists.length === 0) {
+  if (divisionLists.length === 0 || deviceLists.length === 0)  {
+    console.log("return");
     return <div>Loading...</div>;
-  } 
+  }
+
+  const selectedDivision = divisionLists[currentDivisionIndex].Division
+  //const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
+  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+
+  console.log("selectedDivision（handle直前1）=", selectedDivision); 
+  console.log("divisionLists（handle直前1）=", divisionLists);
+  console.log("deviceLists（handle直前1）=", deviceLists);
+  console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -478,6 +489,12 @@ export default function App() {
       acc[item.Device] = [];
     }
     acc[item.Device].push(item);
+    return acc;
+  }, {});
+
+  //deviceNameMapを作成。
+  const deviceNameMap = deviceLists.reduce<Record<string, string>>((acc, item) => {
+    acc[item.Device] = item.DeviceName;
     return acc;
   }, {});
 
@@ -495,12 +512,14 @@ export default function App() {
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
-    console.log("PresetTemp（map内）=", newItem.PresetTemp);
     return newItem;
   });
 
-  console.log("divisionLists（handle直前）=", divisionLists);
-  //console.log("DivisionLists（handle直前）=", DivisionLists);
+  console.log("selectedDivision（handle直前1）=", selectedDivision); 
+  console.log("divisionLists（handle直前2）=", divisionLists);
+  console.log("deviceLists（handle直前2）=", deviceLists);
+  console.log("filtereddeviceLists（handle直前2）=", filtereddeviceLists);
+
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
   };
@@ -509,10 +528,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % DeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + DeviceLists.length) % DeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
@@ -543,9 +562,8 @@ export default function App() {
     }
   };
 
-  // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length > 0) {
       return (
         <div className="custom-tooltip">
           <p className="label">{`Time: ${label}`}</p>
@@ -559,7 +577,7 @@ export default function App() {
       );
     }
     return null;
-  };
+  };  
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
@@ -587,7 +605,7 @@ export default function App() {
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {DeviceLists[currentDeviceIndex]}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {filtereddeviceLists[currentDeviceIndex].DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
@@ -609,7 +627,7 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey={device}
-                name={device}
+                name={deviceNameMap[device]} // ★★★Use DeviceName here
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 //dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
                 dot={false}
