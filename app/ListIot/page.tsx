@@ -563,9 +563,8 @@ export default function App() {
     }
   };
 
-  // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length > 0) {
       return (
         <div className="custom-tooltip">
           <p className="label">{`Time: ${label}`}</p>
@@ -579,7 +578,7 @@ export default function App() {
       );
     }
     return null;
-  };
+  };  
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
