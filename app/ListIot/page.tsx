@@ -377,6 +377,7 @@ interface ChartData {
   DivisionName?: string; // DivisionNameを追加
 }
 
+
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
