@@ -132,7 +132,10 @@ export default function App() {
   async function addPost() {
     const { data } = await client.mutations.addDevice(
       {
+        DeviceName: window.prompt("DeviceName"),
+        DeviceType: window.prompt("DeviceType"),
         Controller: window.prompt("Controller"),
+        Division: window.prompt("Division"),        
       },
       { authMode: "apiKey" }
     );
@@ -146,7 +149,7 @@ export default function App() {
       <ul>
         {posts.map((post) => (
           <li key={post.Controller}>
-            {post.Device}{post.DeviceName}{post.Controller}{post.DeviceType}{post.Division}
+            {post.Device}{post.DeviceName}{post.DeviceType}{post.Controller}{post.Division}
           </li>
         ))}
       </ul>
