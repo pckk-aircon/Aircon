@@ -33,6 +33,7 @@ interface ChartData {
   DivisionName?: string; // DivisionNameを追加
 }
 
+
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
@@ -516,7 +517,7 @@ export default function App() {
     return newItem;
   });
 
-  console.log("selectedDivision（handle直前1）=", selectedDivision); 
+  console.log("selectedDivision（handle直前2）=", selectedDivision); 
   console.log("divisionLists（handle直前2）=", divisionLists);
   console.log("deviceLists（handle直前2）=", deviceLists);
   console.log("filtereddeviceLists（handle直前2）=", filtereddeviceLists);
