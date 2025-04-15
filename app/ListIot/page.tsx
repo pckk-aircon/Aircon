@@ -596,7 +596,7 @@ export default function App() {
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {filtereddeviceLists[0].DeviceName}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {filtereddeviceLists[currentDeviceIndex].DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
