@@ -378,7 +378,6 @@ interface ChartData {
   DivisionName?: string; // DivisionNameを追加
 }
 
-
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
@@ -387,16 +386,13 @@ export default function App() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
-  console.log("currentDivisionIndex（State直後）=", currentDivisionIndex);
-  console.log("currentDeviceIndex（State直後）=", currentDeviceIndex);
 
-  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
-  
-  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; DeviceType:string; Controller?: string | null }>>([]);
-  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType:string; Division: string; Controller?: string | null }>>([]);
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+
+  const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
+  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-
 
   useEffect(() => {
     async function fetchData() {
@@ -418,14 +414,14 @@ export default function App() {
       Controller: "Mutsu01",
     });
     if (divisionLists) {
-      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; DeviceType:string; Controller?: string | null }>); // 型を明示的にキャストする
+      setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
     if (deviceLists) {
-      setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType:string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setDevices(deviceLists as Array<{ Device: string; DeviceName: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     console.log('divisionLists（queries後）=', divisionLists)
@@ -445,10 +441,8 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (
-         item?.DeviceType === 'Temp' || 
-        (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
-      ) //ここはグラフ表示部分なので、'Temp'と'Aircon'両方を抽出する。
+        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
+      )
 
         .map(item => {
           return {
@@ -472,18 +466,8 @@ export default function App() {
 
   // データが存在しない場合はローディング表示やスキップ
   if (divisionLists.length === 0 || deviceLists.length === 0)  {
-    console.log("return");
     return <div>Loading...</div>;
   }
-
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  //const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
-
-  console.log("selectedDivision（handle直前1）=", selectedDivision); 
-  console.log("divisionLists（handle直前1）=", divisionLists);
-  console.log("deviceLists（handle直前1）=", deviceLists);
-  console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -491,12 +475,6 @@ export default function App() {
       acc[item.Device] = [];
     }
     acc[item.Device].push(item);
-    return acc;
-  }, {});
-
-  //deviceNameMapを作成。
-  const deviceNameMap = deviceLists.reduce<Record<string, string>>((acc, item) => {
-    acc[item.Device] = item.DeviceName;
     return acc;
   }, {});
 
@@ -517,10 +495,8 @@ export default function App() {
     return newItem;
   });
 
-  console.log("selectedDivision（handle直前2）=", selectedDivision); 
-  console.log("divisionLists（handle直前2）=", divisionLists);
-  console.log("deviceLists（handle直前2）=", deviceLists);
-  console.log("filtereddeviceLists（handle直前2）=", filtereddeviceLists);
+  console.log("divisionLists（handle直前）=", divisionLists);
+  console.log("deviceLists（handle直前）=", deviceLists);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
@@ -530,10 +506,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + deviceLists.length) % deviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
@@ -564,8 +540,9 @@ export default function App() {
     }
   };
 
+  // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length > 0) {
+    if (active && payload && payload.length) {
       return (
         <div className="custom-tooltip">
           <p className="label">{`Time: ${label}`}</p>
@@ -579,7 +556,7 @@ export default function App() {
       );
     }
     return null;
-  };  
+  };
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
@@ -607,7 +584,7 @@ export default function App() {
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {filtereddeviceLists[currentDeviceIndex].DeviceName}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {deviceLists[0].DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
@@ -629,7 +606,7 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey={device}
-                name={deviceNameMap[device]} // ★★★Use DeviceName here
+                name={device}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 //dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
                 dot={false}
