@@ -399,7 +399,7 @@ export default function App() {
   console.log("deviceLists（State直後）=", deviceLists);
 
   const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+  //const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
 
   useEffect(() => {
     async function fetchData() {
@@ -531,10 +531,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % filtereddeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + filtereddeviceLists.length) % filtereddeviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + deviceLists.length) % deviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
@@ -609,7 +609,7 @@ export default function App() {
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {filtereddeviceLists[currentDeviceIndex].DeviceName}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {deviceLists[currentDeviceIndex].DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
