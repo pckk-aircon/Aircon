@@ -42,16 +42,8 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const DeviceLists =[
-    //{Device: '1234-kaki2', DeviceName: 'name-kakisitu2', Controller: 'Mutsu01', DeviceType: 'Aircon', Division: 'MUTS-Flower'},
-    //{Device: '1234-kaki3', DeviceName: 'name-kakisitu3', Controller: 'Mutsu01', DeviceType: 'Aircon', Division: 'MUTS-Flower'},
-  //]
-
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
-  console.log("divisionLists（State直後）=", divisionLists);
-  console.log("deviceLists（State直後）=", deviceLists);
-
 
   const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
   useEffect(() => {
@@ -62,7 +54,9 @@ export default function App() {
     }
   }, [divisionLists, deviceLists, currentDivisionIndex]);
 
-
+  console.log("divisionLists（State直後）=", divisionLists);
+  console.log("deviceLists（State直後）=", deviceLists);
+  console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
   useEffect(() => {
     async function fetchData() {
@@ -110,8 +104,6 @@ export default function App() {
 
       const formattedData = data
 
- 
-      //DeviceListsにすればOK
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
@@ -397,11 +389,6 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const DeviceLists =[
-    //{Device: '1234-kaki2', DeviceName: 'name-kakisitu2', Controller: 'Mutsu01', DeviceType: 'Aircon', Division: 'MUTS-Flower'},
-    //{Device: '1234-kaki3', DeviceName: 'name-kakisitu3', Controller: 'Mutsu01', DeviceType: 'Aircon', Division: 'MUTS-Flower'},
-  //]
-
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
 
@@ -624,7 +611,7 @@ export default function App() {
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {deviceLists[currentDeviceIndex].DeviceName}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex].DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
