@@ -455,12 +455,10 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && 
-            FiltereddeviceLists?.[currentDeviceIndex]?.Device && 
-            FiltereddeviceLists.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device)
-          )
+          (item?.DeviceType === 'Aircon' && FiltereddeviceLists?.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device))
         )
-      )      
+      )
+      
 
         .map(item => {
           return {
@@ -487,6 +485,9 @@ export default function App() {
     console.log("return");
     return <div>Loading...</div>;
   }
+
+
+
 
   //console.log("selectedDivision（handle直前1）=", selectedDivision); 
   //console.log("divisionLists（handle直前1）=", divisionLists);
