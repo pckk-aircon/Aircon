@@ -455,10 +455,12 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && FiltereddeviceLists?.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device))
+          (item?.DeviceType === 'Aircon' && 
+            FiltereddeviceLists?.[currentDeviceIndex]?.Device && 
+            FiltereddeviceLists.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device)
+          )
         )
-      )
-      
+      )      
 
         .map(item => {
           return {
