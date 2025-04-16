@@ -398,10 +398,17 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
-  if (divisionLists.length > 0 && deviceLists.length > 0) {
-    const selectedDivision = divisionLists[currentDivisionIndex].Division
-    const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
-  }
+
+  const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
+  useEffect(() => {
+    if (divisionLists.length > 0 && deviceLists.length > 0) {
+      const selectedDivision = divisionLists[currentDivisionIndex].Division;
+      const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+      setFiltereddevice(filtered);
+    }
+  }, [divisionLists, deviceLists, currentDivisionIndex]);
+
+
 
   useEffect(() => {
     async function fetchData() {
@@ -456,7 +463,7 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === DeviceLists[currentDeviceIndex].Device))
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device))
         )
       )
       
@@ -533,10 +540,10 @@ export default function App() {
   };
 
   const DevicehandleNext = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % deviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % FiltereddeviceLists.length);
   };
   const DevicehandlePrevious = () => {
-    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + deviceLists.length) % deviceLists.length);
+    setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };
 
   // ControlStageに応じたプロットの色を設定
