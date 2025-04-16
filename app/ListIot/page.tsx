@@ -381,7 +381,10 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  const DeviceLists =[
+    {Device: '1234-kaki2', DeviceName: 'name-kakisitu2', Controller: 'Mutsu01', DeviceType: 'Aircon', Division: 'MUTS-Flower'},
+    {Device: '1234-kaki3', DeviceName: 'name-kakisitu3', Controller: 'Mutsu01', DeviceType: 'Aircon', Division: 'MUTS-Flower'},
+  ]
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
@@ -434,25 +437,16 @@ export default function App() {
 
       const formattedData = data
 
-      /*
+ 
       //DeviceListsにすればOK
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === DeviceLists[currentDeviceIndex]))
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === DeviceLists[currentDeviceIndex].Device))
         )
       )
-      */
-
-      .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (
-         item?.DeviceType === 'Temp' || 
-        (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
-      ) //ここはグラフ表示部分なので、'Temp'と'Aircon'両方を抽出する。
       
 
         .map(item => {
