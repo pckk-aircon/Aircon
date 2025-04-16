@@ -398,8 +398,10 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  //const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+  if (divisionLists.length > 0 && deviceLists.length > 0) {
+    const selectedDivision = divisionLists[currentDivisionIndex].Division
+    const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+  }
 
   useEffect(() => {
     async function fetchData() {
