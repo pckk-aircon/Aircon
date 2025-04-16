@@ -439,12 +439,9 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (
-          item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && item?.Device === deviceLists?.[currentDeviceIndex]?.Device)
+        item?.DeviceType === 'Aircon' && 
+        item?.Device === deviceLists?.[currentDeviceIndex]?.Device
         )
-      )
-      
       
 
       /*
