@@ -537,7 +537,6 @@ export default function App() {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };
 
-
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
     switch (controlStage) {
@@ -565,8 +564,7 @@ export default function App() {
         return '#000000'; // その他
     }
   };
- 
-  /*
+
   // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -584,7 +582,6 @@ export default function App() {
     }
     return null;
   };
-  */
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
@@ -641,7 +638,6 @@ export default function App() {
                 connectNulls
               />
             ))}
-
             <Line
               type="monotone"
               dataKey="WeightedTemp"
@@ -671,9 +667,8 @@ export default function App() {
               //dot={false}
               dot={(props) => {
                 const { cx, cy, payload } = props;
-                //const color = getDotColor(payload.ControlStage);
-                //return <circle cx={cx} cy={cy} r={4} fill={color} />;
-                return <circle cx={cx} cy={cy} r={4} />;
+                const color = getDotColor(payload.ControlStage);
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
               }}
               connectNulls
               isAnimationActive={false}
