@@ -432,15 +432,20 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
+        (item?.DeviceType === 'Temp' || 
+        (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
       )
       */
 
       .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && 
-        item?.Division === divisionLists[currentDivisionIndex]?.Division && 
-        deviceLists && item?.Device === deviceLists[currentDeviceIndex]?.Device
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        item?.Division === divisionLists[currentDivisionIndex].Division && 
+        (
+          item?.DeviceType === 'Temp' || 
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === DeviceLists[currentDeviceIndex]))
+        )
       )
+
 
       /*
       .filter(item => 
