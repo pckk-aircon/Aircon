@@ -399,8 +399,8 @@ export default function App() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
-    console.log("StartDatetime=", startDate);
-    console.log("EndDatetime=", endDate);
+    //console.log("StartDatetime=", startDate);
+    //console.log("EndDatetime=", endDate);
 
     // 追記部分: divisionListsのデータ取得と状態更新
 
@@ -418,8 +418,6 @@ export default function App() {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
-    console.log('divisionLists（queries後）=', divisionLists)
-
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
@@ -428,7 +426,7 @@ export default function App() {
 
     console.log('Iotdata=', data)
     console.log('currentDeviceIndex=', currentDeviceIndex)
-    
+
     if (data) { 
 
       const formattedData = data
@@ -475,11 +473,12 @@ export default function App() {
   //const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision);
   const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
 
-
+  /*
   console.log("selectedDivision（handle直前1）=", selectedDivision); 
   console.log("divisionLists（handle直前1）=", divisionLists);
   console.log("deviceLists（handle直前1）=", deviceLists);
   console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
+  */
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -507,8 +506,8 @@ export default function App() {
     return newItem;
   });
 
-  console.log("divisionLists（handle直前）=", divisionLists);
-  console.log("deviceLists（handle直前）=", deviceLists);
+  //console.log("divisionLists（handle直前）=", divisionLists);
+  //console.log("deviceLists（handle直前）=", deviceLists);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
