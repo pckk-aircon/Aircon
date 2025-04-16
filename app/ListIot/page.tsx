@@ -264,7 +264,7 @@ export default function App() {
         <button onClick={DevicehandleNext}>nextDevice</button>
       </div>
       <div>
-        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {deviceLists[currentDeviceIndex].DeviceName}</h1>
+        <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
@@ -456,7 +456,7 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device))
+          (item?.DeviceType === 'Aircon' && FiltereddeviceLists?.some(device => device?.Device === FiltereddeviceLists[currentDeviceIndex].Device))
         )
       )
       
