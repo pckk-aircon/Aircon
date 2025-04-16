@@ -398,11 +398,13 @@ export default function App() {
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
 
+  /*
   // データが存在しない場合はローディング表示やスキップ
   if (divisionLists.length === 0 || deviceLists.length === 0)  {
     console.log("return");
     return <div>Loading...</div>;
   }
+  */
   const selectedDivision = divisionLists[currentDivisionIndex].Division
   const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
 
