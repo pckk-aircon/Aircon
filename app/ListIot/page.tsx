@@ -438,7 +438,7 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === deviceLists[currentDeviceIndex]))
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === deviceLists[1]))
         )
       )
       
