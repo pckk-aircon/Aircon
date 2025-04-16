@@ -347,6 +347,7 @@ export default function App() {
 
 */
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -395,18 +396,9 @@ export default function App() {
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
+  const [filtereddeviceLists, setfiltereddeviceLists] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
   console.log("divisionLists（State直後）=", divisionLists);
   console.log("deviceLists（State直後）=", deviceLists);
-
-  /*
-  // データが存在しない場合はローディング表示やスキップ
-  if (divisionLists.length === 0 || deviceLists.length === 0)  {
-    console.log("return");
-    return <div>Loading...</div>;
-  }
-  */
-  const selectedDivision = divisionLists[currentDivisionIndex].Division
-  const filtereddeviceLists = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
 
   useEffect(() => {
     async function fetchData() {
@@ -444,6 +436,17 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
+    // データが存在しない場合はローディング表示やスキップ
+    if (divisionLists?.length === 0 || deviceLists?.length === 0)  {
+      console.log("return");
+      return <div>Loading...</div>;
+    }
+    const selectedDivision = divisionLists && divisionLists[currentDivisionIndex]?.Division;
+    const filtereddeviceLists = deviceLists?.filter(item => item?.Division === selectedDivision && item?.DeviceType === 'Aircon');
+    if (filtereddeviceLists) {
+      setfiltereddeviceLists(filtereddeviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+
     console.log('Iotdata=', data)
     console.log('deviceLists=', deviceLists)
     console.log('currentDeviceIndex=', currentDeviceIndex)
@@ -454,7 +457,6 @@ export default function App() {
 
       const formattedData = data
 
- 
       //DeviceListsにすればOK
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
@@ -488,12 +490,10 @@ export default function App() {
 
 
 
-
   //console.log("selectedDivision（handle直前1）=", selectedDivision); 
   //console.log("divisionLists（handle直前1）=", divisionLists);
   //console.log("deviceLists（handle直前1）=", deviceLists);
-  //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
- 
+  //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists); 
 
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
