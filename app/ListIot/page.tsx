@@ -427,7 +427,8 @@ export default function App() {
     });
 
     console.log('Iotdata=', data)
-
+    console.log('currentDeviceIndex=', currentDeviceIndex)
+    
     if (data) { 
 
       const formattedData = data
