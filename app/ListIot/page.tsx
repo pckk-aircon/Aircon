@@ -397,8 +397,8 @@ export default function App() {
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
   const [filtereddeviceLists, setfiltereddeviceLists] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
-  console.log("divisionLists（State直後）=", divisionLists);
-  console.log("deviceLists（State直後）=", deviceLists);
+  //console.log("divisionLists（State直後）=", divisionLists);
+  //console.log("deviceLists（State直後）=", deviceLists);
 
   useEffect(() => {
     async function fetchData() {
