@@ -427,6 +427,8 @@ export default function App() {
     console.log('Iotdata=', data)
     console.log('deviceLists=', deviceLists)
     console.log('currentDeviceIndex=', currentDeviceIndex)
+    console.log('currentDeviceIndex.Device=', deviceLists?.[currentDeviceIndex]?.Device) 
+    console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
 
     if (data) { 
 
