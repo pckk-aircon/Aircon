@@ -436,11 +436,14 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
+    /*
     // データが存在しない場合はローディング表示やスキップ
     if (divisionLists?.length === 0 || deviceLists?.length === 0)  {
       console.log("return");
       return <div>Loading...</div>;
     }
+    */
+
     const selectedDivision = divisionLists && divisionLists[currentDivisionIndex]?.Division;
     const filtereddeviceLists = deviceLists?.filter(item => item?.Division === selectedDivision && item?.DeviceType === 'Aircon');
     if (filtereddeviceLists) {
