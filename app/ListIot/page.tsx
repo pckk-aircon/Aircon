@@ -93,11 +93,16 @@ export default function App() {
 
       const formattedData = data
 
+      //deviceのボタンが反応しないが、それ以外はOK
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
+        (
+          item?.DeviceType === 'Temp' || 
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === DeviceLists[currentDeviceIndex]))
+        )
       )
+      
 
         .map(item => {
           return {
@@ -376,7 +381,7 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
@@ -427,36 +432,15 @@ export default function App() {
 
       const formattedData = data
 
-      /*
-      //const DeviceListsをダミーとして定義した場合はOK
-      .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || 
-        (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
-      )
-      */
-
+      //deviceのボタンが反応しないが、それ以外はOK
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === DeviceLists[currentDeviceIndex]))
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === deviceLists[currentDeviceIndex]))
         )
       )
-
-
-      /*
-      .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (
-          item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === item?.Device))
-        )
-      )
-      */
       
 
         .map(item => {
