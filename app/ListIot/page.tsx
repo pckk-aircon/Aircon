@@ -376,7 +376,7 @@ export default function App() {
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
-  //const DeviceLists = ["1234-kaki2", "1234-kaki3"];
+  const DeviceLists = ["1234-kaki2", "1234-kaki3"];
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
@@ -428,21 +428,19 @@ export default function App() {
       const formattedData = data
 
       /*
+      //const DeviceListsをダミーとして定義した場合はOK
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === divisionLists[currentDeviceIndex]))
+        (item?.DeviceType === 'Temp' || (item?.DeviceType === 'Aircon' && item?.Device === DeviceLists[currentDeviceIndex]))
       )
       */
 
-
       .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        item?.DeviceType === 'Aircon' && 
-        item?.Device === deviceLists?.[currentDeviceIndex]?.Device
-        )
-      
+        divisionLists?.[currentDivisionIndex]?.Division && 
+        item?.Division === divisionLists[currentDivisionIndex]?.Division && 
+        deviceLists && item?.Device === deviceLists[currentDeviceIndex]?.Device
+      )
 
       /*
       .filter(item => 
