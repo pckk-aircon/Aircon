@@ -435,6 +435,7 @@ export default function App() {
       )
       */
 
+      /*
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
@@ -442,6 +443,17 @@ export default function App() {
          item?.DeviceType === 'Temp' || 
         (item?.DeviceType === 'Aircon' && deviceLists?.[currentDeviceIndex]?.Device === item?.Device))
       ) //ここはグラフ表示部分なので、'Temp'と'Aircon'両方を抽出する。
+      */
+
+      .filter(item => 
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        item?.Division === divisionLists[currentDivisionIndex].Division && 
+        (
+          item?.DeviceType === 'Temp' || 
+          (item?.DeviceType === 'Aircon' && deviceLists?.some(device => device?.Device === item?.Device))
+        )
+      )
+      
 
         .map(item => {
           return {
