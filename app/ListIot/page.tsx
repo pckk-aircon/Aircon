@@ -469,8 +469,13 @@ export default function App() {
       */
 
       .filter(item => 
-        item?.DeviceType === 'Aircon' && 
-        FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
+        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
+        item?.Division === divisionLists[currentDivisionIndex].Division && 
+        (
+          item?.DeviceType === 'Temp' || 
+          item?.DeviceType === 'Aircon' && 
+          FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
+        )
       )
 
         .map(item => {
