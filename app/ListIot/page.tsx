@@ -391,17 +391,20 @@ export default function App() {
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
 
   const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
+ 
+  //console.log("divisionLists（State直後）=", divisionLists);
+  //console.log("deviceLists（State直後）=", deviceLists);
+  console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
+
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
+      console.log('☆selectedDivision（luseEffect）=', selectedDivision)
+      console.log('☆filtered（useEffect）=', filtered)
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
-
-  //console.log("divisionLists（State直後）=", divisionLists);
-  //console.log("deviceLists（State直後）=", deviceLists);
-  //console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
   useEffect(() => {
     async function fetchData() {
