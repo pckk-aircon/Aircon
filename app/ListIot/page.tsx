@@ -46,17 +46,20 @@ export default function App() {
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
 
   const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
+ 
+  //console.log("divisionLists（State直後）=", divisionLists);
+  //console.log("deviceLists（State直後）=", deviceLists);
+  console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
+
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
+      console.log('☆selectedDivision（luseEffect）=', selectedDivision)
+      console.log('☆filtered（useEffect）=', filtered)
     }
-  }, [divisionLists, deviceLists, currentDivisionIndex]);
-
-  //console.log("divisionLists（State直後）=", divisionLists);
-  //console.log("deviceLists（State直後）=", deviceLists);
-  //console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
+  }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
 
   useEffect(() => {
     async function fetchData() {
@@ -445,7 +448,7 @@ export default function App() {
     //console.log('Iotdata（listIot）=', data)
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
-    console.log('★★currentDeviceIndex.Device（listIot）=', deviceLists?.[currentDeviceIndex]?.Device) 
+    console.log('★★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
     //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
 
     if (data) { 
