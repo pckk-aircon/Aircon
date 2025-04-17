@@ -54,9 +54,9 @@ export default function App() {
     }
   }, [divisionLists, deviceLists, currentDivisionIndex]);
 
-  console.log("divisionLists（State直後）=", divisionLists);
-  console.log("deviceLists（State直後）=", deviceLists);
-  console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
+  //console.log("divisionLists（State直後）=", divisionLists);
+  //console.log("deviceLists（State直後）=", deviceLists);
+  //console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
   useEffect(() => {
     async function fetchData() {
@@ -94,11 +94,11 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
-    console.log('Iotdata=', data)
-    console.log('deviceLists=', deviceLists)
-    console.log('currentDeviceIndex=', currentDeviceIndex)
-    console.log('currentDeviceIndex.Device=', deviceLists?.[currentDeviceIndex]?.Device) 
-    console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
+    //console.log('Iotdata（listIot）=', data)
+    //console.log('deviceLists（listIot）=', deviceLists)
+    console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
+    console.log('★★currentDeviceIndex.Device（listIot）=', deviceLists?.[currentDeviceIndex]?.Device) 
+    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
 
     if (data) { 
 
@@ -142,15 +142,11 @@ export default function App() {
     return <div>Loading...</div>;
   }
 
-
-
-
   //console.log("selectedDivision（handle直前1）=", selectedDivision); 
   //console.log("divisionLists（handle直前1）=", divisionLists);
   //console.log("deviceLists（handle直前1）=", deviceLists);
   //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
  
-
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.Device]) {
@@ -401,7 +397,7 @@ export default function App() {
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
     }
-  }, [divisionLists, deviceLists, currentDivisionIndex]);
+  }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
 
   //console.log("divisionLists（State直後）=", divisionLists);
   //console.log("deviceLists（State直後）=", deviceLists);
