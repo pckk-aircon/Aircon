@@ -57,8 +57,7 @@ export default function App() {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
-      setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
-      console.log('☆selectedDivision（luseEffect）=', selectedDivision)
+      console.log('☆selectedDivision（useEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
@@ -409,7 +408,8 @@ export default function App() {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
-      console.log('☆selectedDivision（luseEffect）=', selectedDivision)
+      console.log('☆currentDivisionIndex（useEffect）=', currentDivisionIndex)
+      console.log('☆selectedDivision（useEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
