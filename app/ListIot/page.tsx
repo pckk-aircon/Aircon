@@ -405,7 +405,7 @@ export default function App() {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
-      //setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
+      setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
       console.log('☆selectedDivision（luseEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
