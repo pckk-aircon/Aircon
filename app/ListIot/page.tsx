@@ -399,13 +399,13 @@ export default function App() {
   //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
-  
+
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
-      setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
+      //setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
       console.log('☆selectedDivision（luseEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
@@ -529,12 +529,12 @@ export default function App() {
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
-    setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
+    //setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
 
   };
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
-    setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
+    //setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
   };
 
   const DevicehandleNext = () => {
