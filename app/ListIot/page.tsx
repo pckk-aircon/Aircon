@@ -545,12 +545,32 @@ export default function App() {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
   };
 
+  /*
   const DevicehandleNext = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % FiltereddeviceLists.length);
+    console.log("prevIndex（handle直前）=", prevIndex);
   };
+  */
+
+  const DevicehandleNext = () => {
+    setCurrentDeviceIndex((prevIndex) => {
+    console.log("prevIndex（ + 1）=", prevIndex);
+    return (prevIndex + 1) % FiltereddeviceLists.length;
+    });
+  };
+
+  /*
   const DevicehandlePrevious = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };
+  */
+
+  const DevicehandlePrevious = () => {
+    setCurrentDeviceIndex((prevIndex) => {
+    console.log("prevIndex（ - 1）=", prevIndex);
+    return (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length;
+    });
+  };  
 
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
