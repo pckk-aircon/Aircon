@@ -51,11 +51,13 @@ export default function App() {
   //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
+
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
+      setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
       console.log('☆selectedDivision（luseEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
@@ -112,12 +114,10 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' &&
-            FiltereddeviceLists.some(device => device.Device === FiltereddeviceLists[currentDeviceIndex].Device)
-          )
+          item?.DeviceType === 'Aircon' && 
+          FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
         )
       )
-
 
         .map(item => {
           return {
@@ -181,17 +181,21 @@ export default function App() {
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+    //setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
+
   };
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+    //setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
   };
 
   const DevicehandleNext = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex + 1) % FiltereddeviceLists.length);
   };
+
   const DevicehandlePrevious = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
-  };
+  };  
 
   // ControlStageに応じたプロットの色を設定
   const getDotColor = (controlStage: string | null) => {
@@ -405,7 +409,6 @@ export default function App() {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
-      setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
       console.log('☆selectedDivision（luseEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
