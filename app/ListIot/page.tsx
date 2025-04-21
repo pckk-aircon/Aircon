@@ -455,19 +455,6 @@ export default function App() {
 
       const formattedData = data
 
-      /*
-      .filter(item => 
-        divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
-        item?.Division === divisionLists[currentDivisionIndex].Division && 
-        (
-          item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' &&
-            FiltereddeviceLists.some(device => device.Device === FiltereddeviceLists[currentDeviceIndex].Device)
-          )
-        )
-      )
-      */
-
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
@@ -540,9 +527,12 @@ export default function App() {
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
+    setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
+
   };
   const handlePrevious = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisionLists.length) % divisionLists.length);
+    setCurrentDeviceIndex(0); // Deviceのインデックスを0にリセット
   };
 
   const DevicehandleNext = () => {
