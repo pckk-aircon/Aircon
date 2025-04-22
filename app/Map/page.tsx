@@ -255,7 +255,7 @@ export default function App() {
       // カスタムハンドラーを作成して回転の感度を調整
       map.on('mousemove', (e) => {
         if (e.originalEvent.buttons === 2) { // 右クリック
-          const rotationSpeed = 0.1; // 回転速度を調整
+          const rotationSpeed = 0.5; // 回転速度を調整
           map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
         }
       });
