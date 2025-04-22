@@ -198,7 +198,8 @@ export default function App() {
         sources: {
           'raster-tiles': {
             type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            //tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: ['https://tile.mierune.co.jp/mierune/{z}/{x}/{y}.png'],
             tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
@@ -220,9 +221,9 @@ export default function App() {
         ],
       },
       center: [140.302994, 35.353503],
-      zoom: 15.99,
-      pitch: 40,
-      bearing: 20,
+      zoom: 17,
+      pitch: 30,
+      bearing: 45,
     });
 
     map.on('load', () => {
@@ -243,7 +244,7 @@ export default function App() {
           'fill-extrusion-color': ['get', 'color'],
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'base_height'],
-          'fill-extrusion-opacity': 0.5,
+          'fill-extrusion-opacity': 0.8,
         },
       });
 
