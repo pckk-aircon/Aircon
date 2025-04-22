@@ -245,15 +245,15 @@ export default function App() {
         },
       });
 
-      // マウス操作で地図を回転させるハンドラーを追加
-      map.dragRotate.enable();
-      map.touchZoomRotate.enableRotation();
 
+      // ナビゲーションコントロールを右上に追加
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
     });
   
   }
+  
 
   //return <div id="map" style={{ height: '100vh' }} />;
-  return <div id="map" style={{ height: '50vh', width: '50%' }} />;
+  return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 
 }
