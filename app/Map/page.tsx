@@ -198,8 +198,7 @@ export default function App() {
         sources: {
           'raster-tiles': {
             type: 'raster',
-            //tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tiles: ['https://tile.mierune.co.jp/mierune/{z}/{x}/{y}.png'],
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
@@ -251,6 +250,17 @@ export default function App() {
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
       map.touchZoomRotate.enableRotation();
+      
+
+      // カスタムハンドラーを作成して回転の感度を調整
+      map.on('mousemove', (e) => {
+        if (e.originalEvent.buttons === 2) { // 右クリック
+          const rotationSpeed = 0.1; // 回転速度を調整
+          map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
+        }
+      });
+      
+
 
       // NavigationControlの追加
       const nav = new maplibregl.NavigationControl({
