@@ -251,7 +251,7 @@ export default function App() {
       // NavigationControlの追加
       const nav = new maplibregl.NavigationControl({
         showCompass: true, // コンパスを表示
-        visualizePitch: true // ピッチ（角度）を表示
+        visualizePitch: true, // ピッチ（角度）を表示
       });
       map.addControl(nav, 'top-left');
       
