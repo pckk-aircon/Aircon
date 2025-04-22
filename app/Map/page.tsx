@@ -248,7 +248,14 @@ export default function App() {
       });
 
 
-      // マウス操作で地図を回転させるハンドラーを追加
+      // NavigationControlの追加
+      const nav = new maplibregl.NavigationControl({
+        showCompass: true, // コンパスを表示
+        visualizePitch: true // ピッチ（角度）を表示
+      });
+      map.addControl(nav, 'top-left');
+      
+      // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
       map.touchZoomRotate.enableRotation();
 
@@ -258,7 +265,6 @@ export default function App() {
   
   }
 
-  //return <div id="map" style={{ height: '100vh' }} />;
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 
 }
