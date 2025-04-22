@@ -185,6 +185,8 @@ export default function App() {
   }
 
 
+  let map; // map変数をスコープ外で定義
+
   async function renderMap() {
 
     //const buildingData = Geojsons[0] ;
@@ -246,12 +248,15 @@ export default function App() {
       });
 
 
+      // マウス操作で地図を回転させるハンドラーを追加
+      map.dragRotate.enable();
+      map.touchZoomRotate.enableRotation();
+
       // ナビゲーションコントロールを右上に追加
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
     });
   
   }
-  
 
   //return <div id="map" style={{ height: '100vh' }} />;
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
