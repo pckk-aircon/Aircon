@@ -247,6 +247,9 @@ export default function App() {
         },
       });
 
+      // マウス操作で回転と角度変更を有効にする
+      map.dragRotate.enable();
+      map.touchZoomRotate.enableRotation();
 
       // NavigationControlの追加
       const nav = new maplibregl.NavigationControl({
@@ -254,13 +257,6 @@ export default function App() {
         visualizePitch: true, // ピッチ（角度）を表示
       });
       map.addControl(nav, 'top-left');
-      
-      // マウス操作で回転と角度変更を有効にする
-      map.dragRotate.enable();
-      map.touchZoomRotate.enableRotation();
-
-      // ナビゲーションコントロールを右上に追加
-      map.addControl(new maplibregl.NavigationControl(), 'top-right');
     });
   
   }
