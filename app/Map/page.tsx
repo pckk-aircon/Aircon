@@ -262,9 +262,21 @@ export default function App() {
           'fill-extrusion-color': ['get', 'color'],
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'base_height'],
-          'fill-extrusion-opacity': 0.4,
+          'fill-extrusion-opacity': 0.3,
         },
       });
+
+
+      map.addLayer({
+        id: 'room-outline',
+        type: 'line',
+        source: 'floorplan',
+        paint: {
+        'line-color': '#000000', // Black color for outlines
+        'line-width': 1,
+        },
+      });
+        
 
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
