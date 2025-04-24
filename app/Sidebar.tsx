@@ -12,6 +12,7 @@ export default function Sidebar() {
         <li><Link href="/TableDivision">TableDivision</Link></li>
         <li><Link href="/TableDevice">TableDevice</Link></li>
         <li><Link href="/Map">Map</Link></li>
+        <li><Link href="/Map2">Map2</Link></li>
       </ul>
     </div>
   );
