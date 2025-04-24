@@ -264,18 +264,18 @@ export default function App() {
         paint: {
           //'fill-extrusion-color': ['get', 'color'],
 
-          /*
+
           'fill-extrusion-color': [
             'case',
             ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
             '#00008b' // 側面をDeepBlueに設定
           ],
-          */
 
+
+          /*
           'fill-extrusion-color': [
             'case',
-            ['==', ['geometry-type'], 'Polygon'],
-            ['get', 'color'], // 底面の色をGeoJSONのcolorプロパティから取得
+            ['==', ['geometry-type'], 'Polygon'],['get', 'color'], // 底面の色をGeoJSONのcolorプロパティから取得
             ['rgba', 
               ['get', 'color_r'], // 赤成分
               ['get', 'color_g'], // 緑成分
@@ -283,6 +283,7 @@ export default function App() {
               0.3 // 透過率30%
             ] // 側面の色を底面の色の透過率30%で設定
           ],
+          */
             
 
           'fill-extrusion-height': ['get', 'height'],
