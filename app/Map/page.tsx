@@ -264,19 +264,7 @@ export default function App() {
           'fill-extrusion-base': ['get', 'base_height'],
           'fill-extrusion-opacity': 0.3,
         },
-      });
-
-
-      map.addLayer({
-        id: 'room-outline',
-        type: 'line',
-        source: 'floorplan',
-        paint: {
-        'line-color': '#000000', // Black color for outlines
-        'line-width': 1,
-        },
-      });
-        
+      });        
 
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
@@ -291,8 +279,6 @@ export default function App() {
         }
       });
       
-
-
       // NavigationControlの追加
       const nav = new maplibregl.NavigationControl({
         showCompass: true, // コンパスを表示
