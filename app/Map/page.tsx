@@ -105,19 +105,24 @@ export default function App() {
         type: 'geojson',
         data: geojsonData,
       });
-    
+      
       map.addLayer({
         id: 'room-extrusion',
         type: 'fill-extrusion',
         source: 'floorplan',
         paint: {
-          'fill-extrusion-color': ['get', 'color'],
+          //'fill-extrusion-color': ['get', 'color'],
+          'fill-extrusion-color': [
+            'case',
+            ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
+            '#00008b' // 側面をDeepBlueに設定
+          ],
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'base_height'],
-          'fill-extrusion-opacity': 0.3,
+          'fill-extrusion-opacity': 0.6,
         },
-      });        
-
+      });
+      
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
       map.touchZoomRotate.enableRotation();
@@ -251,39 +256,41 @@ export default function App() {
         type: 'geojson',
         data: geojsonData,
       });
-    
-      /*
-      map.addLayer({
-        id: 'room-extrusion',
-        type: 'fill-extrusion',
-        source: 'floorplan',
-        paint: {
-          'fill-extrusion-color': ['get', 'color'],
-          'fill-extrusion-height': ['get', 'height'],
-          'fill-extrusion-base': ['get', 'base_height'],
-          'fill-extrusion-opacity': 0.3,
-        },
-      });
-      */ 
       
       map.addLayer({
         id: 'room-extrusion',
         type: 'fill-extrusion',
         source: 'floorplan',
         paint: {
+          //'fill-extrusion-color': ['get', 'color'],
+
+          /*
           'fill-extrusion-color': [
             'case',
             ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
             '#00008b' // 側面をDeepBlueに設定
           ],
+          */
+
+          'fill-extrusion-color': [
+            'case',
+            ['==', ['geometry-type'], 'Polygon'],
+            ['get', 'color'], // 底面の色をGeoJSONのcolorプロパティから取得
+            ['rgba', 
+              ['get', 'color_r'], // 赤成分
+              ['get', 'color_g'], // 緑成分
+              ['get', 'color_b'], // 青成分
+              0.3 // 透過率30%
+            ] // 側面の色を底面の色の透過率30%で設定
+          ],
+            
+
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'base_height'],
           'fill-extrusion-opacity': 0.6,
         },
       });
       
-      
-
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
       map.touchZoomRotate.enableRotation();
