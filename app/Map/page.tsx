@@ -93,7 +93,7 @@ export default function App() {
       center: [140.302994, 35.353503],
       zoom: 17,
       pitch: 30,
-      bearing: 45,
+      bearing: 30,
     });
 
     map.on('load', () => {
@@ -114,9 +114,9 @@ export default function App() {
           'fill-extrusion-color': ['get', 'color'],
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'base_height'],
-          'fill-extrusion-opacity': 0.2,
+          'fill-extrusion-opacity': 0.3,
         },
-      });
+      });        
 
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
@@ -131,8 +131,6 @@ export default function App() {
         }
       });
       
-
-
       // NavigationControlの追加
       const nav = new maplibregl.NavigationControl({
         showCompass: true, // コンパスを表示
@@ -254,6 +252,7 @@ export default function App() {
         data: geojsonData,
       });
     
+      /*
       map.addLayer({
         id: 'room-extrusion',
         type: 'fill-extrusion',
@@ -264,7 +263,26 @@ export default function App() {
           'fill-extrusion-base': ['get', 'base_height'],
           'fill-extrusion-opacity': 0.3,
         },
-      });        
+      });
+      */ 
+      
+      map.addLayer({
+        id: 'room-extrusion',
+        type: 'fill-extrusion',
+        source: 'floorplan',
+        paint: {
+          'fill-extrusion-color': [
+            'case',
+            ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
+            '#00008b' // 側面をDeepBlueに設定
+          ],
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['get', 'base_height'],
+          'fill-extrusion-opacity': 0.6,
+        },
+      });
+      
+      
 
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
