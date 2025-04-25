@@ -237,6 +237,7 @@ const schema = a.schema({
     DeviceDatetime: a.string(),
     Controller: a.string(),
     ControlStage: a.string(),
+    CumulativeEnergy: a.string(),
     Power: a.string(),
     WeightedTemp: a.string(),
     ReferenceTemp: a.string(), 
