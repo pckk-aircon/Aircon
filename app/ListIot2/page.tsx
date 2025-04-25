@@ -91,7 +91,11 @@ export default function App() {
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
-    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
+    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
+    
+    console.log('chartData:', chartData);
+    console.log('mergedData:', mergedData);
+   
 
     if (data) { 
 
