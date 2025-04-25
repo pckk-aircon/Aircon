@@ -94,7 +94,6 @@ export default function App() {
     //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
     
     console.log('chartData:', chartData);
-    console.log('mergedData:', mergedData);
    
 
     if (data) { 
