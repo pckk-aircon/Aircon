@@ -86,7 +86,7 @@ export default function App() {
       EndDatetime: endDatetime,
     });
 
-    //console.log('Iotdata（listIot）=', data)
+    console.log('Iotdata（listIot）=', data)
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
