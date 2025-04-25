@@ -222,6 +222,17 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+            {Object.keys(groupedData).map((device, index) => (
+              <Line
+                key={device}
+                type="monotone"
+                dataKey={device}
+                name={device}
+                stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                dot={false}
+                connectNulls
+              />
+            ))}
 
             <Line
               type="monotone"
@@ -263,7 +274,12 @@ const client = generateClient<Schema>();
 
 interface ChartData {
   DeviceDatetime: string;
-  CumulativeEnergy: string;
+  CumulativeEnergy: number | null;
+  ActualTemp: number | null;
+  WeightedTemp: number | null;
+  TargetTemp: number | null;
+  PresetTemp: number | null;
+  ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
   Division: string;
@@ -284,13 +300,15 @@ export default function App() {
 
   const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
  
+  //console.log("divisionLists（State直後）=", divisionLists);
+  //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
 
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
-      const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Power');
+      const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
       console.log('☆currentDivisionIndex（useEffect）=', currentDivisionIndex)
       console.log('☆selectedDivision（useEffect）=', selectedDivision)
@@ -309,6 +327,10 @@ export default function App() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
+    //console.log("StartDatetime=", startDate);
+    //console.log("EndDatetime=", endDate);
+
+    // 追記部分: divisionListsのデータ取得と状態更新
 
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
@@ -335,10 +357,7 @@ export default function App() {
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
-    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
-    
-    console.log('chartData:', chartData);
-   
+    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
 
     if (data) { 
 
@@ -357,7 +376,12 @@ export default function App() {
         .map(item => {
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
-            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? item.CumulativeEnergy.toString() : '', // ここを修正         
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
+            ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+            WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
+            TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
+            PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+            ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
@@ -375,6 +399,11 @@ export default function App() {
     console.log("return");
     return <div>Loading...</div>;
   }
+
+  //console.log("selectedDivision（handle直前1）=", selectedDivision); 
+  //console.log("divisionLists（handle直前1）=", divisionLists);
+  //console.log("deviceLists（handle直前1）=", deviceLists);
+  //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
  
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -392,9 +421,13 @@ export default function App() {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.CumulativeEnergy : null;
+      newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
     newItem.CumulativeEnergy = item.CumulativeEnergy;
+    newItem.WeightedTemp = item.WeightedTemp;
+    newItem.TargetTemp = item.TargetTemp;
+    newItem.PresetTemp = item.PresetTemp;
+    newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
@@ -420,6 +453,51 @@ export default function App() {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };  
 
+  // ControlStageに応じたプロットの色を設定
+  const getDotColor = (controlStage: string | null) => {
+    switch (controlStage) {
+      case '1a':
+        return 'lightsteelblue';
+      case '1b':
+        return 'royalblue';
+      case '1c':
+        return 'darkblue';
+      case '1cD':
+        return 'aqua';
+      case '2a':
+        return 'darkgreen';
+      case '2b':
+        return 'green';
+      case '2c1':
+        return 'yellow';
+      case '2c2':
+        return 'orangered';
+      case '2c3':
+        return 'red';
+      case '2d':
+        return 'lightgreen';
+      default:
+        return '#000000'; // その他
+    }
+  };
+
+  // カスタムツールチップコンポーネント
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="label">{`Time: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
@@ -471,16 +549,61 @@ export default function App() {
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                //dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
                 dot={false}
                 connectNulls
               />
             ))}
-
             <Line
               type="monotone"
               dataKey="CumulativeEnergy"
               name="CumulativeEnergy"
               stroke="#ff0000" // 赤色
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="WeightedTemp"
+              name="WeightedTemp"
+              stroke="#ff0000" // 赤色
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="TargetTemp"
+              name="TargetTemp"
+              stroke="#00ff00"
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="PresetTemp"
+              name="PresetTemp"
+              stroke="#0000ff"
+              strokeWidth={3} // 太線にする
+              //dot={false}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                const color = getDotColor(payload.ControlStage);
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
+              }}
+              connectNulls
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="ReferenceTemp"
+              name="ReferenceTemp"
+              stroke="#800080"
               strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
