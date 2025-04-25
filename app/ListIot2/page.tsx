@@ -257,13 +257,19 @@ import { format, parseISO } from "date-fns";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-interface IotData {
+Amplify.configure(outputs);
+
+const client = generateClient<Schema>();
+
+interface ChartData {
   DeviceDatetime: string;
   CumulativeEnergy: string;
 }
 
-const IotDataChart: React.FC<{ data: IotData[] }> = ({ data }) => {
-  const [chartData, setChartData] = useState<IotData[]>([]);
+const [chartData, setChartData] = useState<ChartData[]>([]);
+
+const IotDataChart: React.FC<{ data: ChartData[] }> = ({ data }) => {
+  const [chartData, setChartData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     // データを整形してchartDataにセット
