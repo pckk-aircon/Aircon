@@ -464,6 +464,17 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+            {Object.keys(groupedData).map((device, index) => (
+              <Line
+                key={device}
+                type="monotone"
+                dataKey={device}
+                name={device}
+                stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                dot={false}
+                connectNulls
+              />
+            ))}
 
             <Line
               type="monotone"
