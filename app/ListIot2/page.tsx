@@ -1,3 +1,5 @@
+/*
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -237,3 +239,54 @@ export default function App() {
     </main>
   );
 }
+
+*/
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
+import { Amplify } from "aws-amplify";
+import outputs from "@/amplify_outputs.json";
+import "@aws-amplify/ui-react/styles.css";
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, parseISO } from "date-fns";
+
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+interface IotData {
+  DeviceDatetime: string;
+  CumulativeEnergy: string;
+}
+
+const IotDataChart: React.FC<{ data: IotData[] }> = ({ data }) => {
+  const [chartData, setChartData] = useState<IotData[]>([]);
+
+  useEffect(() => {
+    // データを整形してchartDataにセット
+    const formattedData = data.map(item => ({
+      DeviceDatetime: item.DeviceDatetime,
+      CumulativeEnergy: item.CumulativeEnergy // ここでstringとして扱う
+    }));
+    setChartData(formattedData);
+  }, [data]);
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <LineChart data={chartData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="DeviceDatetime" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Line type="monotone" dataKey="CumulativeEnergy" stroke="#8884d8" />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+};
+
+export default IotDataChart;
+
