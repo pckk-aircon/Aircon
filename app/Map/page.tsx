@@ -60,8 +60,6 @@ export default function App() {
 
   async function renderMap() {
 
-    //const buildingData = Geojsons[0] ;
-
     const map = new maplibregl.Map({
       container: 'map',
       style: {
@@ -100,7 +98,6 @@ export default function App() {
     map.dragRotate.enable();
     map.touchZoomRotate.enableRotation();
       
-
     // カスタムハンドラーを作成して回転の感度を調整
     map.on('mousemove', (e) => {
       if (e.originalEvent.buttons === 2) { // 右クリック
@@ -121,28 +118,29 @@ export default function App() {
       divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
         const geojsonData = JSON.parse(division.Geojson);
-        //const geojsonData = JSON.parse(divisionLists[0].Geojson);
+        const sourceId = `floorplan-${index}`; // ユニークなIDを生成
+        const layerId = `room-extrusion-${index}`; // ユニークなIDを生成
+
+        console.log("index=", index);
+        console.log("sourceId=", sourceId);
         console.log('geojsonData（renderMap内）=', geojsonData);
-        map.addSource('floorplan', {
+
+        map.addSource(sourceId, {
           type: 'geojson',
           data: geojsonData,
         });
-      
-        map.addLayer({
-          id: 'room-extrusion',
-          type: 'fill-extrusion',
-          source: 'floorplan',
-          paint: {
-            //'fill-extrusion-color': ['get', 'color'],
 
+        map.addLayer({
+          id: layerId,
+          type: 'fill-extrusion',
+          source: sourceId,
+          paint: {
 
             'fill-extrusion-color': [
               'case',
               ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
               '#00008b' // 側面をDeepBlueに設定
             ],
-
-
 
             //'fill-extrusion-color': [
               //'case',
@@ -154,8 +152,6 @@ export default function App() {
                 //0.3 // 透過率30%
               //] // 側面の色を底面の色の透過率30%で設定
             //],
-
-            
 
             'fill-extrusion-height': ['get', 'height'],
             'fill-extrusion-base': ['get', 'base_height'],
@@ -233,8 +229,6 @@ export default function App() {
   let map; // map変数をスコープ外で定義
 
   async function renderMap() {
-
-    //const buildingData = Geojsons[0] ;
 
     const map = new maplibregl.Map({
       container: 'map',

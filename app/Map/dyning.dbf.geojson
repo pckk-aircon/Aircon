@@ -1,0 +1,37 @@
+{
+  "type": "FeatureCollection",
+  "name": "dyning",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1234,
+        "level": 1,
+        "name": "inner-wall",
+        "height": 7,
+        "base_heigh": 0,
+        "color": "bulue"
+       },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [ 140.302939855337058, 35.353427751632957 ],
+              [ 140.303071439506766, 35.353526937142441 ],
+              [ 140.303128647471993, 35.353476461799758 ],
+              [ 140.302996800075562, 35.353377419353308 ],
+              [ 140.302939855337058, 35.353427751632957 ]
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
