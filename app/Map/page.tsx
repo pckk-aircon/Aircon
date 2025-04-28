@@ -300,7 +300,7 @@ export default function App() {
         const layerId = `room-extrusion-${index}`; // ユニークなIDを生成
 
         console.log('geojsonData（renderMap内）=', geojsonData);
-        map.addSource('floorplan', {
+        map.addSource(sourceId, {
           type: 'geojson',
           data: geojsonData,
         });
