@@ -118,10 +118,10 @@ export default function App() {
 
     map.on('load', () => {
 
-      //divisionLists.forEach((division, index) => {
+      divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
-        //const geojsonData = JSON.parse(division.Geojson);
-        const geojsonData = JSON.parse(divisionLists[0].Geojson);
+        const geojsonData = JSON.parse(division.Geojson);
+        //const geojsonData = JSON.parse(divisionLists[0].Geojson);
         console.log('geojsonData（renderMap内）=', geojsonData);
         map.addSource('floorplan', {
           type: 'geojson',
@@ -163,7 +163,7 @@ export default function App() {
           },
         });
       
-      //})//endEach
+      })//endEach
 
     });
   
@@ -295,7 +295,9 @@ export default function App() {
       divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
         const geojsonData = JSON.parse(division.Geojson);
-        //const geojsonData = JSON.parse(divisionLists[0].Geojson);
+        const sourceId = `floorplan-${index}`; // ユニークなIDを生成
+        const layerId = `room-extrusion-${index}`; // ユニークなIDを生成
+
         console.log('geojsonData（renderMap内）=', geojsonData);
         map.addSource('floorplan', {
           type: 'geojson',
@@ -303,9 +305,9 @@ export default function App() {
         });
       
         map.addLayer({
-          id: 'room-extrusion',
+          id: layerId,
           type: 'fill-extrusion',
-          source: 'floorplan',
+          source: sourceId,
           paint: {
             //'fill-extrusion-color': ['get', 'color'],
 
