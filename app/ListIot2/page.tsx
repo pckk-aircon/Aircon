@@ -253,6 +253,7 @@ export default function App() {
 
 */
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -272,18 +273,35 @@ Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
+type IotData = {
+  Device: string;
+  DeviceDatetime?: string;
+  Controller?: string;
+  ControlStage?: string;
+  CumulativeEnergy?: number;
+  Division?: string;
+};
+
 const MyLineChart = () => {
-  const [data, setData] = useState([]);
-  const [errors, setErrors] = useState(null);
+  const [data, setData] = useState<IotData[]>([]);
+  const [errors, setErrors] = useState<Error | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-
+      try {
         const response = await client.queries.listIot({
           Controller: "Mutsu01",
         });
+        if (response.data) {
+          setData(response.data as IotData[]); // データを状態に設定
+        } else {
+          setData([]); // データがundefinedの場合、空の配列を設定
+        }
+      } catch (error) {
+        setErrors(error instanceof Error ? error : new Error("Unknown error occurred"));
       }
-
+    };
+    fetchData();
   }, []);
 
   return (
@@ -301,4 +319,6 @@ const MyLineChart = () => {
 };
 
 export default MyLineChart;
+
+
 
