@@ -292,21 +292,22 @@ const MyLineChart = () => {
         const response = await client.queries.listIot({
           Controller: "Mutsu01",
         });
+        console.log('response.data=', response.data);
         if (response.data) {
-          setData(response.data as IotData[]); // データを状態に設定
-          console.log('ok_data=', data)
+          setData(response.data as IotData[]);
         } else {
-          setData([]); // データがundefinedの場合、空の配列を設定
-          console.log('空_data=', data)
+          setData([]);
         }
       } catch (error) {
         setErrors(error instanceof Error ? error : new Error("Unknown error occurred"));
-        console.log('error_data=', data)
       }
     };
     fetchData();
   }, []);
 
+  useEffect(() => {
+    console.log('data=', data);
+  }, [data]);
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -323,6 +324,5 @@ const MyLineChart = () => {
 };
 
 export default MyLineChart;
-
 
 
