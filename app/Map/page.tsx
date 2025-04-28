@@ -274,7 +274,6 @@ export default function App() {
     map.dragRotate.enable();
     map.touchZoomRotate.enableRotation();
       
-
     // カスタムハンドラーを作成して回転の感度を調整
     map.on('mousemove', (e) => {
       if (e.originalEvent.buttons === 2) { // 右クリック
@@ -295,30 +294,17 @@ export default function App() {
       divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
         const geojsonData = JSON.parse(division.Geojson);
-        //const sourceId = `floorplan-${index}`; // ユニークなIDを生成
         const sourceId = `floorplan-${index}`; // ユニークなIDを生成
         const layerId = `room-extrusion-${index}`; // ユニークなIDを生成
 
+        console.log("index=", index);
+        console.log("sourceId=", sourceId);
         console.log('geojsonData（renderMap内）=', geojsonData);
+
         map.addSource(sourceId, {
           type: 'geojson',
           data: geojsonData,
         });
-      
-        console.log("index=", index);
-        console.log("sourceId=", sourceId);
-
-        // ソースが既に存在するかどうかを確認
-        if (!map.getSource(sourceId)) {
-          map.addSource(sourceId, {
-            type: 'geojson',
-            data: geojsonData,
-          });
-        }
-        
-        
-        
-        
 
         map.addLayer({
           id: layerId,
@@ -326,14 +312,11 @@ export default function App() {
           source: sourceId,
           paint: {
 
-
             'fill-extrusion-color': [
               'case',
               ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
               '#00008b' // 側面をDeepBlueに設定
             ],
-
-
 
             //'fill-extrusion-color': [
               //'case',
@@ -345,8 +328,6 @@ export default function App() {
                 //0.3 // 透過率30%
               //] // 側面の色を底面の色の透過率30%で設定
             //],
-
-            
 
             'fill-extrusion-height': ['get', 'height'],
             'fill-extrusion-base': ['get', 'base_height'],
