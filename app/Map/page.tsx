@@ -304,12 +304,24 @@ export default function App() {
           data: geojsonData,
         });
       
+
+
+
+        // ソースが既に存在するかどうかを確認
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: geojsonData,
+          });
+        }
+        
+        
+
         map.addLayer({
           id: layerId,
           type: 'fill-extrusion',
           source: sourceId,
           paint: {
-            //'fill-extrusion-color': ['get', 'color'],
 
 
             'fill-extrusion-color': [
