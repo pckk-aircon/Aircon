@@ -276,10 +276,6 @@ interface ChartData {
   DeviceDatetime: string;
   CumulativeEnergy: number | null;
   ActualTemp: number | null;
-  //WeightedTemp: number | null;
-  //TargetTemp: number | null;
-  //PresetTemp: number | null;
-  //ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
   Division: string;
@@ -300,8 +296,6 @@ export default function App() {
 
   const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
  
-  //console.log("divisionLists（State直後）=", divisionLists);
-  //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
 
@@ -327,9 +321,6 @@ export default function App() {
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
-
-    //console.log("StartDatetime=", startDate);
-    //console.log("EndDatetime=", endDate);
 
     // 追記部分: divisionListsのデータ取得と状態更新
 
@@ -379,10 +370,6 @@ export default function App() {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-            //WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
-            //TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
-            //PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
-            //ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
@@ -400,11 +387,6 @@ export default function App() {
     console.log("return");
     return <div>Loading...</div>;
   }
-
-  //console.log("selectedDivision（handle直前1）=", selectedDivision); 
-  //console.log("divisionLists（handle直前1）=", divisionLists);
-  //console.log("deviceLists（handle直前1）=", deviceLists);
-  //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
  
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
@@ -425,16 +407,11 @@ export default function App() {
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
     newItem.CumulativeEnergy = item.CumulativeEnergy;
-    //newItem.WeightedTemp = item.WeightedTemp;
-    //newItem.TargetTemp = item.TargetTemp;
-    //newItem.PresetTemp = item.PresetTemp;
-    //newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
 
-  //console.log("divisionLists（handle直前）=", divisionLists);
-  //console.log("deviceLists（handle直前）=", deviceLists);
+  console.log("mergedData:", mergedData);
 
   const handleNext = () => {
     setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisionLists.length);
@@ -525,36 +502,6 @@ export default function App() {
               dataKey="WeightedTemp"
               name="WeightedTemp"
               stroke="#ff0000" // 赤色
-              strokeWidth={3} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="TargetTemp"
-              name="TargetTemp"
-              stroke="#00ff00"
-              strokeWidth={3} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="PresetTemp"
-              name="PresetTemp"
-              stroke="#0000ff"
-              strokeWidth={3} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="ReferenceTemp"
-              name="ReferenceTemp"
-              stroke="#800080"
               strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
