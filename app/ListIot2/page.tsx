@@ -368,8 +368,10 @@ export default function App() {
         (
           item?.DeviceType === 'Temp' || 
           //item?.DeviceType === 'Aircon' ||
-          (item?.DeviceType === 'Power' && 
-          FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device)
+          item?.DeviceType === 'Power'
+          //(item?.DeviceType === 'Power' && 
+          //FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
+          //)
         )
 
       )
