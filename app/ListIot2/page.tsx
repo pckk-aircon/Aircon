@@ -385,6 +385,8 @@ export default function App() {
           };
         });
 
+      console.log('★★formattedData=', formattedData) 
+
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
     }
