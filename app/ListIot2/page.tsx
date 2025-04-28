@@ -294,15 +294,20 @@ const MyLineChart = () => {
         });
         if (response.data) {
           setData(response.data as IotData[]); // データを状態に設定
+          console.log('ok_data=', data)
         } else {
           setData([]); // データがundefinedの場合、空の配列を設定
+          console.log('空_data=', data)
         }
       } catch (error) {
         setErrors(error instanceof Error ? error : new Error("Unknown error occurred"));
+        console.log('error_data=', data)
       }
     };
     fetchData();
   }, []);
+
+
 
   return (
     <ResponsiveContainer width="100%" height={300}>
