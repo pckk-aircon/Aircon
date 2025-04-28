@@ -379,8 +379,15 @@ export default function App() {
 
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
       setChartData(formattedData);
+
+      console.log("★★formattedData:", formattedData);
+
     }
   }
+
+  
+
+
 
   // データが存在しない場合はローディング表示やスキップ
   if (divisionLists.length === 0 || deviceLists.length === 0)  {
