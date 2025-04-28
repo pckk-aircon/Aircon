@@ -308,7 +308,6 @@ const MyLineChart = () => {
   }, []);
 
 
-
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data}>
