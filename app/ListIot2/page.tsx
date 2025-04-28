@@ -276,10 +276,10 @@ interface ChartData {
   DeviceDatetime: string;
   CumulativeEnergy: number | null;
   ActualTemp: number | null;
-  WeightedTemp: number | null;
-  TargetTemp: number | null;
-  PresetTemp: number | null;
-  ReferenceTemp: number | null;
+  //WeightedTemp: number | null;
+  //TargetTemp: number | null;
+  //PresetTemp: number | null;
+  //ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
   Division: string;
@@ -308,7 +308,8 @@ export default function App() {
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
-      const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+      //const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
+      const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Power');
       setFiltereddevice(filtered);
       console.log('☆currentDivisionIndex（useEffect）=', currentDivisionIndex)
       console.log('☆selectedDivision（useEffect）=', selectedDivision)
@@ -378,10 +379,10 @@ export default function App() {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-            WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
-            TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
-            PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
-            ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+            //WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
+            //TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
+            //PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+            //ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
@@ -424,10 +425,10 @@ export default function App() {
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
     newItem.CumulativeEnergy = item.CumulativeEnergy;
-    newItem.WeightedTemp = item.WeightedTemp;
-    newItem.TargetTemp = item.TargetTemp;
-    newItem.PresetTemp = item.PresetTemp;
-    newItem.ReferenceTemp = item.ReferenceTemp;
+    //newItem.WeightedTemp = item.WeightedTemp;
+    //newItem.TargetTemp = item.TargetTemp;
+    //newItem.PresetTemp = item.PresetTemp;
+    //newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
@@ -453,51 +454,6 @@ export default function App() {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };  
 
-  // ControlStageに応じたプロットの色を設定
-  const getDotColor = (controlStage: string | null) => {
-    switch (controlStage) {
-      case '1a':
-        return 'lightsteelblue';
-      case '1b':
-        return 'royalblue';
-      case '1c':
-        return 'darkblue';
-      case '1cD':
-        return 'aqua';
-      case '2a':
-        return 'darkgreen';
-      case '2b':
-        return 'green';
-      case '2c1':
-        return 'yellow';
-      case '2c2':
-        return 'orangered';
-      case '2c3':
-        return 'red';
-      case '2d':
-        return 'lightgreen';
-      default:
-        return '#000000'; // その他
-    }
-  };
-
-  // カスタムツールチップコンポーネント
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="custom-tooltip">
-          <p className="label">{`Time: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={`item-${index}`} style={{ color: entry.color }}>
-              {`${entry.name}: ${entry.value}`}
-            </p>
-          ))}
-          <p>{`ControlStage: ${payload[0].payload.ControlStage}`}</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
@@ -590,12 +546,7 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              //dot={false}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={4} fill={color} />;
-              }}
+              dot={false}
               connectNulls
               isAnimationActive={false}
             />
