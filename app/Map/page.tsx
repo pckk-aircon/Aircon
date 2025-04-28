@@ -249,10 +249,10 @@ export default function App() {
 
     map.on('load', () => {
 
-      divisionLists.forEach((division, index) => {
+      //divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
-        const geojsonData = JSON.parse(division.Geojson);
-        //const geojsonData = JSON.parse(divisionLists[0].Geojson);
+        //const geojsonData = JSON.parse(division.Geojson);
+        const geojsonData = JSON.parse(divisionLists[0].Geojson);
         console.log('geojsonData（renderMap内）=', geojsonData);
         map.addSource('floorplan', {
           type: 'geojson',
@@ -274,18 +274,18 @@ export default function App() {
             ],
 
 
-            /*
-            'fill-extrusion-color': [
-              'case',
-              ['==', ['geometry-type'], 'Polygon'],['get', 'color'], // 底面の色をGeoJSONのcolorプロパティから取得
-              ['rgba', 
-                ['get', 'color_r'], // 赤成分
-                ['get', 'color_g'], // 緑成分
-                ['get', 'color_b'], // 青成分
-                0.3 // 透過率30%
-              ] // 側面の色を底面の色の透過率30%で設定
-            ],
-            */
+
+            //'fill-extrusion-color': [
+              //'case',
+              //['==', ['geometry-type'], 'Polygon'],['get', 'color'], // 底面の色をGeoJSONのcolorプロパティから取得
+              //['rgba', 
+                //['get', 'color_r'], // 赤成分
+                //['get', 'color_g'], // 緑成分
+                //['get', 'color_b'], // 青成分
+                //0.3 // 透過率30%
+              //] // 側面の色を底面の色の透過率30%で設定
+            //],
+
             
 
             'fill-extrusion-height': ['get', 'height'],
@@ -294,7 +294,7 @@ export default function App() {
           },
         });
       
-      })//endEach
+      //})//endEach
 
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();

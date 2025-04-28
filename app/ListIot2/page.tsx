@@ -267,62 +267,51 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
-type IotData = {
-  Device: string;
-  DeviceDatetime?: string;
-  Controller?: string;
-  ControlStage?: string;
-  CumulativeEnergy?: number;
-  Division?: string;
-};
+export default function App() {
 
-const MyLineChart = () => {
-  const [data, setData] = useState<IotData[]>([]);
-  const [errors, setErrors] = useState<Error | null>(null);
+  const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await client.queries.listIot({
-          Controller: "Mutsu01",
+    listPost();
+  
+    const sub = client.subscriptions.receiveDivision().subscribe({
+      next: (event) => {
+        console.log("event=", event);
+        setPosts((prevPosts) => {
+          if (!prevPosts.some((post) => post.Division === event.Division)) {
+            return [...prevPosts, event as { Division: string; DivisionName: string; Geojson: string; Controller?: string | null }];
+          }
+          return prevPosts;
         });
-        console.log('response.data=', response.data);
-        if (response.data) {
-          setData(response.data as IotData[]);
-        } else {
-          setData([]);
-        }
-      } catch (error) {
-        setErrors(error instanceof Error ? error : new Error("Unknown error occurred"));
-      }
-    };
-    fetchData();
+      },
+    });
+    return () => sub.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    console.log('data=', data);
-  }, [data]);
+  async function listPost() {
+    const { data, errors } = await client.queries.listDivision({
+      Controller: "Mutsu01",
+    });
+    console.log('listDivision=', data);
+    if (data) {
+      setPosts(data as Array<{ Division: string; DivisionName: string; Geojson: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+  }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="DeviceDatetime" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="CumulativeEnergy" stroke="#8884d8" />
-      </LineChart>
-    </ResponsiveContainer>
+    <main>
+      <h1>Device</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.Controller}>
+            {post.Division}{post.DivisionName}{post.Geojson}{post.Controller}
+          </li>
+        ))}
+      </ul>
+    </main>
   );
-};
-
-export default MyLineChart;
-
-
+}
