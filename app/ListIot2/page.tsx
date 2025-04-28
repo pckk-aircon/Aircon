@@ -276,7 +276,7 @@ const client = generateClient<Schema>();
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number | null;
-  WeightedTemp: number | null;
+  CumulativeEnergy: number | null;
   ControlStage: string | null;
   Device: string;
   Division: string;
@@ -376,7 +376,8 @@ export default function App() {
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-            WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
+            //WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,            
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
@@ -418,7 +419,7 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
-    newItem.WeightedTemp = item.WeightedTemp;
+    newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
@@ -503,8 +504,8 @@ export default function App() {
             ))}
             <Line
               type="monotone"
-              dataKey="WeightedTemp"
-              name="WeightedTemp"
+              dataKey="CumulativeEnergy"
+              name="CumulativeEnergy"
               stroke="#ff0000" // 赤色
               strokeWidth={3} // 太線にする
               dot={false}
