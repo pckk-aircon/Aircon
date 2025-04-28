@@ -305,7 +305,7 @@ export default function App() {
         });
       
 
-
+        console.log("sourceId=", sourceId);
 
         // ソースが既に存在するかどうかを確認
         if (!map.getSource(sourceId)) {
@@ -314,6 +314,7 @@ export default function App() {
             data: geojsonData,
           });
         }
+        
         
         
 
