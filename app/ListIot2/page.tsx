@@ -364,26 +364,28 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
+
         (
           item?.DeviceType === 'Temp' || 
-          //item?.DeviceType === 'Aircon' &&
-          item?.DeviceType === 'Power' &&
-          FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
+          //item?.DeviceType === 'Aircon' ||
+          (item?.DeviceType === 'Power' && 
+          FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device)
         )
+
       )
 
-        .map(item => {
-          return {
-            DeviceDatetime: item?.DeviceDatetime ?? '',
-            ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-            //WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
-            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,            
-            ControlStage: item?.ControlStage ?? null,
-            Device: item?.Device ?? '',
-            Division: item?.Division ?? '',
-            DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
-          };
-        });
+      .map(item => {
+        return {
+          DeviceDatetime: item?.DeviceDatetime ?? '',
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+          //WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
+          CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,            
+          ControlStage: item?.ControlStage ?? null,
+          Device: item?.Device ?? '',
+          Division: item?.Division ?? '',
+          DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
+        };
+      });
 
       console.log('★★formattedData=', formattedData) 
 
