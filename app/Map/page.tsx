@@ -96,52 +96,75 @@ export default function App() {
       bearing: 30,
     });
 
-    map.on('load', () => {
-      //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
-      //const geojsonData = JSON.parse(buildingData);
-      const geojsonData = JSON.parse(divisionLists[0].Geojson);
-      console.log('geojsonData（renderMap内）=', geojsonData);
-      map.addSource('floorplan', {
-        type: 'geojson',
-        data: geojsonData,
-      });
-      
-      map.addLayer({
-        id: 'room-extrusion',
-        type: 'fill-extrusion',
-        source: 'floorplan',
-        paint: {
-          //'fill-extrusion-color': ['get', 'color'],
-          'fill-extrusion-color': [
-            'case',
-            ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
-            '#00008b' // 側面をDeepBlueに設定
-          ],
-          'fill-extrusion-height': ['get', 'height'],
-          'fill-extrusion-base': ['get', 'base_height'],
-          'fill-extrusion-opacity': 0.6,
-        },
-      });
-      
-      // マウス操作で回転と角度変更を有効にする
-      map.dragRotate.enable();
-      map.touchZoomRotate.enableRotation();
+    // マウス操作で回転と角度変更を有効にする
+    map.dragRotate.enable();
+    map.touchZoomRotate.enableRotation();
       
 
-      // カスタムハンドラーを作成して回転の感度を調整
-      map.on('mousemove', (e) => {
-        if (e.originalEvent.buttons === 2) { // 右クリック
-          const rotationSpeed = 0.5; // 回転速度を調整
-          map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
-        }
-      });
+    // カスタムハンドラーを作成して回転の感度を調整
+    map.on('mousemove', (e) => {
+      if (e.originalEvent.buttons === 2) { // 右クリック
+        const rotationSpeed = 0.5; // 回転速度を調整
+        map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
+      }
+    });
       
-      // NavigationControlの追加
-      const nav = new maplibregl.NavigationControl({
-        showCompass: true, // コンパスを表示
-        visualizePitch: true, // ピッチ（角度）を表示
-      });
-      map.addControl(nav, 'top-left');
+    // NavigationControlの追加
+    const nav = new maplibregl.NavigationControl({
+      showCompass: true, // コンパスを表示
+      visualizePitch: true, // ピッチ（角度）を表示
+    });
+    map.addControl(nav, 'top-left');
+
+    map.on('load', () => {
+
+      //divisionLists.forEach((division, index) => {
+        //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
+        //const geojsonData = JSON.parse(division.Geojson);
+        const geojsonData = JSON.parse(divisionLists[0].Geojson);
+        console.log('geojsonData（renderMap内）=', geojsonData);
+        map.addSource('floorplan', {
+          type: 'geojson',
+          data: geojsonData,
+        });
+      
+        map.addLayer({
+          id: 'room-extrusion',
+          type: 'fill-extrusion',
+          source: 'floorplan',
+          paint: {
+            //'fill-extrusion-color': ['get', 'color'],
+
+
+            'fill-extrusion-color': [
+              'case',
+              ['==', ['geometry-type'], 'Polygon'], '#add8e6', // 底面をLightBlueに設定
+              '#00008b' // 側面をDeepBlueに設定
+            ],
+
+
+
+            //'fill-extrusion-color': [
+              //'case',
+              //['==', ['geometry-type'], 'Polygon'],['get', 'color'], // 底面の色をGeoJSONのcolorプロパティから取得
+              //['rgba', 
+                //['get', 'color_r'], // 赤成分
+                //['get', 'color_g'], // 緑成分
+                //['get', 'color_b'], // 青成分
+                //0.3 // 透過率30%
+              //] // 側面の色を底面の色の透過率30%で設定
+            //],
+
+            
+
+            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-base': ['get', 'base_height'],
+            'fill-extrusion-opacity': 0.6,
+          },
+        });
+      
+      //})//endEach
+
     });
   
   }
@@ -269,10 +292,10 @@ export default function App() {
 
     map.on('load', () => {
 
-      //divisionLists.forEach((division, index) => {
+      divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
-        //const geojsonData = JSON.parse(division.Geojson);
-        const geojsonData = JSON.parse(divisionLists[0].Geojson);
+        const geojsonData = JSON.parse(division.Geojson);
+        //const geojsonData = JSON.parse(divisionLists[0].Geojson);
         console.log('geojsonData（renderMap内）=', geojsonData);
         map.addSource('floorplan', {
           type: 'geojson',
@@ -314,29 +337,7 @@ export default function App() {
           },
         });
       
-      //})//endEach
-
-      /*
-      // マウス操作で回転と角度変更を有効にする
-      map.dragRotate.enable();
-      map.touchZoomRotate.enableRotation();
-      
-
-      // カスタムハンドラーを作成して回転の感度を調整
-      map.on('mousemove', (e) => {
-        if (e.originalEvent.buttons === 2) { // 右クリック
-          const rotationSpeed = 0.5; // 回転速度を調整
-          map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
-        }
-      });
-      
-      // NavigationControlの追加
-      const nav = new maplibregl.NavigationControl({
-        showCompass: true, // コンパスを表示
-        visualizePitch: true, // ピッチ（角度）を表示
-      });
-      map.addControl(nav, 'top-left');
-      */
+      })//endEach
 
     });
   

@@ -366,7 +366,8 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          item?.DeviceType === 'Aircon' && 
+          //item?.DeviceType === 'Aircon' &&
+          item?.DeviceType === 'Power' &&
           FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
         )
       )
