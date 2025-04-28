@@ -247,6 +247,26 @@ export default function App() {
       bearing: 30,
     });
 
+    // マウス操作で回転と角度変更を有効にする
+    map.dragRotate.enable();
+    map.touchZoomRotate.enableRotation();
+      
+
+    // カスタムハンドラーを作成して回転の感度を調整
+    map.on('mousemove', (e) => {
+      if (e.originalEvent.buttons === 2) { // 右クリック
+        const rotationSpeed = 0.5; // 回転速度を調整
+        map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
+      }
+    });
+      
+    // NavigationControlの追加
+    const nav = new maplibregl.NavigationControl({
+      showCompass: true, // コンパスを表示
+      visualizePitch: true, // ピッチ（角度）を表示
+    });
+    map.addControl(nav, 'top-left');
+
     map.on('load', () => {
 
       //divisionLists.forEach((division, index) => {
@@ -296,6 +316,7 @@ export default function App() {
       
       //})//endEach
 
+      /*
       // マウス操作で回転と角度変更を有効にする
       map.dragRotate.enable();
       map.touchZoomRotate.enableRotation();
@@ -315,6 +336,8 @@ export default function App() {
         visualizePitch: true, // ピッチ（角度）を表示
       });
       map.addControl(nav, 'top-left');
+      */
+
     });
   
   }
