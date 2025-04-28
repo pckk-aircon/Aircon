@@ -295,6 +295,7 @@ export default function App() {
       divisionLists.forEach((division, index) => {
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
         const geojsonData = JSON.parse(division.Geojson);
+        //const sourceId = `floorplan-${index}`; // ユニークなIDを生成
         const sourceId = `floorplan-${index}`; // ユニークなIDを生成
         const layerId = `room-extrusion-${index}`; // ユニークなIDを生成
 
@@ -304,7 +305,7 @@ export default function App() {
           data: geojsonData,
         });
       
-
+        console.log("index=", index);
         console.log("sourceId=", sourceId);
 
         // ソースが既に存在するかどうかを確認
@@ -314,6 +315,7 @@ export default function App() {
             data: geojsonData,
           });
         }
+        
         
         
         
