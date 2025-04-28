@@ -253,28 +253,52 @@ export default function App() {
 
 */
 
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+"use client";
 
-const data = [
-  { DeviceDatetime: '2025-04-01', CumulativeEnergy: 400 },
-  { DeviceDatetime: '2025-04-02', CumulativeEnergy: 300 },
-  { DeviceDatetime: '2025-04-03', CumulativeEnergy: 200 },
-  { DeviceDatetime: '2025-04-04', CumulativeEnergy: 278 },
-  { DeviceDatetime: '2025-04-05', CumulativeEnergy: 189 },
-  { DeviceDatetime: '2025-04-06', CumulativeEnergy: 239 },
-  { DeviceDatetime: '2025-04-07', CumulativeEnergy: 349 },
-];
+import { useState, useEffect } from "react";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
+import { Amplify } from "aws-amplify";
+import outputs from "@/amplify_outputs.json";
+import "@aws-amplify/ui-react/styles.css";
 
-const MyLineChart = () => (
-  <LineChart width={600} height={300} data={data}>
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis dataKey="DeviceDatetime" />
-    <YAxis />
-    <Tooltip />
-    <Legend />
-    <Line type="monotone" dataKey="CumulativeEnergy" stroke="#8884d8" />
-  </LineChart>
-);
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, parseISO } from "date-fns";
+
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+Amplify.configure(outputs);
+
+const client = generateClient<Schema>();
+
+const MyLineChart = () => {
+  const [data, setData] = useState([]);
+  const [errors, setErrors] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+
+        const response = await client.queries.listIot({
+          Controller: "Mutsu01",
+        });
+      }
+
+  }, []);
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="DeviceDatetime" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Line type="monotone" dataKey="CumulativeEnergy" stroke="#8884d8" />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+};
 
 export default MyLineChart;
+
