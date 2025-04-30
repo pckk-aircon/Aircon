@@ -700,7 +700,7 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              //dot={false}
+              dot={false}
               //dot={(props) => {
                 //const { cx, cy, payload } = props;
                 //const color = getDotColor(payload.ControlStage);
