@@ -376,6 +376,7 @@ const client = generateClient<Schema>();
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number | null;
+  CumulativeEnergy: number | null;
   WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
@@ -477,6 +478,7 @@ export default function App() {
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
@@ -522,6 +524,7 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+    newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
@@ -680,12 +683,12 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              dot={false}
-              //dot={(props) => {
-                //const { cx, cy, payload } = props;
-                //const color = getDotColor(payload.ControlStage);
-                //return <circle cx={cx} cy={cy} r={4} fill={color} />;
-              //}}
+              //dot={false}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                const color = getDotColor(payload.ControlStage);
+                return <circle cx={cx} cy={cy} r={4} fill={color} />;
+              }}
               connectNulls
               isAnimationActive={false}
             />
