@@ -657,6 +657,19 @@ export default function App() {
                 connectNulls
               />
             ))}
+
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="CumulativeEnergy"
+              name="CumulativeEnergy"
+              stroke="orange" // オレンジ色
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+
             <Line
               type="monotone"
               dataKey="WeightedTemp"
@@ -687,7 +700,8 @@ export default function App() {
               dot={(props) => {
                 const { cx, cy, payload } = props;
                 const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={4} fill={color} />;
+                //return <circle cx={cx} cy={cy} r={4} fill={color} />;
+                return <circle cx={cx} cy={cy} r={4} />;
               }}
               connectNulls
               isAnimationActive={false}
