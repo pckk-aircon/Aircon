@@ -408,7 +408,7 @@ export default function App() {
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
-      const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon' || 'Power');
+      const filtered = deviceLists.filter(item => item.Division === selectedDivision && (item.DeviceType === 'Aircon' || item.DeviceType === 'Power'));
       setFiltereddevice(filtered);
       console.log('☆currentDivisionIndex（useEffect）=', currentDivisionIndex)
       console.log('☆selectedDivision（useEffect）=', selectedDivision)
