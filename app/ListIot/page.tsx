@@ -642,6 +642,9 @@ export default function App() {
               //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
             />
 
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
+
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
@@ -659,7 +662,7 @@ export default function App() {
             ))}
 
             <Line
-              //yAxisId="right"
+              yAxisId="right"
               type="monotone"
               dataKey="CumulativeEnergy"
               name="CumulativeEnergy"
