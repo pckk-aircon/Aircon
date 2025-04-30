@@ -235,13 +235,10 @@ export default function App() {
       style: {
         version: 8,
         sources: {
-          //'raster-tiles': {
-          'vector-tiles': {
-            //type: 'raster',
-            type: 'vector',
-            //tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            //tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.pbf'],
-            tiles: ['https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbf'],
+          'raster-tiles': {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
           },
@@ -255,16 +252,9 @@ export default function App() {
             },
           },
           {
-            //id: 'simple-tiles',
-            //type: 'raster',
-            //source: 'raster-tiles',
-
-            id: 'vector-tiles-layer',
-            type: 'fill',
-            source: 'vector-tiles',
-            'source-layer': 'pale', // ここで適切なレイヤー名を指定してください
-            
-
+            id: 'simple-tiles',
+            type: 'raster',
+            source: 'raster-tiles',
           },
         ],
       },
