@@ -659,7 +659,7 @@ export default function App() {
             ))}
 
             <Line
-              yAxisId="right"
+              //yAxisId="right"
               type="monotone"
               dataKey="CumulativeEnergy"
               name="CumulativeEnergy"
@@ -690,22 +690,23 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
             />
+
             <Line
               type="monotone"
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              //dot={false}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                const color = getDotColor(payload.ControlStage);
+              dot={false}
+              //dot={(props) => {
+                //const { cx, cy, payload } = props;
+                //const color = getDotColor(payload.ControlStage);
                 //return <circle cx={cx} cy={cy} r={4} fill={color} />;
-                return <circle cx={cx} cy={cy} r={4} />;
-              }}
+              //}}
               connectNulls
               isAnimationActive={false}
             />
+
             <Line
               type="monotone"
               dataKey="ReferenceTemp"
