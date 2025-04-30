@@ -57,6 +57,7 @@ export default function App() {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
       const filtered = deviceLists.filter(item => item.Division === selectedDivision && item.DeviceType === 'Aircon');
       setFiltereddevice(filtered);
+      console.log('☆currentDivisionIndex（useEffect）=', currentDivisionIndex)
       console.log('☆selectedDivision（useEffect）=', selectedDivision)
       console.log('☆filtered（useEffect）=', filtered)
     }
@@ -100,8 +101,9 @@ export default function App() {
 
     //console.log('Iotdata（listIot）=', data)
     //console.log('deviceLists（listIot）=', deviceLists)
+    console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
-    console.log('★★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
+    console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
     //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
 
     if (data) { 
@@ -466,7 +468,7 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          item?.DeviceType === 'Aircon' && 
+          (item?.DeviceType === 'Aircon' || 'Power') && 
           FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
         )
       )
@@ -577,6 +579,7 @@ export default function App() {
     }
   };
 
+  /*
   // カスタムツールチップコンポーネント
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -594,6 +597,7 @@ export default function App() {
     }
     return null;
   };
+  */
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM-dd HH:mm");
