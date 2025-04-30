@@ -468,7 +468,7 @@ export default function App() {
         item?.Division === divisionLists[currentDivisionIndex].Division && 
         (
           item?.DeviceType === 'Temp' || 
-          (item?.DeviceType === 'Aircon' || 'Power') && 
+          (item?.DeviceType === 'Aircon' || item?.DeviceType === 'Power') && 
           FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
         )
       )
@@ -680,12 +680,12 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
-              //dot={false}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={4} fill={color} />;
-              }}
+              dot={false}
+              //dot={(props) => {
+                //const { cx, cy, payload } = props;
+                //const color = getDotColor(payload.ControlStage);
+                //return <circle cx={cx} cy={cy} r={4} fill={color} />;
+              //}}
               connectNulls
               isAnimationActive={false}
             />
