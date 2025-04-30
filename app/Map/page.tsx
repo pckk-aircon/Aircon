@@ -235,12 +235,9 @@ export default function App() {
       style: {
         version: 8,
         sources: {
-          'raster-tiles': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            minzoom: 0,
-            maxzoom: 19,
+          'vector-tiles': {
+            type: 'vector',
+            url: 'mapbox://styles/mapbox/streets-v11', // ベクトルタイルのURLを指定
           },
         },
         layers: [
@@ -252,9 +249,10 @@ export default function App() {
             },
           },
           {
-            id: 'simple-tiles',
-            type: 'raster',
-            source: 'raster-tiles',
+            id: 'vector-tiles',
+            type: 'fill', // レイヤータイプを 'fill' に変更
+            source: 'vector-tiles',
+            'source-layer': 'streets', // ソースレイヤーを指定
           },
         ],
       },
@@ -338,3 +336,4 @@ export default function App() {
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 
 }
+
