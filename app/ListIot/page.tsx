@@ -367,7 +367,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
 Amplify.configure(outputs);
 
@@ -701,14 +701,16 @@ export default function App() {
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
               //dot={false}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                const color = getDotColor(payload.ControlStage);
-                return <circle cx={cx} cy={cy} r={4} fill={color} />;
-              }}
+              //dot={(props) => {
+                //const { cx, cy, payload } = props;
+                //const color = getDotColor(payload.ControlStage);
+                //return <circle cx={cx} cy={cy} r={4} fill={color} />;
+              //}}
               connectNulls
               isAnimationActive={false}
-            />
+              >
+              <LabelList dataKey="controlStage" position="top" />
+            </Line>
 
             <Line
               type="monotone"
