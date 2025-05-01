@@ -156,12 +156,13 @@ const MapWith3DModel: React.FC = () => {
       container: mapContainer.current!,
       style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',//APIキー
       zoom: 18,
-      center: [148.9819, -35.3981],
+      //center: [148.9819, -35.3981],
+      center: [140.302994, 35.353503],
       pitch: 60,
       canvasContextAttributes: { antialias: true }
     });
 
-    const worldOrigin: [number, number] = [148.9819, -35.39847];
+    const worldOrigin: [number, number] = [140.302994, 35.353503];
     const worldAltitude = 0;
     const worldRotate = [Math.PI / 2, 0, 0];
 
