@@ -526,10 +526,14 @@ export default function App() {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };  
 
+  // 時間をフォーマットする関数を定義
+  //const formatXAxis = (tickItem: string) => {
+    //return format(parseISO(tickItem), "MM-dd HH:mm");
+  //};
   const formatXAxis = (tickItem: string) => {
-    return format(parseISO(tickItem), "MM-dd HH:mm");
+    const date = new Date(tickItem);
+    return date.getHours().toString(); // 数値を文字列に変換
   };
-
 
   return (
     <main>
