@@ -202,12 +202,38 @@ export default function App() {
 
   // 時間をフォーマットする関数を定義
   //const formatXAxis = (tickItem: string) => {
+    //const date = new Date(tickItem);
     //return format(parseISO(tickItem), "MM-dd HH:mm");
+    //return date.getHours().toString(); // 数値を文字列に変換
   //};
-  const formatXAxis = (tickItem: string) => {
-    const date = new Date(tickItem);
-    return date.getHours().toString(); // 数値を文字列に変換
+
+  
+  interface CustomTickProps {
+    x: number;
+    y: number;
+    payload: {
+      value: string;
+    };
+  }
+
+  // カスタムのTickコンポーネント  
+  const CustomTick: React.FC<CustomTickProps> = ({ x, y, payload }) => {
+    const date = new Date(payload.value);
+    const monthDay = `${date.getMonth() + 1}-${date.getDate()}`;
+    const hour = date.getHours();
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={16} textAnchor="middle" fill="#666">
+          {monthDay}
+        </text>
+        <text x={0} y={20} dy={16} textAnchor="middle" fill="#666">
+          {hour}
+        </text>
+      </g>
+    );
   };
+  
+  
 
   return (
     <main>
@@ -236,12 +262,12 @@ export default function App() {
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
 
             <XAxis 
-              dataKey="DeviceDatetime" 
-              tickFormatter={formatXAxis} 
-              angle={45} 
-              textAnchor="end" 
-              height={20} 
-              //interval={1} // 1時間おきに目盛りを表示。
+              dataKey="DeviceDatetime"  
+              tick={props => <CustomTick {...props} />} 
+              angle={0} 
+              textAnchor="middle" 
+              height={40} 
+              interval={1} // 1時間おきに目盛りを表示。
             />
 
             <YAxis yAxisId="left" />
@@ -587,8 +613,7 @@ export default function App() {
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="1 1" vertical={false} />
-
+            <CartesianGrid strokeDasharray="3 3" /> {/* 縦のグリッドを追加 */}
             <XAxis 
               dataKey="DeviceDatetime"  
               tick={props => <CustomTick {...props} />} 
