@@ -595,7 +595,7 @@ export default function App() {
               angle={0} 
               textAnchor="middle" 
               height={40} 
-              //interval={1} // 1時間おきに目盛りを表示。
+              interval={1} // 1時間おきに目盛りを表示。
             />
 
             <YAxis yAxisId="left" />
