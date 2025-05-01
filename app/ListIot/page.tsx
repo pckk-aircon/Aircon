@@ -535,14 +535,32 @@ export default function App() {
     //return date.getHours().toString(); // 数値を文字列に変換
   //};
 
+  
+  interface CustomTickProps {
+    x: number;
+    y: number;
+    payload: {
+      value: string;
+    };
+  }
 
-  // 月日と時間をフォーマットする関数
-  const formatXAxis = (tickItem: string) => {
-    const date = new Date(tickItem);
+  // カスタムのTickコンポーネント  
+  const CustomTick: React.FC<CustomTickProps> = ({ x, y, payload }) => {
+    const date = new Date(payload.value);
     const monthDay = `${date.getMonth() + 1}-${date.getDate()}`;
     const hour = date.getHours();
-    return `${monthDay}\n${hour}`; // 2行に分けて表示
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={16} textAnchor="middle" fill="#666">
+          {monthDay}
+        </text>
+        <text x={0} y={20} dy={16} textAnchor="middle" fill="#666">
+          {hour}
+        </text>
+      </g>
+    );
   };
+  
   
 
   return (
@@ -572,8 +590,8 @@ export default function App() {
             <CartesianGrid strokeDasharray="1 1" vertical={false} />
 
             <XAxis 
-              dataKey="DeviceDatetime" 
-              tickFormatter={formatXAxis} 
+              dataKey="DeviceDatetime"  
+              tick={props => <CustomTick {...props} />} 
               angle={0} 
               textAnchor="middle" 
               height={40} 
