@@ -575,8 +575,8 @@ export default function App() {
               dataKey="DeviceDatetime" 
               tickFormatter={formatXAxis} 
               angle={0} 
-              textAnchor="end" 
-              height={20} 
+              textAnchor="middle" 
+              height={40} 
               //interval={1} // 1時間おきに目盛りを表示。
             />
 
