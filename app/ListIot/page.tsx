@@ -567,7 +567,7 @@ export default function App() {
               angle={45} 
               textAnchor="end" 
               height={20} 
-              //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
+              interval={1} // 1時間おきに目盛りを表示。
             />
 
             <YAxis yAxisId="left" />
