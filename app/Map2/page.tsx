@@ -203,7 +203,7 @@ const MapWith3DModel: React.FC = () => {
 
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/34M_17.gltf',
+          'file:///C:/Users/kiyoshi.tabuchi/Desktop/GIS/34M_17.gltf',
           '',
           scene
         ).then((modelContainer) => {
