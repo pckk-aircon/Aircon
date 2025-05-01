@@ -709,7 +709,8 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
               >
-              <LabelList dataKey="controlStage" position="top" />
+              <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '12px', fill: '#000' }} />
+
             </Line>
 
             <Line
