@@ -77,8 +77,7 @@ export default function App() {
 
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
-
-    // 追記部分: divisionListsのデータ取得と状態更新
+    //追記部分: divisionListsのデータ取得と状態更新
 
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
@@ -201,10 +200,14 @@ export default function App() {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
   };  
 
+  // 時間をフォーマットする関数を定義
+  //const formatXAxis = (tickItem: string) => {
+    //return format(parseISO(tickItem), "MM-dd HH:mm");
+  //};
   const formatXAxis = (tickItem: string) => {
-    return format(parseISO(tickItem), "MM-dd HH:mm");
+    const date = new Date(tickItem);
+    return date.getHours().toString(); // 数値を文字列に変換
   };
-
 
   return (
     <main>
@@ -238,7 +241,7 @@ export default function App() {
               angle={45} 
               textAnchor="end" 
               height={20} 
-              //interval={0} // すべてのラベルを表示。1にするとうまくいかない。
+              //interval={1} // 1時間おきに目盛りを表示。
             />
 
             <YAxis yAxisId="left" />
@@ -254,7 +257,6 @@ export default function App() {
                 dataKey={device}
                 name={device}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
-                //dot={{ r: 0.1, fill: colors[index % colors.length] }} //デフォルトで〇が表示されることを回避
                 dot={false}
                 connectNulls
               />
@@ -303,7 +305,7 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
               >
-              <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '12px', fill: '#000' }} />
+              <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '6px', fill: '#000' }} />
 
             </Line>
 
@@ -528,12 +530,20 @@ export default function App() {
 
   // 時間をフォーマットする関数を定義
   //const formatXAxis = (tickItem: string) => {
+    //const date = new Date(tickItem);
     //return format(parseISO(tickItem), "MM-dd HH:mm");
+    //return date.getHours().toString(); // 数値を文字列に変換
   //};
+
+
+  // 月日と時間をフォーマットする関数
   const formatXAxis = (tickItem: string) => {
     const date = new Date(tickItem);
-    return date.getHours().toString(); // 数値を文字列に変換
+    const monthDay = `${date.getMonth() + 1}-${date.getDate()}`;
+    const hour = date.getHours();
+    return `${monthDay}\n${hour}`; // 2行に分けて表示
   };
+  
 
   return (
     <main>
@@ -564,10 +574,10 @@ export default function App() {
             <XAxis 
               dataKey="DeviceDatetime" 
               tickFormatter={formatXAxis} 
-              angle={45} 
+              angle={0} 
               textAnchor="end" 
               height={20} 
-              interval={1} // 1時間おきに目盛りを表示。
+              //interval={1} // 1時間おきに目盛りを表示。
             />
 
             <YAxis yAxisId="left" />
