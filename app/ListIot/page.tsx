@@ -484,6 +484,7 @@ export default function App() {
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
+
           };
         });
 
@@ -578,18 +579,12 @@ export default function App() {
     );
   };
 
-
-  console.log("〇chartData:", chartData);
-
-  /*
-  // 凡例の表示に使用するDeviceNameを取得するためのマッピング
-  const deviceNameMapping = chartData.reduce<Record<string, string>>((acc, item) => {
-    if (!acc[item.Device]) {
-      acc[item.Device] = item.DeviceName;
-    }
+  // DeviceとDeviceNameのマッピングを作成
+  const deviceNameMapping = deviceLists.reduce<Record<string, string>>((acc, item) => {
+    acc[item.Device] = item.DeviceName;
     return acc;
   }, {});
-  */
+
 
   return (
     <main>
@@ -636,7 +631,8 @@ export default function App() {
                 key={device}
                 type="monotone"
                 dataKey={device}
-                name={device}
+                //name={device}
+                name={deviceNameMapping[device]} // DeviceNameを使用
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
                 connectNulls
