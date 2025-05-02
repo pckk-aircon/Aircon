@@ -588,7 +588,7 @@ export default function App() {
 
   // DeviceとDeviceNameのマッピングを作成
   const deviceNameMapping = deviceLists
-  //.filter(item => item.DeviceType === 'Temp') //DeviceTypeが'Temp'である項目に限定して
+  .filter(item => item.DeviceType === 'Temp') //DeviceTypeが'Temp'である項目に限定して
   .reduce<Record<string, string>>((acc, item) => {
     acc[item.Device] = item.DeviceName;
     return acc;
@@ -635,6 +635,7 @@ export default function App() {
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
             {Object.keys(groupedData).map((device, index) => (
+              deviceNameMapping[device] && ( // deviceNameMappingに存在するデバイスのみ表示
               <Line
                 key={device}
                 type="monotone"
@@ -645,6 +646,7 @@ export default function App() {
                 dot={false}
                 connectNulls
               />
+              )
             ))}
 
             <Line
