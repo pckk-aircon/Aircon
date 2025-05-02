@@ -508,16 +508,6 @@ export default function App() {
   //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
  
   // デバイスごとにデータをグループ化
-  /*
-  const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.Device]) {
-      acc[item.Device] = [];
-    }
-    acc[item.Device].push(item);
-    return acc;
-  }, {});
-  */
-
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.DeviceName]) {
       acc[item.DeviceName] = [];
@@ -525,28 +515,12 @@ export default function App() {
     acc[item.DeviceName].push(item);
     return acc;
   }, {});
-  
+
+  console.log("●groupedData:", groupedData);
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示
-  /*
-  const mergedData = chartData.map(item => {
-    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(device => {
-      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.ActualTemp : null;
-    });
-    newItem.CumulativeEnergy = item.CumulativeEnergy;
-    newItem.WeightedTemp = item.WeightedTemp;
-    newItem.TargetTemp = item.TargetTemp;
-    newItem.PresetTemp = item.PresetTemp;
-    newItem.ReferenceTemp = item.ReferenceTemp;
-    newItem.ControlStage = item.ControlStage;
-    return newItem;
-  });
-  */
-
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(deviceName => {
@@ -561,9 +535,9 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
-    
 
-  
+  console.log("●mergedData:", mergedData);
+    
 
   //console.log("divisionLists（handle直前）=", divisionLists);
   //console.log("deviceLists（handle直前）=", deviceLists);
@@ -584,14 +558,7 @@ export default function App() {
 
   const DevicehandlePrevious = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
-  };  
-
-  // 時間をフォーマットする関数を定義
-  //const formatXAxis = (tickItem: string) => {
-    //const date = new Date(tickItem);
-    //return format(parseISO(tickItem), "MM-dd HH:mm");
-    //return date.getHours().toString(); // 数値を文字列に変換
-  //};
+  }; 
 
   
   interface CustomTickProps {
@@ -618,7 +585,6 @@ export default function App() {
       </g>
     );
   };
-  
   
 
   return (
