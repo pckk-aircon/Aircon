@@ -29,6 +29,7 @@ interface ChartData {
   ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
+  DeviceName: string; // ここを追加
   Division: string;
   DivisionName?: string; // DivisionNameを追加
 }
@@ -130,6 +131,7 @@ export default function App() {
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
+            DeviceName: item?.Device ?? '',
             Division: item?.Division ?? '',
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
@@ -153,10 +155,10 @@ export default function App() {
  
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.Device]) {
-      acc[item.Device] = [];
+    if (!acc[item.DeviceName]) {
+      acc[item.DeviceName] = [];
     }
-    acc[item.Device].push(item);
+    acc[item.DeviceName].push(item);
     return acc;
   }, {});
 
@@ -165,9 +167,9 @@ export default function App() {
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(device => {
-      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.ActualTemp : null;
+    Object.keys(groupedData).forEach(deviceName => {
+      const deviceData = groupedData[deviceName].find(d => d.DeviceDatetime === item.DeviceDatetime);
+      newItem[deviceName] = deviceData ? deviceData.ActualTemp : null;
     });
     newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.WeightedTemp = item.WeightedTemp;
@@ -177,6 +179,7 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
+    
 
   //console.log("divisionLists（handle直前）=", divisionLists);
   //console.log("deviceLists（handle直前）=", deviceLists);
@@ -197,14 +200,7 @@ export default function App() {
 
   const DevicehandlePrevious = () => {
     setCurrentDeviceIndex((prevIndex) => (prevIndex - 1 + FiltereddeviceLists.length) % FiltereddeviceLists.length);
-  };  
-
-  // 時間をフォーマットする関数を定義
-  //const formatXAxis = (tickItem: string) => {
-    //const date = new Date(tickItem);
-    //return format(parseISO(tickItem), "MM-dd HH:mm");
-    //return date.getHours().toString(); // 数値を文字列に変換
-  //};
+  }; 
 
   
   interface CustomTickProps {
@@ -231,7 +227,6 @@ export default function App() {
       </g>
     );
   };
-  
   
 
   return (
@@ -274,12 +269,13 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-            {Object.keys(groupedData).map((device, index) => (
+            {Object.keys(groupedData).map((deviceName, index) => ( // ここをdeviceNameに修正
               <Line
-                key={device}
+                key={deviceName} // ここをdeviceNameに修正
                 type="monotone"
-                dataKey={device}
-                name={device}
+                dataKey={deviceName} // ここをdeviceNameに修正
+                //name={device}
+                name={deviceName} // ここをdeviceNameに修正
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
                 connectNulls
@@ -509,23 +505,21 @@ export default function App() {
  
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.DeviceName]) {
-      acc[item.DeviceName] = [];
+    if (!acc[item.Device]) {
+      acc[item.Device] = [];
     }
-    acc[item.DeviceName].push(item);
+    acc[item.Device].push(item);
     return acc;
   }, {});
-
-  console.log("●groupedData:", groupedData);
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(deviceName => {
-      const deviceData = groupedData[deviceName].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[deviceName] = deviceData ? deviceData.ActualTemp : null;
+    Object.keys(groupedData).forEach(device => {
+      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
+      newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
     newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.WeightedTemp = item.WeightedTemp;
@@ -535,8 +529,6 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
-
-  console.log("●mergedData:", mergedData);
     
 
   //console.log("divisionLists（handle直前）=", divisionLists);
@@ -627,11 +619,11 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-            {Object.keys(groupedData).map((deviceName, index) => ( // ここをdeviceNameに修正
+            {Object.keys(groupedData).map((deviceName, index) => (
               <Line
-                key={deviceName} // ここをdeviceNameに修正
+                key={deviceName}
                 type="monotone"
-                dataKey={deviceName} // ここをdeviceNameに修正
+                dataKey={deviceName}
                 //name={device}
                 name={deviceName} // ここをdeviceNameに修正
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
