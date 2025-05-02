@@ -384,6 +384,7 @@ interface ChartData {
   DivisionName?: string; // DivisionNameを追加
 }
 
+
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
@@ -578,6 +579,10 @@ export default function App() {
     );
   };
 
+
+  console.log("〇chartData:", chartData);
+
+
   // 凡例の表示に使用するDeviceNameを取得するためのマッピング
   const deviceNameMapping = chartData.reduce<Record<string, string>>((acc, item) => {
     if (!acc[item.Device]) {
@@ -588,7 +593,7 @@ export default function App() {
 
   
 // マッピングが正しく生成されているか確認
-console.log("deviceNameMapping:", deviceNameMapping);
+console.log("〇deviceNameMapping:", deviceNameMapping);
 
   return (
     <main>
@@ -636,7 +641,6 @@ console.log("deviceNameMapping:", deviceNameMapping);
                 type="monotone"
                 dataKey={device}
                 //name={device}
-                //name={deviceName} // ここをdeviceNameに修正
                 name={deviceNameMapping[device]}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
