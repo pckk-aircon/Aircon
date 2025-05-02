@@ -379,7 +379,7 @@ interface ChartData {
   ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
-  DeviceName: string; // ここを追加
+  //DeviceName: string; // ここを追加
   Division: string;
   DivisionName?: string; // DivisionNameを追加
 }
@@ -482,7 +482,6 @@ export default function App() {
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
-            DeviceName: item?.Device ?? '',
             Division: item?.Division ?? '',
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
@@ -515,7 +514,7 @@ export default function App() {
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
-  // デバイスごとのデータを統合して表示
+  // デバイスごとのデータを統合して表示。
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
@@ -582,7 +581,7 @@ export default function App() {
 
   console.log("〇chartData:", chartData);
 
-
+  /*
   // 凡例の表示に使用するDeviceNameを取得するためのマッピング
   const deviceNameMapping = chartData.reduce<Record<string, string>>((acc, item) => {
     if (!acc[item.Device]) {
@@ -590,10 +589,7 @@ export default function App() {
     }
     return acc;
   }, {});
-
-  
-// マッピングが正しく生成されているか確認
-console.log("〇deviceNameMapping:", deviceNameMapping);
+  */
 
   return (
     <main>
@@ -640,8 +636,7 @@ console.log("〇deviceNameMapping:", deviceNameMapping);
                 key={device}
                 type="monotone"
                 dataKey={device}
-                //name={device}
-                name={deviceNameMapping[device]}
+                name={device}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
                 connectNulls
