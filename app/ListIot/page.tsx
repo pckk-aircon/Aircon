@@ -29,10 +29,11 @@ interface ChartData {
   ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
-  DeviceName: string; // ここを追加
+  //DeviceName: string; // ここを追加
   Division: string;
   DivisionName?: string; // DivisionNameを追加
 }
+
 
 export default function App() {
 
@@ -131,9 +132,9 @@ export default function App() {
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
-            DeviceName: item?.Device ?? '',
             Division: item?.Division ?? '',
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
+
           };
         });
 
@@ -155,21 +156,21 @@ export default function App() {
  
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
-    if (!acc[item.DeviceName]) {
-      acc[item.DeviceName] = [];
+    if (!acc[item.Device]) {
+      acc[item.Device] = [];
     }
-    acc[item.DeviceName].push(item);
+    acc[item.Device].push(item);
     return acc;
   }, {});
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
-  // デバイスごとのデータを統合して表示
+  // デバイスごとのデータを統合して表示。
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(deviceName => {
-      const deviceData = groupedData[deviceName].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[deviceName] = deviceData ? deviceData.ActualTemp : null;
+    Object.keys(groupedData).forEach(device => {
+      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
+      newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
     newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.WeightedTemp = item.WeightedTemp;
@@ -227,7 +228,13 @@ export default function App() {
       </g>
     );
   };
-  
+
+  // DeviceとDeviceNameのマッピングを作成
+  const deviceNameMapping = deviceLists.reduce<Record<string, string>>((acc, item) => {
+    acc[item.Device] = item.DeviceName;
+    return acc;
+  }, {});
+
 
   return (
     <main>
@@ -269,13 +276,13 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-            {Object.keys(groupedData).map((deviceName, index) => ( // ここをdeviceNameに修正
+            {Object.keys(groupedData).map((device, index) => (
               <Line
-                key={deviceName} // ここをdeviceNameに修正
+                key={device}
                 type="monotone"
-                dataKey={deviceName} // ここをdeviceNameに修正
+                dataKey={device}
                 //name={device}
-                name={deviceName} // ここをdeviceNameに修正
+                name={deviceNameMapping[device]} // DeviceNameを使用
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
                 connectNulls
@@ -579,12 +586,21 @@ export default function App() {
     );
   };
 
+  /*
   // DeviceとDeviceNameのマッピングを作成
   const deviceNameMapping = deviceLists.reduce<Record<string, string>>((acc, item) => {
     acc[item.Device] = item.DeviceName;
     return acc;
   }, {});
+  */
 
+  // DeviceTypeが'Temp'である項目に限定してDeviceとDeviceNameのマッピングを作成
+  const deviceNameMapping = deviceLists
+  .filter(item => item.DeviceType === 'Temp')
+  .reduce<Record<string, string>>((acc, item) => {
+    acc[item.Device] = item.DeviceName;
+    return acc;
+  }, {});
 
   return (
     <main>
