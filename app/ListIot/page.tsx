@@ -577,6 +577,15 @@ export default function App() {
       </g>
     );
   };
+
+  // 凡例の表示に使用するDeviceNameを取得するためのマッピング
+  const deviceNameMapping = chartData.reduce<Record<string, string>>((acc, item) => {
+    if (!acc[item.Device]) {
+      acc[item.Device] = item.DeviceName;
+    }
+    return acc;
+  }, {});
+
   
 
   return (
@@ -619,13 +628,14 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-            {Object.keys(groupedData).map((deviceName, index) => (
+            {Object.keys(groupedData).map((device, index) => (
               <Line
-                key={deviceName}
+                key={device}
                 type="monotone"
-                dataKey={deviceName}
+                dataKey={device}
                 //name={device}
-                name={deviceName} // ここをdeviceNameに修正
+                //name={deviceName} // ここをdeviceNameに修正
+                name={deviceNameMapping[device]}
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
                 connectNulls
