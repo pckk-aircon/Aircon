@@ -75,7 +75,9 @@ const MapWith3DModel: React.FC = () => {
 
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          //'file:///C:/Users/kiyoshi.tabuchi/Desktop/GIS/34M_17.gltf',
+          //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/34M_17.gltf',
+          //'https://pckk-iotdata.s3.ap-northeast-1.amazonaws.com/34M_17.gltf',
+          //'https://pckk.ent.box.com/file/1851265737259?s=e3yr5a34z4k7seubqwms9zhuj4703zlr',
           '',
           scene
         ).then((modelContainer) => {
@@ -202,10 +204,10 @@ const MapWith3DModel: React.FC = () => {
         new BABYLON.AxesViewer(scene, 10);
 
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
           //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/34M_17.gltf',
           //'https://pckk-iotdata.s3.ap-northeast-1.amazonaws.com/34M_17.gltf',
-          'https://pckk.ent.box.com/file/1851265737259?s=e3yr5a34z4k7seubqwms9zhuj4703zlr',
+          //'https://pckk.ent.box.com/file/1851265737259?s=e3yr5a34z4k7seubqwms9zhuj4703zlr',
           '',
           scene
         ).then((modelContainer) => {
