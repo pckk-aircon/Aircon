@@ -586,17 +586,9 @@ export default function App() {
     );
   };
 
-  /*
   // DeviceとDeviceNameのマッピングを作成
-  const deviceNameMapping = deviceLists.reduce<Record<string, string>>((acc, item) => {
-    acc[item.Device] = item.DeviceName;
-    return acc;
-  }, {});
-  */
-
-  // DeviceTypeが'Temp'である項目に限定してDeviceとDeviceNameのマッピングを作成
   const deviceNameMapping = deviceLists
-  .filter(item => item.DeviceType === 'Temp')
+  //.filter(item => item.DeviceType === 'Temp') //DeviceTypeが'Temp'である項目に限定して
   .reduce<Record<string, string>>((acc, item) => {
     acc[item.Device] = item.DeviceName;
     return acc;
