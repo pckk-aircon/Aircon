@@ -587,6 +587,8 @@ export default function App() {
   }, {});
 
   
+// マッピングが正しく生成されているか確認
+console.log("deviceNameMapping:", deviceNameMapping);
 
   return (
     <main>
