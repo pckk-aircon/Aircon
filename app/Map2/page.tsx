@@ -157,9 +157,8 @@ const MapWith3DModel: React.FC = () => {
   useEffect(() => {
     const map = new maplibregl.Map({
       container: mapContainer.current!,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',//APIキー
+      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
       zoom: 18,
-      //center: [148.9819, -35.3981],
       center: [140.302994, 35.353503],
       pitch: 60,
       canvasContextAttributes: { antialias: true }
@@ -203,12 +202,11 @@ const MapWith3DModel: React.FC = () => {
 
         new BABYLON.AxesViewer(scene, 10);
 
+        // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/34M_17.gltf',
-          //'https://pckk-iotdata.s3.ap-northeast-1.amazonaws.com/34M_17.gltf',
-          //'https://pckk.ent.box.com/file/1851265737259?s=e3yr5a34z4k7seubqwms9zhuj4703zlr',
-          '',
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          'https://pckk-iotdata.s3.ap-northeast-1.amazonaws.com',
+          '34M_17.gltf',
           scene
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
@@ -256,4 +254,5 @@ const MapWith3DModel: React.FC = () => {
 };
 
 export default MapWith3DModel;
+
 
