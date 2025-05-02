@@ -1,6 +1,5 @@
 /*
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -259,15 +258,14 @@ export default function App() {
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="1 1" vertical={false} />
-
+            <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="DeviceDatetime"  
               tick={props => <CustomTick {...props} />} 
               angle={0} 
               textAnchor="middle" 
               height={40} 
-              interval={1} // 1時間おきに目盛りを表示。
+              //interval={1} // 1時間おきに目盛りを表示。
             />
 
             <YAxis yAxisId="left" />
@@ -355,6 +353,7 @@ export default function App() {
 
 */
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -384,6 +383,7 @@ interface ChartData {
   ReferenceTemp: number | null;
   ControlStage: string | null;
   Device: string;
+  DeviceName: string; // ここを追加
   Division: string;
   DivisionName?: string; // DivisionNameを追加
 }
@@ -485,6 +485,7 @@ export default function App() {
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
+            DeviceName: item?.Device ?? '',
             Division: item?.Division ?? '',
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
           };
@@ -507,6 +508,7 @@ export default function App() {
   //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
  
   // デバイスごとにデータをグループ化
+  /*
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.Device]) {
       acc[item.Device] = [];
@@ -514,10 +516,21 @@ export default function App() {
     acc[item.Device].push(item);
     return acc;
   }, {});
+  */
+
+  const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
+    if (!acc[item.DeviceName]) {
+      acc[item.DeviceName] = [];
+    }
+    acc[item.DeviceName].push(item);
+    return acc;
+  }, {});
+  
 
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示
+  /*
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
@@ -532,6 +545,25 @@ export default function App() {
     newItem.ControlStage = item.ControlStage;
     return newItem;
   });
+  */
+
+  const mergedData = chartData.map(item => {
+    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
+    Object.keys(groupedData).forEach(deviceName => {
+      const deviceData = groupedData[deviceName].find(d => d.DeviceDatetime === item.DeviceDatetime);
+      newItem[deviceName] = deviceData ? deviceData.ActualTemp : null;
+    });
+    newItem.CumulativeEnergy = item.CumulativeEnergy;
+    newItem.WeightedTemp = item.WeightedTemp;
+    newItem.TargetTemp = item.TargetTemp;
+    newItem.PresetTemp = item.PresetTemp;
+    newItem.ReferenceTemp = item.ReferenceTemp;
+    newItem.ControlStage = item.ControlStage;
+    return newItem;
+  });
+    
+
+  
 
   //console.log("divisionLists（handle直前）=", divisionLists);
   //console.log("deviceLists（handle直前）=", deviceLists);
@@ -613,7 +645,7 @@ export default function App() {
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" /> {/* 縦のグリッドを追加 */}
+            <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="DeviceDatetime"  
               tick={props => <CustomTick {...props} />} 
@@ -629,12 +661,13 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-            {Object.keys(groupedData).map((device, index) => (
+            {Object.keys(groupedData).map((deviceName, index) => ( // ここをdeviceNameに修正
               <Line
-                key={device}
+                key={deviceName} // ここをdeviceNameに修正
                 type="monotone"
-                dataKey={device}
-                name={device}
+                dataKey={deviceName} // ここをdeviceNameに修正
+                //name={device}
+                name={deviceName} // ここをdeviceNameに修正
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
                 dot={false}
                 connectNulls
