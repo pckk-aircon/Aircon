@@ -21,10 +21,15 @@ import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
+
 const MapWith3DModel: React.FC = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    renderMap();
+  }, []);
+
+  async function renderMap() {
     const map = new maplibregl.Map({
       container: mapContainer.current!,
       style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
@@ -123,13 +128,13 @@ const MapWith3DModel: React.FC = () => {
     return () => {
       map.remove();
     };
-  }, []);
+
+  }
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
 
 export default MapWith3DModel;
-
 
 */
 
