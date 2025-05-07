@@ -159,14 +159,39 @@ import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
+const client = generateClient<Schema>();
 
 //const MapWith3DModel: React.FC = () => {
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
+  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; gltf: string; Controller?: string | null }>>([]);
+  console.log('deviceLists=', deviceLists);
+
   useEffect(() => {
-    renderMap();
+    async function fetchData() {
+        await listPost();
+    }
+    fetchData();
   }, []);
+
+  //deviceLists の状態が更新された後に renderMap 関数を呼び出す
+  useEffect(() => {
+    if (deviceLists.length > 0) {
+      renderMap();
+    }
+  }, [deviceLists]);
+
+  async function listPost() {
+    const { data, errors } = await client.queries.listDevice({
+      Controller: "Mutsu01",
+    });
+    console.log('data（関数内）=', data);
+    //divisionLists の状態を更新
+    if (data) {
+      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; gltf: string; Controller?: string | null }>); // 型を明示的にキャストする
+    }
+  }
 
   async function renderMap() {
     const map = new maplibregl.Map({

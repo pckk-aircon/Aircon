@@ -130,6 +130,7 @@ const schema = a.schema({
       Controller: a.string(),
       DeviceType: a.string(),
       Division: a.string(),
+      gltf: a.string(),
     })
     .returns(a.ref("Device"))
     .authorization(allow => [allow.publicApiKey()])
@@ -149,6 +150,7 @@ const schema = a.schema({
     Controller: a.string(),
     DeviceType: a.string(),
     Division: a.string(),
+    gltf: a.string(),
   })
   .returns(a.ref("Device").array())
   .authorization(allow => [allow.publicApiKey()])
