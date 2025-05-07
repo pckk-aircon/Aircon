@@ -140,27 +140,13 @@ export default MapWith3DModel;
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-import { Amplify } from "aws-amplify";
-import outputs from "@/amplify_outputs.json";
-import "@aws-amplify/ui-react/styles.css";
-
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO } from "date-fns";
-
+import React, { useRef, useEffect } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
-
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
-
-const MapWith3DModel: React.FC = () => {
+export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -196,7 +182,6 @@ const MapWith3DModel: React.FC = () => {
       renderingMode: '3d',
 
       onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
-        // エンジン、シーン、カメラの初期化
         const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
         const scene = new BABYLON.Scene(engine);
         scene.autoClear = false;
@@ -215,16 +200,9 @@ const MapWith3DModel: React.FC = () => {
 
         new BABYLON.AxesViewer(scene, 10);
 
-        // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
           '',
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          //'34M_17.gltf',
-
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
-          //'34M_17.gltf',
-
           scene
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
@@ -236,7 +214,6 @@ const MapWith3DModel: React.FC = () => {
           rootMesh2.position.z = 25;
         });
 
-        // プロパティをカスタムレイヤーオブジェクトに追加
         (this as any).map = map;
         (this as any).engine = engine;
         (this as any).scene = scene;
@@ -266,11 +243,14 @@ const MapWith3DModel: React.FC = () => {
     return () => {
       map.remove();
     };
-
   }
 
-  return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
-};
+  return (
+    <div>
+      <h1>3D Model on Map</h1>
+      <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />
+    </div>
+  );
+}
 
-export default MapWith3DModel;
 
