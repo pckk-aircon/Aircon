@@ -165,6 +165,7 @@ export default function App() {
 };
 
 */
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -274,9 +275,9 @@ export default function App() {
           scene,
           (meshes) => {
             const rootMesh = meshes[0];
-            if (rootMesh) {
+            if (rootMesh) {  // 修正箇所: rootMeshがnullでないことを確認
               const rootMesh2 = rootMesh.clone("rootMeshClone", null, true);
-              if (rootMesh2) {
+              if (rootMesh2) {  // 修正箇所: rootMesh2がnullでないことを確認
                 rootMesh2.position.x = 25;
                 rootMesh2.position.z = 25;
               }
@@ -317,6 +318,7 @@ export default function App() {
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
+
 
 
 
