@@ -270,8 +270,8 @@ export default function App() {
         new BABYLON.AxesViewer(scene, 10);
 
         //const gltfJson = JSON.parse(device.gltf);
-        //const gltfJson = JSON.parse(deviceLists[0].gltf);
-        //console.log('gltfJson[0]=', gltfJson);
+        const gltfJson = JSON.parse(deviceLists[0].gltf);
+        console.log('gltfJson[0]=', gltfJson);
 
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
