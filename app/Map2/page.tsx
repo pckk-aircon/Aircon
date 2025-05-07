@@ -160,7 +160,8 @@ import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
 
-const MapWith3DModel: React.FC = () => {
+//const MapWith3DModel: React.FC = () => {
+export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -272,6 +273,6 @@ const MapWith3DModel: React.FC = () => {
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
 
-export default MapWith3DModel;
+//export default MapWith3DModel;
 
 
