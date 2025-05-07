@@ -165,7 +165,7 @@ const client = generateClient<Schema>();
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
-  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; gltf: string; Controller?: string | null }>>([]);
+  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>>([]);
   console.log('deviceLists=', deviceLists);
 
   useEffect(() => {
@@ -189,7 +189,7 @@ export default function App() {
     console.log('data（関数内）=', data);
     //divisionLists の状態を更新
     if (data) {
-      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; gltf: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
@@ -240,6 +240,10 @@ export default function App() {
         light.intensity = 0.7;
 
         new BABYLON.AxesViewer(scene, 10);
+
+        //const gltfJson = JSON.parse(device.gltf);
+        const gltfJson = JSON.parse(deviceLists[0].gltf);
+        console.log('gltfJson[0]=', gltfJson);
 
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
