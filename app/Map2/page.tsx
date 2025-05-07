@@ -287,7 +287,7 @@ export default function App() {
 
           scene
         //).then((modelContainer) => {
-        ).then((mgltfJson) => { //変更。         
+        ).then((gltfJson) => { //変更。         
           const modelContainer = gltfJson ; //変更。
 
           modelContainer.addAllToScene();
