@@ -119,6 +119,7 @@ const schema = a.schema({
     Controller: a.string(),
     DeviceType: a.string(),
     Division: a.string(),
+    gltf: a.string(),
   }),
 
   // add
