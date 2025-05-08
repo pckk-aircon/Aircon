@@ -107,6 +107,8 @@ export default function App() {
         const gltfJson = JSON.parse(deviceLists[0].gltf);
         console.log('gltfJson[0]=', gltfJson);
 
+
+
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
@@ -118,8 +120,13 @@ export default function App() {
           //'34M_17.gltf',
 
           scene
-        ).then((modelContainer) => {
+        //).then((modelContainer) => {
+        ).then((gltfJson) => { //変更。         
+          const modelContainer = gltfJson ; //変更。
+
           modelContainer.addAllToScene();
+
+
 
           const rootMesh = modelContainer.createRootMesh();
           const rootMesh2 = rootMesh.clone();
@@ -189,7 +196,6 @@ import 'babylonjs-loaders';
 
 const client = generateClient<Schema>();
 
-//const MapWith3DModel: React.FC = () => {
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
@@ -203,7 +209,6 @@ export default function App() {
     fetchData();
   }, []);
 
-  //deviceLists の状態が更新された後に renderMap 関数を呼び出す
   useEffect(() => {
     if (deviceLists.length > 0) {
       renderMap();
@@ -215,16 +220,15 @@ export default function App() {
       Controller: "Mutsu01",
     });
     console.log('data（関数内）=', data);
-    //divisionLists の状態を更新
     if (data) {
-      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>);
     }
   }
 
   async function renderMap() {
     const map = new maplibregl.Map({
       container: mapContainer.current!,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
+      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
       zoom: 18,
       center: [140.302994, 35.353503],
       pitch: 60,
@@ -250,7 +254,6 @@ export default function App() {
       renderingMode: '3d',
 
       onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
-        // エンジン、シーン、カメラの初期化
         const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
         const scene = new BABYLON.Scene(engine);
         scene.autoClear = false;
@@ -269,30 +272,79 @@ export default function App() {
 
         new BABYLON.AxesViewer(scene, 10);
 
-        //const gltfJson = JSON.parse(device.gltf);
-        const gltfJson = JSON.parse(deviceLists[0].gltf);
-        console.log('gltfJson[0]=', gltfJson);
+        // サンプルの.gltfデータをベタ書き
+        const gltfJson = {
+          "asset": {
+            "version": "2.0"
+          },
+          "scenes": [
+            {
+              "nodes": [0]
+            }
+          ],
+          "nodes": [
+            {
+              "mesh": 0
+            }
+          ],
+          "meshes": [
+            {
+              "primitives": [
+                {
+                  "attributes": {
+                    "POSITION": 0
+                  },
+                  "indices": 1
+                }
+              ]
+            }
+          ],
+          "buffers": [
+            {
+              "uri": "data:application/octet-stream;base64,AAAA...",
+              "byteLength": 1024
+            }
+          ],
+          "bufferViews": [
+            {
+              "buffer": 0,
+              "byteOffset": 0,
+              "byteLength": 512,
+              "target": 34962
+            },
+            {
+              "buffer": 0,
+              "byteOffset": 512,
+              "byteLength": 512,
+              "target": 34963
+            }
+          ],
+          "accessors": [
+            {
+              "bufferView": 0,
+              "byteOffset": 0,
+              "componentType": 5126,
+              "count": 24,
+              "type": "VEC3",
+              "max": [1.0, 1.0, 1.0],
+              "min": [-1.0, -1.0, -1.0]
+            },
+            {
+              "bufferView": 1,
+              "byteOffset": 0,
+              "componentType": 5123,
+              "count": 36,
+              "type": "SCALAR"
+            }
+          ]
+        };
 
-
-
-        // URLから.gltfファイルを読み込む
-        BABYLON.SceneLoader.LoadAssetContainerAsync(
-          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+        BABYLON.SceneLoader.LoadAssetContainerFromData(
+          JSON.stringify(gltfJson),
           '',
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          //'34M_17.gltf',
-
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
-          //'34M_17.gltf',
-
           scene
-        //).then((modelContainer) => {
-        ).then((gltfJson) => { //変更。         
-          const modelContainer = gltfJson ; //変更。
-
+        ).then((modelContainer) => {
           modelContainer.addAllToScene();
-
-
 
           const rootMesh = modelContainer.createRootMesh();
           const rootMesh2 = rootMesh.clone();
@@ -301,7 +353,6 @@ export default function App() {
           rootMesh2.position.z = 25;
         });
 
-        // プロパティをカスタムレイヤーオブジェクトに追加
         (this as any).map = map;
         (this as any).engine = engine;
         (this as any).scene = scene;
@@ -331,11 +382,12 @@ export default function App() {
     return () => {
       map.remove();
     };
-
   }
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
+
+
 
 
 
