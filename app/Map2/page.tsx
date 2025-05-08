@@ -339,19 +339,23 @@ export default function App() {
           ]
         };
 
-        BABYLON.SceneLoader.LoadAssetContainerFromData(
-          JSON.stringify(gltfJson),
+        BABYLON.SceneLoader.LoadAssetContainer(
           '',
-          scene
-        ).then((modelContainer) => {
-          modelContainer.addAllToScene();
+          '',
+          scene,
+          (modelContainer) => {
+            modelContainer.addAllToScene();
 
-          const rootMesh = modelContainer.createRootMesh();
-          const rootMesh2 = rootMesh.clone();
+            const rootMesh = modelContainer.createRootMesh();
+            const rootMesh2 = rootMesh.clone();
 
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
-        });
+            rootMesh2.position.x = 25;
+            rootMesh2.position.z = 25;
+          },
+          null,
+          null,
+          JSON.stringify(gltfJson)
+        );
 
         (this as any).map = map;
         (this as any).engine = engine;
@@ -386,6 +390,7 @@ export default function App() {
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
+
 
 
 
