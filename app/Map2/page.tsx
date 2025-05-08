@@ -388,7 +388,8 @@ export default function App() {
     };
   }
 
-  return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
+  return <div ref={mapContainer} style={{ width: '100%', height: '100vh' }} />;
+  //return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
 
 
