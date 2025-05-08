@@ -2261,6 +2261,7 @@ export default function App() {
 
 
         BABYLON.SceneLoader.LoadAssetContainer(
+        //BABYLON.SceneLoader.LoadAssetContainerAsync(
           '',
           '',
           scene,
