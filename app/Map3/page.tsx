@@ -265,7 +265,8 @@ const MapWith3DModel: React.FC = () => {
                 new BABYLON.AxesViewer(this.scene, 10);
 
                 // GLTFファイルのURLを指定
-                const gltfUrl = 'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf';
+                //const gltfUrl = 'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf';
+                const gltfUrl = 'https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf';
 
                 BABYLON.SceneLoader.ImportMesh("", "", gltfUrl, this.scene, (meshes) => {
                     meshes.forEach(mesh => {
