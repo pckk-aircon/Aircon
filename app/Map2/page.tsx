@@ -262,31 +262,37 @@ export default function App() {
 
     new BABYLON.AxesViewer(scene, 10);
 
-    const gltfJson = JSON.parse(deviceLists[0].gltf);
-    console.log('gltfJson[0]=', gltfJson);
+    try {
+      const gltfJson = JSON.parse(deviceLists[0].gltf);
+      console.log('gltfJson[0]=', gltfJson);
 
-    BABYLON.SceneLoader.ImportMeshAsync(
-      null,
-      '',
-      '',
-      scene,
-      null,
-      '.gltf',
-      gltfJson
-    ).then((result) => {
-      const rootMesh = result.meshes[0];
-      if (rootMesh) {
-        const rootMesh2 = rootMesh.clone("rootMeshClone", rootMesh.parent);
-        if (rootMesh2) {
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
+      BABYLON.SceneLoader.ImportMeshAsync(
+        null,
+        '',
+        '',
+        scene,
+        null,
+        '.gltf',
+        gltfJson
+      ).then((result) => {
+        const rootMesh = result.meshes[0];
+        if (rootMesh) {
+          const rootMesh2 = rootMesh.clone("rootMeshClone", rootMesh.parent);
+          if (rootMesh2) {
+            rootMesh2.position.x = 25;
+            rootMesh2.position.z = 25;
+          } else {
+            console.error("Failed to clone rootMesh.");
+          }
         } else {
-          console.error("Failed to clone rootMesh.");
+          console.error("rootMesh is null.");
         }
-      } else {
-        console.error("rootMesh is null.");
-      }
-    });
+      }).catch((error) => {
+        console.error("Failed to load GLTF model:", error);
+      });
+    } catch (error) {
+      console.error("Failed to parse GLTF JSON:", error);
+    }
 
     engine.runRenderLoop(() => {
       scene.render();
@@ -304,6 +310,7 @@ export default function App() {
     </div>
   );
 };
+
 
 
 
