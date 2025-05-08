@@ -273,9 +273,7 @@ export default function App() {
         new BABYLON.AxesViewer(scene, 10);
 
         // サンプルの.gltfデータをベタ書き
-        const gltfJson = 
-
-        {
+        const gltfJson = {
           "asset": {
             "version": "2.0"
           },
@@ -303,7 +301,7 @@ export default function App() {
           ],
           "buffers": [
             {
-              "uri": "data:application/octet-stream;base64,AAAA...",
+             data:"application/octet-stream;base64,AAAA...",
               "byteLength": 1024
             }
           ],
@@ -339,8 +337,7 @@ export default function App() {
               "type": "SCALAR"
             }
           ]
-        }
-        
+        };
 
         BABYLON.SceneLoader.LoadAssetContainer(
           '',
@@ -357,7 +354,8 @@ export default function App() {
           },
           null,
           null,
-          JSON.stringify(gltfJson)
+          JSON.stringify(gltfJson),
+          '.gltf' // GLTF形式を指定
         );
 
         (this as any).map = map;
@@ -392,8 +390,8 @@ export default function App() {
   }
 
   return <div ref={mapContainer} style={{ width: '100%', height: '100vh' }} />;
-  //return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
+
 
 
 
