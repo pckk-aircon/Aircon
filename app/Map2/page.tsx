@@ -273,71 +273,76 @@ export default function App() {
         new BABYLON.AxesViewer(scene, 10);
 
         // サンプルの.gltfデータをベタ書き
-        const gltfJson = {
-          "asset": {
-            "version": "2.0"
-          },
-          "scenes": [
+        const gltfJson =
+        {
+          "scenes" : [
             {
-              "nodes": [0]
+              "nodes" : [ 0 ]
             }
           ],
-          "nodes": [
+          
+          "nodes" : [
             {
-              "mesh": 0
+              "mesh" : 0
             }
           ],
-          "meshes": [
+          
+          "meshes" : [
             {
-              "primitives": [
-                {
-                  "attributes": {
-                    "POSITION": 0
-                  },
-                  "indices": 1
-                }
-              ]
+              "primitives" : [ {
+                "attributes" : {
+                  "POSITION" : 1
+                },
+                "indices" : 0
+              } ]
             }
           ],
-          "buffers": [
+        
+          "buffers" : [
             {
-              "uri": "data:application/octet-stream;base64,AAAA...",
-              "byteLength": 1024
+              "uri" : "data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=",
+              "byteLength" : 44
             }
           ],
-          "bufferViews": [
+          "bufferViews" : [
             {
-              "buffer": 0,
-              "byteOffset": 0,
-              "byteLength": 72,
-              "target": 34962
+              "buffer" : 0,
+              "byteOffset" : 0,
+              "byteLength" : 6,
+              "target" : 34963
             },
             {
-              "buffer": 0,
-              "byteOffset": 72,
-              "byteLength": 36,
-              "target": 34963
+              "buffer" : 0,
+              "byteOffset" : 8,
+              "byteLength" : 36,
+              "target" : 34962
             }
           ],
-          "accessors": [
+          "accessors" : [
             {
-              "bufferView": 0,
-              "byteOffset": 0,
-              "componentType": 5126,
-              "count": 8,
-              "type": "VEC3",
-              "max": [1.0, 1.0, 1.0],
-              "min": [-1.0, -1.0, -1.0]
+              "bufferView" : 0,
+              "byteOffset" : 0,
+              "componentType" : 5123,
+              "count" : 3,
+              "type" : "SCALAR",
+              "max" : [ 2 ],
+              "min" : [ 0 ]
             },
             {
-              "bufferView": 1,
-              "byteOffset": 0,
-              "componentType": 5123,
-              "count": 12,
-              "type": "SCALAR"
+              "bufferView" : 1,
+              "byteOffset" : 0,
+              "componentType" : 5126,
+              "count" : 3,
+              "type" : "VEC3",
+              "max" : [ 1.0, 1.0, 0.0 ],
+              "min" : [ 0.0, 0.0, 0.0 ]
             }
-          ]
-        };
+          ],
+          
+          "asset" : {
+            "version" : "2.0"
+          }
+        }
 
         BABYLON.SceneLoader.LoadAssetContainer(
           '',
