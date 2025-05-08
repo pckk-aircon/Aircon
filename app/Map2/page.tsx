@@ -173,6 +173,7 @@ export default function App() {
 
 */
 
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -192,12 +193,13 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 
 import * as BABYLON from 'babylonjs';
-import 'babylonjs-loaders'; // GLTF Loaderをインポート
+import 'babylonjs-loaders';
 
 const client = generateClient<Schema>();
 
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const canvasContainer = useRef<HTMLCanvasElement>(null);
 
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>>([]);
   console.log('deviceLists=', deviceLists);
@@ -212,6 +214,7 @@ export default function App() {
   useEffect(() => {
     if (deviceLists.length > 0) {
       renderMap();
+      render3DModel();
     }
   }, [deviceLists]);
 
@@ -221,7 +224,7 @@ export default function App() {
     });
     console.log('data（関数内）=', data);
     if (data) {
-      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); 
+      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>);
     }
   }
 
@@ -235,89 +238,8 @@ export default function App() {
       canvasContextAttributes: { antialias: true }
     });
 
-    const worldOrigin: [number, number] = [140.302994, 35.353503];
-    const worldAltitude = 0;
-    const worldRotate = [Math.PI / 2, 0, 0];
-
-    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
-
-    const worldMatrix = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(worldScale, worldScale, worldScale),
-      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
-      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
-    );
-
-    const customLayer: maplibregl.CustomLayerInterface = {
-      id: '3d-model',
-      type: 'custom',
-      renderingMode: '3d',
-
-      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
-        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-        const scene = new BABYLON.Scene(engine);
-        scene.autoClear = false;
-        scene.detachControl();
-
-        scene.beforeRender = () => {
-          if (engine) {
-            engine.wipeCaches(true);
-          }
-        };
-
-        const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-
-        const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-        light.intensity = 0.7;
-
-        new BABYLON.AxesViewer(scene, 10);
-
-        const gltfJson = JSON.parse(deviceLists[0].gltf);
-        console.log('gltfJson[0]=', gltfJson);
-
-        // GLTFデータをBlobに変換
-        const blob = new Blob([JSON.stringify(gltfJson)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        BABYLON.SceneLoader.ImportMesh(
-          null,
-          url,
-          '',
-          scene,
-          (meshes) => {
-            meshes.forEach(mesh => {
-              mesh.position = new BABYLON.Vector3(0, 0, 0);
-            });
-          },
-          null,
-          null,
-          '.gltf'
-        );
-
-        (this as any).map = map;
-        (this as any).engine = engine;
-        (this as any).scene = scene;
-        (this as any).camera = camera;
-      },
-
-      render(gl: WebGLRenderingContext, args: any) {
-        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
-        if ((this as any).camera) {
-          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
-        }
-        if ((this as any).scene) {
-          (this as any).scene.render(false);
-        }
-        if ((this as any).map) {
-          (this as any).map.triggerRepaint();
-        }
-      }
-    };
-
     map.on('style.load', () => {
-      map.addLayer(customLayer);
+      // Map style loaded
     });
 
     return () => {
@@ -325,7 +247,62 @@ export default function App() {
     };
   }
 
-  return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
+  async function render3DModel() {
+    const canvas = canvasContainer.current!;
+    const engine = new BABYLON.Engine(canvas, true, { useHighPrecisionMatrix: true }, true);
+    const scene = new BABYLON.Scene(engine);
+    scene.autoClear = false;
+    scene.detachControl();
+
+    const camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+
+    const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 0.7;
+
+    new BABYLON.AxesViewer(scene, 10);
+
+    const gltfJson = JSON.parse(deviceLists[0].gltf);
+    console.log('gltfJson[0]=', gltfJson);
+
+    BABYLON.SceneLoader.ImportMeshAsync(
+      null,
+      '',
+      '',
+      scene,
+      null,
+      '.gltf',
+      gltfJson
+    ).then((result) => {
+      const rootMesh = result.meshes[0];
+      if (rootMesh) {
+        const rootMesh2 = rootMesh.clone("rootMeshClone", rootMesh.parent);
+        if (rootMesh2) {
+          rootMesh2.position.x = 25;
+          rootMesh2.position.z = 25;
+        } else {
+          console.error("Failed to clone rootMesh.");
+        }
+      } else {
+        console.error("rootMesh is null.");
+      }
+    });
+
+    engine.runRenderLoop(() => {
+      scene.render();
+    });
+
+    window.addEventListener("resize", () => {
+      engine.resize();
+    });
+  }
+
+  return (
+    <div>
+      <div ref={mapContainer} style={{ width: '80%', height: '50%' }} />
+      <canvas ref={canvasContainer} style={{ width: '80%', height: '50%' }} />
+    </div>
+  );
 };
 
 
@@ -335,6 +312,4 @@ export default function App() {
 
 
 
-
-
-
+       
