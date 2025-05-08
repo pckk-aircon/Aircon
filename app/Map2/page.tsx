@@ -273,7 +273,9 @@ export default function App() {
         new BABYLON.AxesViewer(scene, 10);
 
         // サンプルの.gltfデータをベタ書き
-        const gltfJson = {
+        const gltfJson = 
+
+        {
           "asset": {
             "version": "2.0"
           },
@@ -309,13 +311,13 @@ export default function App() {
             {
               "buffer": 0,
               "byteOffset": 0,
-              "byteLength": 512,
+              "byteLength": 72,
               "target": 34962
             },
             {
               "buffer": 0,
-              "byteOffset": 512,
-              "byteLength": 512,
+              "byteOffset": 72,
+              "byteLength": 36,
               "target": 34963
             }
           ],
@@ -324,7 +326,7 @@ export default function App() {
               "bufferView": 0,
               "byteOffset": 0,
               "componentType": 5126,
-              "count": 24,
+              "count": 8,
               "type": "VEC3",
               "max": [1.0, 1.0, 1.0],
               "min": [-1.0, -1.0, -1.0]
@@ -333,11 +335,12 @@ export default function App() {
               "bufferView": 1,
               "byteOffset": 0,
               "componentType": 5123,
-              "count": 36,
+              "count": 12,
               "type": "SCALAR"
             }
           ]
-        };
+        }
+        
 
         BABYLON.SceneLoader.LoadAssetContainer(
           '',
