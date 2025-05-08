@@ -242,7 +242,6 @@ const MapWith3DModel: React.FC = () => {
 
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            //style: 'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
             style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
             zoom: 18,
             center: [148.9819, -35.3981],
@@ -265,74 +264,10 @@ const MapWith3DModel: React.FC = () => {
 
                 new BABYLON.AxesViewer(this.scene, 10);
 
-                // GLTFのJSONデータをベタ書き
-                const gltfData = {
-                    "asset": {
-                        "version": "2.0"
-                    },
-                    "scenes": [
-                        {
-                            "nodes": [0]
-                        }
-                    ],
-                    "nodes": [
-                        {
-                            "mesh": 0
-                        }
-                    ],
-                    "meshes": [
-                        {
-                            "primitives": [
-                                {
-                                    "attributes": {
-                                        "POSITION": 0
-                                    },
-                                    "indices": 1
-                                }
-                            ]
-                        }
-                    ],
-                    "buffers": [
-                        {
-                            "uri": "data:application/octet-stream;base64,...", // バイナリデータをBase64エンコードしたもの
-                            "byteLength": 1024
-                        }
-                    ],
-                    "bufferViews": [
-                        {
-                            "buffer": 0,
-                            "byteOffset": 0,
-                            "byteLength": 512,
-                            "target": 34962
-                        },
-                        {
-                            "buffer": 0,
-                            "byteOffset": 512,
-                            "byteLength": 512,
-                            "target": 34963
-                        }
-                    ],
-                    "accessors": [
-                        {
-                            "bufferView": 0,
-                            "byteOffset": 0,
-                            "componentType": 5126,
-                            "count": 24,
-                            "type": "VEC3",
-                            "max": [1.0, 1.0, 1.0],
-                            "min": [-1.0, -1.0, -1.0]
-                        },
-                        {
-                            "bufferView": 1,
-                            "byteOffset": 0,
-                            "componentType": 5123,
-                            "count": 36,
-                            "type": "SCALAR"
-                        }
-                    ]
-                };
+                // GLTFファイルのURLを指定
+                const gltfUrl = 'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf';
 
-                BABYLON.SceneLoader.ImportMesh("", "", "data:application/json;base64," + btoa(JSON.stringify(gltfData)), this.scene, (meshes) => {
+                BABYLON.SceneLoader.ImportMesh("", "", gltfUrl, this.scene, (meshes) => {
                     meshes.forEach(mesh => {
                         mesh.position.x = 25;
                         mesh.position.z = 25;
