@@ -28,6 +28,8 @@ const BabylonScene = () => {
 
 
     SceneLoader.Append("", s3Url, scene, (scene) => {
+      console.log("モデルが正常に読み込まれました！");
+
       if (scene.activeCamera && scene.activeCamera instanceof ArcRotateCamera) {
         scene.activeCamera.alpha += Math.PI;
       } else {
