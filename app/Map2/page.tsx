@@ -192,7 +192,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 
 import * as BABYLON from 'babylonjs';
-import 'babylonjs-loaders';
+import 'babylonjs-loaders'; // GLTF Loaderのインポート
 
 const client = generateClient<Schema>();
 
@@ -301,7 +301,7 @@ export default function App() {
           ],
           "buffers": [
             {
-             data:"application/octet-stream;base64,AAAA...",
+              "uri": "data:application/octet-stream;base64,AAAA...",
               "byteLength": 1024
             }
           ],
@@ -391,6 +391,8 @@ export default function App() {
 
   return <div ref={mapContainer} style={{ width: '100%', height: '100vh' }} />;
 };
+
+
 
 
 
