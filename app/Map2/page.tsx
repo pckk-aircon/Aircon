@@ -285,9 +285,7 @@ export default function App() {
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
           '34M_17.gltf',
           scene
-        ).then((gltfJson) => { //変更。         
-          const modelContainer = gltfJson; //変更。
-
+        ).then((modelContainer) => {         
           modelContainer.addAllToScene();
 
           const rootMesh = modelContainer.createRootMesh();
@@ -295,6 +293,11 @@ export default function App() {
 
           rootMesh2.position.x = 25;
           rootMesh2.position.z = 25;
+
+          // PBRMaterialの設定
+          const pbr = new BABYLON.PBRMaterial("pbr", scene);
+          pbr.ambientTexture = new BABYLON.Texture("path/to/base_AO.png", scene);
+          rootMesh.material = pbr;
         });
 
         // プロパティをカスタムレイヤーオブジェクトに追加
@@ -331,13 +334,3 @@ export default function App() {
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
-
-
-
-
-
-
-
-
-
-       
