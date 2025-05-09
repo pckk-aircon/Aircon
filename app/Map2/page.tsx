@@ -197,9 +197,9 @@ import 'babylonjs-loaders';
 
 const client = generateClient<Schema>();
 
+//const MapWith3DModel: React.FC = () => {
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const canvasContainer = useRef<HTMLCanvasElement>(null);
 
   const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>>([]);
   console.log('deviceLists=', deviceLists);
@@ -211,10 +211,10 @@ export default function App() {
     fetchData();
   }, []);
 
+  //deviceLists の状態が更新された後に renderMap 関数を呼び出す
   useEffect(() => {
     if (deviceLists.length > 0) {
       renderMap();
-      render3DModel();
     }
   }, [deviceLists]);
 
@@ -223,94 +223,127 @@ export default function App() {
       Controller: "Mutsu01",
     });
     console.log('data（関数内）=', data);
+    //divisionLists の状態を更新
     if (data) {
-      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>);
+      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
   async function renderMap() {
     const map = new maplibregl.Map({
       container: mapContainer.current!,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
+      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
       zoom: 18,
       center: [140.302994, 35.353503],
       pitch: 60,
       canvasContextAttributes: { antialias: true }
     });
 
+    const worldOrigin: [number, number] = [140.302994, 35.353503];
+    const worldAltitude = 0;
+    const worldRotate = [Math.PI / 2, 0, 0];
+
+    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
+      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+    );
+
+    const customLayer: maplibregl.CustomLayerInterface = {
+      id: '3d-model',
+      type: 'custom',
+      renderingMode: '3d',
+
+      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
+        // エンジン、シーン、カメラの初期化
+        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+        const scene = new BABYLON.Scene(engine);
+        scene.autoClear = false;
+        scene.detachControl();
+
+        scene.beforeRender = () => {
+          if (engine) {
+            engine.wipeCaches(true);
+          }
+        };
+
+        const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+
+        const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+        light.intensity = 0.7;
+
+        new BABYLON.AxesViewer(scene, 10);
+
+        //const gltfJson = JSON.parse(device.gltf);
+        const gltfJson = JSON.parse(deviceLists[0].gltf);
+        console.log('gltfJson[0]=', gltfJson);
+
+
+
+        // URLから.gltfファイルを読み込む
+        BABYLON.SceneLoader.LoadAssetContainerAsync(
+          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          '',
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
+          //'34M_17.gltf',
+
+          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
+          //'34M_17.gltf',
+
+          scene
+        //).then((modelContainer) => {
+        ).then((gltfJson) => { //変更。         
+          const modelContainer = gltfJson ; //変更。
+
+          modelContainer.addAllToScene();
+
+
+
+          const rootMesh = modelContainer.createRootMesh();
+          const rootMesh2 = rootMesh.clone();
+
+          rootMesh2.position.x = 25;
+          rootMesh2.position.z = 25;
+        });
+
+        // プロパティをカスタムレイヤーオブジェクトに追加
+        (this as any).map = map;
+        (this as any).engine = engine;
+        (this as any).scene = scene;
+        (this as any).camera = camera;
+      },
+
+      render(gl: WebGLRenderingContext, args: any) {
+        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+
+        if ((this as any).camera) {
+          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
+        }
+        if ((this as any).scene) {
+          (this as any).scene.render(false);
+        }
+        if ((this as any).map) {
+          (this as any).map.triggerRepaint();
+        }
+      }
+    };
+
     map.on('style.load', () => {
-      // Map style loaded
+      map.addLayer(customLayer);
     });
 
     return () => {
       map.remove();
     };
+
   }
 
-  async function render3DModel() {
-    const canvas = canvasContainer.current!;
-    const engine = new BABYLON.Engine(canvas, true, { useHighPrecisionMatrix: true }, true);
-    const scene = new BABYLON.Scene(engine);
-    scene.autoClear = false;
-    scene.detachControl();
-
-    const camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero(), scene);
-    camera.attachControl(canvas, true);
-
-    const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), scene);
-    light.intensity = 0.7;
-
-    new BABYLON.AxesViewer(scene, 10);
-
-    try {
-      const gltfJson = JSON.parse(deviceLists[0].gltf);
-      console.log('gltfJson[0]=', gltfJson);
-
-      BABYLON.SceneLoader.ImportMeshAsync(
-        null,
-        '',
-        '',
-        scene,
-        null,
-        '.gltf',
-        gltfJson
-      ).then((result) => {
-        const rootMesh = result.meshes[0];
-        if (rootMesh) {
-          const rootMesh2 = rootMesh.clone("rootMeshClone", rootMesh.parent);
-          if (rootMesh2) {
-            rootMesh2.position.x = 25;
-            rootMesh2.position.z = 25;
-          } else {
-            console.error("Failed to clone rootMesh.");
-          }
-        } else {
-          console.error("rootMesh is null.");
-        }
-      }).catch((error) => {
-        console.error("Failed to load GLTF model:", error);
-      });
-    } catch (error) {
-      console.error("Failed to parse GLTF JSON:", error);
-    }
-
-    engine.runRenderLoop(() => {
-      scene.render();
-    });
-
-    window.addEventListener("resize", () => {
-      engine.resize();
-    });
-  }
-
-  return (
-    <div>
-      <div ref={mapContainer} style={{ width: '80%', height: '50%' }} />
-      <canvas ref={canvasContainer} style={{ width: '80%', height: '50%' }} />
-    </div>
-  );
+  return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
-
 
 
 
