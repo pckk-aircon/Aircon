@@ -111,8 +111,9 @@ export default function App() {
 
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          '',
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+          'sample.gltf',
           //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
           //'34M_17.gltf',
 
