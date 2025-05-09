@@ -219,15 +219,10 @@ export default function App() {
 
   // CORS設定が正しく機能しているかをテストするためのfetchリクエスト
   useEffect(() => {
-    fetch('https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf')
+    fetch('https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf', { mode: 'no-cors' })
       .then(response => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error('CORS error');
-        }
+        console.log('Response:', response);
       })
-      .then(data => console.log(data))
       .catch(error => console.error('Error:', error));
   }, []);
 
@@ -345,6 +340,7 @@ export default function App() {
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
 };
+
 
 
 
