@@ -23,8 +23,8 @@ const BabylonScene = () => {
 
     const light = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
 
-    const s3Url = "https://your-bucket-name.s3.amazonaws.com/your-model.gltf";
-    //const s3Url = "https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf";
+    //const s3Url = "https://your-bucket-name.s3.amazonaws.com/your-model.gltf";
+    const s3Url = "https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf";
 
 
     SceneLoader.Append("", s3Url, scene, (scene) => {
