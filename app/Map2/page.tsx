@@ -197,7 +197,6 @@ import 'babylonjs-loaders';
 
 const client = generateClient<Schema>();
 
-//const MapWith3DModel: React.FC = () => {
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
@@ -211,19 +210,33 @@ export default function App() {
     fetchData();
   }, []);
 
-  //deviceLists の状態が更新された後に renderMap 関数を呼び出す
+  // deviceLists の状態が更新された後に renderMap 関数を呼び出す
   useEffect(() => {
     if (deviceLists.length > 0) {
       renderMap();
     }
   }, [deviceLists]);
 
+  // CORS設定が正しく機能しているかをテストするためのfetchリクエスト
+  useEffect(() => {
+    fetch('https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf')
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error('CORS error');
+        }
+      })
+      .then(data => console.log(data))
+      .catch(error => console.error('Error:', error));
+  }, []);
+
   async function listPost() {
     const { data, errors } = await client.queries.listDevice({
       Controller: "Mutsu01",
     });
     console.log('data（関数内）=', data);
-    //divisionLists の状態を更新
+    // divisionLists の状態を更新
     if (data) {
       setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
@@ -277,32 +290,19 @@ export default function App() {
 
         new BABYLON.AxesViewer(scene, 10);
 
-        //const gltfJson = JSON.parse(device.gltf);
+        // const gltfJson = JSON.parse(device.gltf);
         const gltfJson = JSON.parse(deviceLists[0].gltf);
         console.log('gltfJson[0]=', gltfJson);
 
-
-
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          //'',
           'https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf',
           '',
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          //'34M_17.gltf',
-
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
-          //'34M_17.gltf',
-
           scene
-        //).then((modelContainer) => {
         ).then((gltfJson) => { //変更。         
-          const modelContainer = gltfJson ; //変更。
+          const modelContainer = gltfJson; //変更。
 
           modelContainer.addAllToScene();
-
-
 
           const rootMesh = modelContainer.createRootMesh();
           const rootMesh2 = rootMesh.clone();
@@ -341,7 +341,6 @@ export default function App() {
     return () => {
       map.remove();
     };
-
   }
 
   return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
