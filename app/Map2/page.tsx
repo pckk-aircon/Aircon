@@ -282,10 +282,8 @@ export default function App() {
 
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf',
-          //'https://pckk-device.s3.ap-northeast-2.amazonaws.com/34M_17.gltf',
-          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/34M_17.gltf',
-          '',
+          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+          '34M_17.gltf',
           scene
         ).then((gltfJson) => { //変更。         
           const modelContainer = gltfJson; //変更。
