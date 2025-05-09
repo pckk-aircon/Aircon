@@ -217,16 +217,6 @@ export default function App() {
     }
   }, [deviceLists]);
 
-  // CORS設定が正しく機能しているかをテストするためのfetchリクエスト
-  useEffect(() => {
-    //fetch('https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf', { mode: 'no-cors' })
-    fetch('https://pckk-device.s3.ap-northeast-2.amazonaws.com/34M_17.gltf', { mode: 'no-cors' })
-      .then(response => {
-        console.log('Response:', response);
-      })
-      .catch(error => console.error('Error:', error));
-  }, []);
-
   async function listPost() {
     const { data, errors } = await client.queries.listDevice({
       Controller: "Mutsu01",
@@ -293,7 +283,8 @@ export default function App() {
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/34M_17.gltf',
-          'https://pckk-device.s3.ap-northeast-2.amazonaws.com/34M_17.gltf',
+          //'https://pckk-device.s3.ap-northeast-2.amazonaws.com/34M_17.gltf',
+          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/34M_17.gltf',
           '',
           scene
         ).then((gltfJson) => { //変更。         
