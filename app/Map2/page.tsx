@@ -233,7 +233,8 @@ export default function App() {
   async function renderMap() {
     const map = new maplibregl.Map({
       container: mapContainer.current!,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
+      //style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
+      style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
       zoom: 18,
       center: [140.302994, 35.353503],
       pitch: 60,
