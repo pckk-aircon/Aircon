@@ -363,7 +363,7 @@ import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { Amplify } from "aws-amplify";
-import outputs from "@/amplify_outputs.json";
+//import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
@@ -372,7 +372,7 @@ import { format, parseISO } from "date-fns";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
-Amplify.configure(outputs);
+//Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
