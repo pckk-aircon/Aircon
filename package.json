@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aws-amplify/geo": "^3.0.71",
-    "@aws-amplify/ui-react": "^6.5.5",
+    "@aws-amplify/ui-react": "^6.11.1",
     "@babel/plugin-transform-class-properties": "^7.25.9",
     "@babel/plugin-transform-object-rest-spread": "^7.25.9",
     "@babylonjs/core": "^8.4.2",
