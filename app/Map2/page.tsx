@@ -283,7 +283,6 @@ export default function App() {
         console.log('gltfJson[0]=', gltfJson);
 
 
-
         // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
