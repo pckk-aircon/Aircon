@@ -43,9 +43,7 @@ export default function Layout({ children }: LayoutProps) {
         <div style={{ display: 'flex' }}>
           <Sidebar />
           <div style={{ flex: 1 }}>
-          <Authenticator>
             {children}
-          </Authenticator>
           </div>
         </div>
       </body>
