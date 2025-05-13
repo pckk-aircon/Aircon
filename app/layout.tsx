@@ -49,20 +49,12 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <html lang="en">
       <body>
-        <Authenticator>
-          {({ signOut, user }) => (
-            <div style={{ display: 'flex' }}>
-              <Sidebar />
-              <div style={{ flex: 1, padding: '1rem' }}>
-                <div style={{ marginBottom: '1rem' }}>
-                  <p>こんにちは、{user?.username} さん</p>
-                  <button onClick={signOut}>サインアウト</button>
-                </div>
-                {children}
-              </div>
-            </div>
-          )}
-        </Authenticator>
+        <div style={{ display: 'flex' }}>
+          <Sidebar />
+          <div style={{ flex: 1 }}>
+            {children}
+          </div>
+        </div>
       </body>
     </html>
   );
