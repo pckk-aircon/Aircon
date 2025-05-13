@@ -11,23 +11,12 @@ export default function Home() {
 }
 */
 
-import type { Schema } from "@/amplify/data/resource";
-import { useAuthenticator } from "@aws-amplify/ui-react";
-import { useState, useEffect } from "react";
-import { generateClient } from "aws-amplify/data";
+import Link from 'next/link';
 
-const client = generateClient<Schema>();
-
-export default function HomePage() {
-
-  const { signOut } = useAuthenticator();
-
-  // ...
-
+export default function Home() {
   return (
     <main>
-      {/* ... */}
-      <button onClick={signOut}>Sign out</button>
+      <h1>Welcome to the test site</h1>
     </main>
   );
 }
