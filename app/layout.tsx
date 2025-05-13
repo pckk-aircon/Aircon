@@ -3,13 +3,18 @@
 import { ReactNode } from 'react';
 import Sidebar from './Sidebar'; // Sidebar.tsxへのパスを調整してください。
 
+import { Amplify } from "aws-amplify";
+import { Authenticator } from "@aws-amplify/ui-react";
+import "@aws-amplify/ui-react/styles.css";
+import outputs from "@/amplify_outputs.json";
+
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <html lang="ja">
+    <html lang="en">
       <body>
         <div style={{ display: 'flex' }}>
           <Sidebar />
