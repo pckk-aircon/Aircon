@@ -52,14 +52,14 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <html lang="en">
       <body>
-        <Authenticator>
+
           <div style={{ display: 'flex' }}>
             <Sidebar />
             <div style={{ flex: 1 }}>
               {children}
             </div>
           </div>
-        </Authenticator>
+
       </body>
     </html>
   );
