@@ -7,7 +7,29 @@ const schema = a.schema({
   //Deviceのデータを設定。
   Post: a.customType({
     Device: a.id().required(),
+<<<<<<< HEAD
+=======
+    DeviceDatetime: a.string(),
     Controller: a.string(),
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(), 
+
+  }),
+
+
+  //新しいテーブル（IoTData）の設定を追加
+  IotData: a.customType({
+    Device: a.id().required(),
+    DeviceDatetime: a.string(),
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
+    Controller: a.string(),
+    ActualTemp: a.string(),
+    ActualHumidity: a.string(),
+    DeviceType: a.string(),
+    Division: a.string(), 
+
   }),
 
   //step3にて追加。

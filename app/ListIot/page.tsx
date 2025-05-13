@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 /*
 
+=======
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,7 +16,11 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from "date-fns";
 
+<<<<<<< HEAD
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
+=======
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
 
 Amplify.configure(outputs);
 
@@ -21,6 +28,7 @@ const client = generateClient<Schema>();
 
 interface ChartData {
   DeviceDatetime: string;
+<<<<<<< HEAD
   ActualTemp: number | null;
   CumulativeEnergy: number | null;
   WeightedTemp: number | null;
@@ -38,10 +46,25 @@ interface ChartData {
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
+=======
+  ActualTemp: number;
+  Device: string;
+  Division: string;
+}
+
+export default function App() {
+
+  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]);
+  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]);
+
+  const [startDate, setStartDatetime] = useState(new Date());
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
   const [endDate, setEndDatetime] = useState(new Date());
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
+<<<<<<< HEAD
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Controller?: string | null }>>([]);
@@ -93,12 +116,46 @@ export default function App() {
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
+=======
+
+  const divisions = ["MUTS-Flower", "MUTS-Dining", "MUTS-Rest"];
+
+  interface Device {
+    Device: string;
+    Controller: string;
+    DeviceType: string;
+  }
+
+  useEffect(() => {
+    listIot();
+
+    const sub = client.subscriptions.receivePost()
+    .subscribe({
+      next: event => {
+        console.log(event)
+        setPosts(prevPosts => [...prevPosts, event]);
+      },
+    });
+
+    return () => sub.unsubscribe();
+
+  }, [startDate, endDate, currentDivisionIndex]);
+
+  async function listIot() {
+
+    const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
+    const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
+
+    console.log("StartDatetime=", startDate);
+    console.log("EndDatetime=", endDate);
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
 
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
+<<<<<<< HEAD
 
     //console.log('Iotdata（listIot）=', data)
     //console.log('deviceLists（listIot）=', deviceLists)
@@ -139,10 +196,30 @@ export default function App() {
         });
 
       formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
+=======
+    console.log('listIot=', data)
+
+    if (data) {
+      const formattedData = data
+        .filter(item => item?.Division === divisions[currentDivisionIndex]) // Divisionでフィルタリング
+        .map(item => ({
+          DeviceDatetime: item?.DeviceDatetime ?? '',
+          ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : 0,
+          Device: item?.Device ?? '',
+          Division: item?.Division ?? '',
+        }));
+
+      // DeviceDatetime順にソート（Deviceをソートキーに含めない）
+      formattedData.sort((a, b) => parseISO(a.DeviceDatetime).getTime() - parseISO(b.DeviceDatetime).getTime());
+
+      console.log('Formatted Data:', formattedData);
+
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
       setChartData(formattedData);
     }
   }
 
+<<<<<<< HEAD
   // データが存在しない場合はローディング表示やスキップ
   if (divisionLists.length === 0 || deviceLists.length === 0)  {
     console.log("return");
@@ -154,6 +231,8 @@ export default function App() {
   //console.log("deviceLists（handle直前1）=", deviceLists);
   //console.log("filtereddeviceLists（handle直前1）=", filtereddeviceLists);
  
+=======
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
   // デバイスごとにデータをグループ化
   const groupedData = chartData.reduce<Record<string, ChartData[]>>((acc, item) => {
     if (!acc[item.Device]) {
@@ -163,15 +242,22 @@ export default function App() {
     return acc;
   }, {});
 
+<<<<<<< HEAD
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示。
+=======
+  const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#387908"];
+
+  // デバイスごとのデータを統合して表示
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
+<<<<<<< HEAD
     newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
@@ -236,6 +322,19 @@ export default function App() {
   }, {});
 
 
+=======
+    return newItem;
+  });
+
+  const handleNext = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex + 1) % divisions.length);
+  };
+
+  const handlePrevious = () => {
+    setCurrentDivisionIndex((prevIndex) => (prevIndex - 1 + divisions.length) % divisions.length);
+  };
+
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
   return (
     <main>
       <div>
@@ -248,6 +347,7 @@ export default function App() {
           <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDatetime(date ? date : new Date())} />  
         </label>
       </div>
+<<<<<<< HEAD
       <div>
         <button onClick={handlePrevious}>prevDivision</button>
         <button onClick={handleNext}>nextDivision</button>
@@ -276,11 +376,29 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+=======
+
+      <div>
+        <button onClick={handlePrevious}>前へ</button>
+        <button onClick={handleNext}>次へ</button>
+      </div>
+
+      <div>
+        <h1>Temperature Data for {divisions[currentDivisionIndex]}</h1>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="DeviceDatetime" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
             {Object.keys(groupedData).map((device, index) => (
               <Line
                 key={device}
                 type="monotone"
                 dataKey={device}
+<<<<<<< HEAD
                 //name={device}
                 name={deviceNameMapping[device]} // DeviceNameを使用
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
@@ -706,6 +824,14 @@ export default function App() {
               connectNulls
               isAnimationActive={false}
             />
+=======
+                name={device}
+                stroke={colors[index % colors.length]}
+                dot={{ r: 0.2, fill: colors[index % colors.length] }}
+                connectNulls
+              />
+            ))}
+>>>>>>> a9c9ba4a4c2c183baacac69f47fc5f24e1b60458
           </LineChart>
         </ResponsiveContainer>
       </div>
