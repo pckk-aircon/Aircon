@@ -231,15 +231,51 @@ export default function App() {
   }
 
   async function renderMap() {
+
     const map = new maplibregl.Map({
-      container: mapContainer.current!,
-      //style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
-      style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
-      zoom: 18,
-      center: [140.302994, 35.353503],
-      pitch: 60,
-      canvasContextAttributes: { antialias: true }
-    });
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          'gsi-vector': {
+            type: 'vector',
+            tiles: [
+              'https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbf'
+            ],
+            minzoom: 4,
+            maxzoom: 16
+          }
+        },
+        layers: [
+          {
+            id: 'background',
+            type: 'background',
+            paint: {
+              'background-color': '#e0dfdf'
+            }
+          },
+          {
+            id: 'road',
+            type: 'line',
+            source: 'gsi-vector',
+            'source-layer': 'road',
+            paint: {
+              'line-color': '#888',
+              'line-width': 1
+            },
+            minzoom: 4,
+            maxzoom: 20 // オーバーズーム対応
+          }
+      // 必要に応じて他のレイヤーも追加可能
+    ]
+  },
+  center: [140.302994, 35.353503],
+  zoom: 18,
+  pitch: 60,
+  bearing: 0,
+  canvasContextAttributes: { antialias: true }
+});
+
 
     const worldOrigin: [number, number] = [140.302994, 35.353503];
     const worldAltitude = 0;
