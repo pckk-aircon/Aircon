@@ -198,7 +198,6 @@ import 'babylonjs-loaders';
 
 const client = generateClient<Schema>();
 
-//const MapWith3DModel: React.FC = () => {
 export default function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
