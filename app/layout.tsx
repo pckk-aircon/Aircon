@@ -47,15 +47,16 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+
 export default function Layout({ children }: LayoutProps) {
   return (
-    <Authenticator>
+
       <main style={{ display: 'flex' }}>
         <Sidebar />
         <div style={{ flex: 1 }}>
           {children}
         </div>
       </main>
-    </Authenticator>
+
   );
 }
