@@ -1,17 +1,17 @@
+/*
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-//import "./../app/app.css";
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
-import DatePicker from "react-datepicker";//インストール要。
+import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from "date-fns";//フォーマット変換。インストール要。
-
+import { format, parseISO } from "date-fns";
 
 Amplify.configure(outputs);
 
@@ -19,117 +19,140 @@ const client = generateClient<Schema>();
 
 export default function App() {
 
-
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-  const [posts, setPosts] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-  const [devices, setDevices] = useState<Array<Schema["Post"]["type"]>>([]); //Postを追加。
-
-  interface Device {
-    Device: string;
-    Controller: string;
-    DeviceType: string;
-  }
+  const [posts, setPosts] = useState<Array<{ Device: string; Controller?: string | null }>>([]);
 
   useEffect(() => {
-    getPost(); // Postの初期表示
-    listIotDataByController (); // Postの初期表示
 
-    //サブスクリプションの設定をuseEffect()の中に移動。
-    const sub = client.subscriptions.receivePost()
-    .subscribe({
-      next: event => {
-        console.log(event)
-        setPosts(prevPosts => [...prevPosts, event]);
+    listPost(); // Postの初期表示
+
+    const sub = client.subscriptions.receiveDevice().subscribe({
+      next: (event) => {
+        console.log("event=", event);
+        setPosts((prevPosts) => {
+          // 重複を避けるために投稿が既に存在するか確認。これがないとreceiveが機能しない。
+          if (!prevPosts.some((post) => post.Device === event.Device)) {
+            return [...prevPosts, event];
+          }
+          return prevPosts;
+        });
       },
     });
 
-    // クリーンアップ関数を返してサブスクリプションを解除
-    return () => sub.unsubscribe();
+    return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
+  }, []); // 空の依存配列で一度だけ実行
 
-  }, );
-
-  function createTodo() {
-    client.models.Todo.create({
-      content: window.prompt("Todo content"),
+  async function listPost() {
+    const { data, errors } = await client.queries.listDevice({
+      Controller: "Mutsu01",
     });
-  }
-
-  //step5にて追加。
-  async function addPost () {
-    const {data} = await client.mutations.addPost({
-      Controller: window.prompt("Controller"),
-
-    },{authMode: "apiKey"});
-    //console.log(data)
-  }
-
-  //getPostを追記
-  async function getPost () {
-
-    const { data, errors } = await client.queries.getPost({
-      Device: "AC233FA3DA16" ,//任意のDeviceをキーに1件抽出。
-    });
-    console.log('get=',data)
-
-    //画面への転送を追記
+    console.log('listDevice=', data);
     if (data) {
-      setPosts(prevPosts => [...prevPosts, data]);
+      setPosts(data as Array<{ Device: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   }
 
-
-  //listIotByControllerを追記。
-  async function listIotDataByController () {
-
-
-
-    console.log('page called'); // 関数が呼び出されたことを確認
-    try {  
-      const { data, errors } = await client.queries.listIotDataByController({
-        Controller: "Mutsu01",//Controllerが"Mutsu01"であるデータを抽出。
-        DeviceDatetime: "2024-06-30 23:28:28+09:00",
-      });
-    
-      if (errors) {
-        console.error('Query エラー', errors); // エラーがある場合にログ出力
-      } else if (data) {
-        console.log('Query 結果', data); // クエリ結果をログ出力
-      } else {
-        console.log('データ無し'); // データが返されなかった場合
-      }
-
-    } catch (error) {
-      console.error('予期しないエラー', error); // 予期しないエラーをログ出力
-    }
+  async function addPost() {
+    const { data } = await client.mutations.addDevice(
+      {
+        Controller: window.prompt("Controller"),
+      },
+      { authMode: "apiKey" }
+    );
+    console.log("add=", data);
   }
-
 
   return (
     <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
-        ))}
-      </ul>
-
-      <h1>My posts</h1>
+      <h1>Device</h1>
       <button onClick={addPost}>+ new post</button>
       <ul>
         {posts.map((post) => (
-          <li key={post.Device}>{post.Controller}</li>
+          <li key={post.Controller}>
+            {post.Device} {post.Controller}
+          </li>
         ))}
       </ul>
+    </main>
+  );
+}
 
-      <h1>My lists</h1>
+*/
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
+import { Amplify } from "aws-amplify";
+import outputs from "@/amplify_outputs.json";
+import "@aws-amplify/ui-react/styles.css";
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, parseISO } from "date-fns";
+
+Amplify.configure(outputs);
+
+const client = generateClient<Schema>();
+
+export default function App() {
+
+  const [posts, setPosts] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Controller?: string | null; Division: string }>>([]);
+
+  useEffect(() => {
+
+    listPost(); // Postの初期表示
+
+    const sub = client.subscriptions.receiveDevice().subscribe({
+      next: (event) => {
+        console.log("event=", event);
+        setPosts((prevPosts) => {
+          // 重複を避けるために投稿が既に存在するか確認。これがないとreceiveが機能しない。
+          if (!prevPosts.some((post) => post.Device === event.Device)) {
+            return [...prevPosts, event as { Device: string; DeviceName: string; DeviceType: string; Controller?: string | null ; Division: string}];
+          }
+          return prevPosts;
+        });
+      },
+    });
+
+    return () => sub.unsubscribe(); // クリーンアップ関数を返してサブスクリプションを解除
+  }, []); // 空の依存配列で一度だけ実行
+
+  async function listPost() {
+    const { data, errors } = await client.queries.listDevice({
+      Controller: "Mutsu01",
+    });
+    console.log('listDevice=', data);
+    if (data) {
+      setPosts(data as Array<{ Device: string; DeviceName: string; DeviceType: string; Controller?: string | null ; Division: string}>); // 型を明示的にキャストする
+    }
+  }
+
+  async function addPost() {
+    const { data } = await client.mutations.addDevice(
+      {
+        DeviceName: window.prompt("DeviceName"),
+        DeviceType: window.prompt("DeviceType"),
+        Controller: window.prompt("Controller"),
+        Division: window.prompt("Division"),        
+      },
+      { authMode: "apiKey" }
+    );
+    console.log("add=", data);
+  }
+
+  return (
+    <main>
+      <h1>Device</h1>
       <button onClick={addPost}>+ new post</button>
       <ul>
-        {devices.map((device) => (
-          <li key={device.Device}>{device.Controller}</li>
+        {posts.map((post) => (
+          <li key={post.Controller}>
+            {post.Device}{post.DeviceName}{post.DeviceType}{post.Controller}{post.Division}
+          </li>
         ))}
       </ul>
-
     </main>
   );
 }

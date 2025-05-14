@@ -1,24 +1,22 @@
+
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-
-    return {
-        operation: 'Query',
-        query: {
-            //expression: 'Controller = :controller AND DeviceDatetime = :deviceDatetime',
-            expression: 'Controller = :controller AND DeviceDatetime BETWEEN :startDatetime AND :endDatetime',
-
-            expressionValues: util.dynamodb.toMapValues({ 
-                ':controller': ctx.args.Controller,
-                ':startDatetime': ctx.args.StartDatetime,
-                ':endDatetime': ctx.args.EndDatetime
-            })
-        },
-        index: 'Controller-DeviceDatetime-index'
-    };
-
+  return {
+    operation: 'Query',
+    query: {
+      expression: 'Controller = :controller AND DeviceDatetime BETWEEN :startDatetime AND :endDatetime',
+      expressionValues: util.dynamodb.toMapValues({ 
+        ':controller': ctx.args.Controller,
+        ':startDatetime': ctx.args.StartDatetime,
+        ':endDatetime': ctx.args.EndDatetime
+      })
+    },
+    index: 'Controller-DeviceDatetime-index'
+  };
 }
 
+<<<<<<< HEAD
 export const response = (ctx) => {
     return ctx.result.items.map(item => ({
         Device: item.Device,
@@ -29,3 +27,6 @@ export const response = (ctx) => {
     }));
 
 };
+=======
+export const response = (ctx) => ctx.result.items;
+>>>>>>> main
