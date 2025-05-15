@@ -285,7 +285,17 @@ const client = generateClient<Schema>();
 export default function App() {
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
-  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; lon: number; lat: number; Division: string; Controller?: string | null }>>([]);
+  const [deviceLists, setDevices] = useState<Array<{
+    Device: string;
+    DeviceName: string;
+    DeviceType: string;
+    gltf: string;
+    lon: number;
+    lat: number;
+    direction: string
+    Division: string;
+    Controller?: string
+    | null }>>([]);
   
   console.log('divisionLists（State直後）=', divisionLists);
 
@@ -326,6 +336,7 @@ export default function App() {
         gltf: string;
         lon: number;
         lat: number;
+        direction: string;
         Division: string;
         Controller?: string
         | null }>);
@@ -406,7 +417,9 @@ export default function App() {
 
     const worldOrigin: [number, number] = [deviceLists[0].lon, deviceLists[0].lat];
     const worldAltitude = 0;
-    const worldRotate = [Math.PI / 2, 0, 0];
+    //const worldRotate = [Math.PI / 2, 0, 0];
+    const worldRotate = JSON.parse(deviceLists[0].direction) as [number, number, number];
+
 
     const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
     const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();

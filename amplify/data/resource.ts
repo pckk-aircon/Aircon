@@ -122,6 +122,7 @@ const schema = a.schema({
     gltf: a.string(),
     lon: a.float() ,
     lat: a.float() ,
+    direction: a.string(),
   }),
 
   // add
@@ -136,6 +137,7 @@ const schema = a.schema({
       gltf: a.string(),
       lon: a.float() ,
       lat: a.float() ,
+      direction: a.string(),
     })
     .returns(a.ref("Device"))
     .authorization(allow => [allow.publicApiKey()])
@@ -158,6 +160,7 @@ const schema = a.schema({
     gltf: a.string(),
     lon: a.float() ,
     lat: a.float() ,
+    direction: a.string(),
   })
   .returns(a.ref("Device").array())
   .authorization(allow => [allow.publicApiKey()])
