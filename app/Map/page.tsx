@@ -292,6 +292,7 @@ export default function App() {
     gltf: string;
     lon: number;
     lat: number;
+    height: number;
     direction: string
     Division: string;
     Controller?: string
@@ -336,6 +337,7 @@ export default function App() {
         gltf: string;
         lon: number;
         lat: number;
+        height: number;
         direction: string;
         Division: string;
         Controller?: string
@@ -416,7 +418,8 @@ export default function App() {
     console.log('gltfJson[0]=', gltfJson);
 
     const worldOrigin: [number, number] = [deviceLists[0].lon, deviceLists[0].lat];
-    const worldAltitude = 0;
+    //const worldAltitude = 0;
+    const worldAltitude = deviceLists[0].height ;
     //const worldRotate = [Math.PI / 2, 0, 0];
     const worldRotate = JSON.parse(deviceLists[0].direction) as [number, number, number];
 

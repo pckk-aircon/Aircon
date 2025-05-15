@@ -122,6 +122,7 @@ const schema = a.schema({
     gltf: a.string(),
     lon: a.float() ,
     lat: a.float() ,
+    height: a.float() ,
     direction: a.string(),
   }),
 
@@ -137,6 +138,7 @@ const schema = a.schema({
       gltf: a.string(),
       lon: a.float() ,
       lat: a.float() ,
+      height: a.float() ,
       direction: a.string(),
     })
     .returns(a.ref("Device"))
@@ -160,6 +162,7 @@ const schema = a.schema({
     gltf: a.string(),
     lon: a.float() ,
     lat: a.float() ,
+    height: a.float() ,
     direction: a.string(),
   })
   .returns(a.ref("Device").array())
