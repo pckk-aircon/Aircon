@@ -490,8 +490,11 @@ export default function App() {
 
     // 3Dモデルを地図に追加
     map.on('style.load', () => {
-      map.addLayer(customLayer);
+      if (!map.getLayer('3d-model')) {
+        map.addLayer(customLayer);
+      }
     });
+
 
     return () => {
       map.remove();
