@@ -306,16 +306,23 @@ export default function App() {
   }, [divisionLists]);
 
   async function listPost() {
-    const { data, errors } = await client.queries.listDivision({
+
+    const { data: divisionData, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
-    console.log('data（関数内）=', data);
-    //divisionLists の状態を更新
-    if (data) {
-      setPosts(data as Array<{ Division: string; DivisionName: string; Geojson: string; Controller?: string | null }>); // 型を明示的にキャストする
-    }
-  }
 
+    const { data: deviceData, errors: deviceErrors } = await client.queries.listDevice({
+      Controller: "Mutsu01",
+    });
+
+    if (divisionData) {
+      setPosts(divisionData as Array<{ Division: string; DivisionName: string; Geojson: string; Controller?: string | null }>);
+    }
+
+    if (deviceData) {
+      setDevices(deviceData as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>);
+    }
+}
 
  
   let map: maplibregl.Map; // map変数をスコープ外で定義
