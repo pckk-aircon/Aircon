@@ -2,6 +2,7 @@
 //を改変。
 /*
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -190,6 +191,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 
+import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
+
+
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
@@ -286,6 +290,10 @@ export default function App() {
     map.on('load', () => {
 
       divisionLists.forEach((division, index) => {
+
+        addGeoJsonLayerToMap(map, division, index);
+
+        /*
         //JSON.parseを使って文字列をGeoJSONオブジェクトに変換
         const geojsonData = JSON.parse(division.Geojson);
         const sourceId = `floorplan-${index}`; // ユニークなIDを生成
@@ -328,7 +336,8 @@ export default function App() {
             'fill-extrusion-opacity': 0.6,
           },
         });
-      
+        */   
+        
       })//endEach
 
     });
