@@ -289,7 +289,7 @@ export default function App() {
     Device: string;
     DeviceName: string;
     DeviceType: string;
-    gltf: string;
+    model: string;
     lon: number;
     lat: number;
     height: number;
@@ -334,7 +334,7 @@ export default function App() {
         Device: string;
         DeviceName: string;
         DeviceType: string;
-        gltf: string;
+        model: string;
         lon: number;
         lat: number;
         height: number;
@@ -414,8 +414,7 @@ export default function App() {
 
     // 3Dモデルを表示するためのカスタムレイヤーを作成
 
-    const gltfJson = JSON.parse(deviceLists[0].gltf);
-    console.log('gltfJson[0]=', gltfJson);
+    const model = deviceLists[0].model;
 
     const worldOrigin: [number, number] = [deviceLists[0].lon, deviceLists[0].lat];
     //const worldAltitude = 0;
@@ -462,7 +461,9 @@ export default function App() {
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          'sample.gltf',
+          //'sample.gltf',
+          `${model}.gltf`, // ← ここで model に .gltf を連結
+
           //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
           //'34M_17.gltf',
 
