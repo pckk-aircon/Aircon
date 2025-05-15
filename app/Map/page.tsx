@@ -376,7 +376,13 @@ export default function App() {
     });
     map.addControl(nav, 'top-left');
 
+    map.on('load', () => {
 
+      divisionLists.forEach((division, index) => {
+        addGeoJsonLayerToMap(map, division, index);  
+      })//endEach
+
+    });
 
 
     // 3Dモデルを表示するためのカスタムレイヤーを作成
@@ -474,20 +480,6 @@ export default function App() {
       }
     };
 
-
-    // 3Dモデルここまで
-
-
-    map.on('load', () => {
-
-      divisionLists.forEach((division, index) => {
-
-        addGeoJsonLayerToMap(map, division, index);  
-        
-      })//endEach
-
-    });
-
     // 3Dモデルを地図に追加
     map.on('style.load', () => {
       if (!map.getLayer('3d-model')) {
@@ -495,12 +487,9 @@ export default function App() {
       }
     });
 
-
     return () => {
       map.remove();
     };
-
-
 
   }
 
