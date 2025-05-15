@@ -324,7 +324,6 @@ export default function App() {
     }
 }
 
- 
   let map: maplibregl.Map; // map変数をスコープ外で定義
 
   async function renderMap() {
