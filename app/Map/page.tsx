@@ -368,7 +368,7 @@ export default function App() {
     });
 
     // 3Dモデルを地図に追加
-      map.on('style.load', () => {
+    map.on('style.load', () => {
       map.addLayer(customLayer);
     });
 
