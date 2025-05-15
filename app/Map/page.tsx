@@ -23,6 +23,9 @@ import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 
 import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
 
+import * as BABYLON from 'babylonjs';
+import 'babylonjs-loaders';
+
 
 Amplify.configure(outputs);
 
@@ -31,6 +34,8 @@ const client = generateClient<Schema>();
 export default function App() {
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
+  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>>([]);
+  
   console.log('divisionLists（State直後）=', divisionLists);
 
   useEffect(() => {
@@ -65,6 +70,7 @@ export default function App() {
   async function renderMap() {
 
     const map = new maplibregl.Map({
+
       container: 'map',
       style: {
         version: 8,
@@ -117,6 +123,108 @@ export default function App() {
     });
     map.addControl(nav, 'top-left');
 
+
+
+
+    // 3Dモデルを表示するためのカスタムレイヤーを作成
+
+    const worldOrigin: [number, number] = [140.302994, 35.353503];
+    const worldAltitude = 0;
+    const worldRotate = [Math.PI / 2, 0, 0];
+
+    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
+      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+    );
+
+    const customLayer: maplibregl.CustomLayerInterface = {
+      id: '3d-model',
+      type: 'custom',
+      renderingMode: '3d',
+
+      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
+        // エンジン、シーン、カメラの初期化
+        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+        const scene = new BABYLON.Scene(engine);
+        scene.autoClear = false;
+        scene.detachControl();
+
+        scene.beforeRender = () => {
+          if (engine) {
+            engine.wipeCaches(true);
+          }
+        };
+
+        const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+
+        const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+        light.intensity = 0.7;
+
+        new BABYLON.AxesViewer(scene, 10);
+
+        //const gltfJson = JSON.parse(device.gltf);
+        const gltfJson = JSON.parse(deviceLists[0].gltf);
+        console.log('gltfJson[0]=', gltfJson);
+
+
+        // URLから.gltfファイルを読み込む
+        BABYLON.SceneLoader.LoadAssetContainerAsync(
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+          'sample.gltf',
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
+          //'34M_17.gltf',
+
+          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
+          //'34M_17.gltf',
+
+          scene
+        //).then((modelContainer) => {
+        ).then((gltfJson) => { //変更。         
+          const modelContainer = gltfJson ; //変更。
+
+          modelContainer.addAllToScene();
+
+
+
+          const rootMesh = modelContainer.createRootMesh();
+          const rootMesh2 = rootMesh.clone();
+
+          rootMesh2.position.x = 25;
+          rootMesh2.position.z = 25;
+        });
+
+        // プロパティをカスタムレイヤーオブジェクトに追加
+        (this as any).map = map;
+        (this as any).engine = engine;
+        (this as any).scene = scene;
+        (this as any).camera = camera;
+      },
+
+      render(gl: WebGLRenderingContext, args: any) {
+        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+
+        if ((this as any).camera) {
+          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
+        }
+        if ((this as any).scene) {
+          (this as any).scene.render(false);
+        }
+        if ((this as any).map) {
+          (this as any).map.triggerRepaint();
+        }
+      }
+    };
+
+
+    // 3Dモデルここまで
+
+
     map.on('load', () => {
 
       divisionLists.forEach((division, index) => {
@@ -126,7 +234,18 @@ export default function App() {
       })//endEach
 
     });
-  
+
+    // 3Dモデルを地図に追加
+    map.on('style.load', () => {
+      map.addLayer(customLayer);
+    });
+
+    return () => {
+      map.remove();
+    };
+
+
+
   }
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
@@ -198,11 +317,13 @@ export default function App() {
   }
 
 
-  let map; // map変数をスコープ外で定義
+ 
+  let map: maplibregl.Map; // map変数をスコープ外で定義
 
   async function renderMap() {
 
-    const map = new maplibregl.Map({
+    //const map = new maplibregl.Map({
+    map = new maplibregl.Map({
       container: 'map',
       style: {
         version: 8,
