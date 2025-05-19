@@ -11,6 +11,7 @@ export default function Sidebar() {
         <li><Link href="/ListIot">ListIot</Link></li>
         <li><Link href="/TableDivision">TableDivision</Link></li>
         <li><Link href="/TableDevice">TableDevice</Link></li>
+        <li><Link href="/Map">Map</Link></li>
       </ul>
     </div>
   );
