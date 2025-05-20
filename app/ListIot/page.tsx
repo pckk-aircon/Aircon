@@ -653,7 +653,6 @@ export default function App() {
               )
             ))}
 
-
             <Line
               type="monotone"
               dataKey="WeightedTemp"
@@ -686,10 +685,8 @@ export default function App() {
               isAnimationActive={false}
               >
               <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '6px', fill: '#000' }} />
-
             </Line>
 
-            
             <Line
               type="monotone"
               dataKey="ApparentPower"
@@ -706,19 +703,7 @@ export default function App() {
               dataKey="ActivePower"
               name="ActivePower"
               stroke="#800080"
-              strokeWidth={1} // 細線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-
-           <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="CumulativeEnergy"
-              name="CumulativeEnergy"
-              stroke="orange" // オレンジ色
-              strokeWidth={3} // 太線にする
+              strokeWidth={2} // 細線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
