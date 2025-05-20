@@ -379,18 +379,19 @@ const client = generateClient<Schema>();
 interface ChartData {
   DeviceDatetime: string;
   ActualTemp: number | null;
-  CumulativeEnergy: number | null;
   WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
   ReferenceTemp: number | null;
+  ApparentPower: number | null;
+  ActivePower: number | null;
+  CumulativeEnergy: number | null;
   ControlStage: string | null;
   Device: string;
   //DeviceName: string; // ここを追加
   Division: string;
   DivisionName?: string; // DivisionNameを追加
 }
-
 
 export default function App() {
 
@@ -482,11 +483,13 @@ export default function App() {
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
-            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+            ApparentPower: item?.ApparentPower !== undefined && item.ApparentPower !== null ? parseFloat(item.ApparentPower) : null,
+            ActivePower: item?.ActivePower !== undefined && item.ActivePower !== null ? parseFloat(item.ActivePower) : null,
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,    
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
@@ -529,13 +532,14 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
-    newItem.CumulativeEnergy = item.CumulativeEnergy;
     newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
-    return newItem;
+    newItem.ApparentPower = item.ApparentPower;
+    newItem.ActivePower = item.ActivePower
+    newItem.CumulativeEnergy = item.CumulativeEnergy;
   });
     
 
@@ -649,17 +653,6 @@ export default function App() {
               )
             ))}
 
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="CumulativeEnergy"
-              name="CumulativeEnergy"
-              stroke="orange" // オレンジ色
-              strokeWidth={3} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
 
             <Line
               type="monotone"
@@ -696,16 +689,53 @@ export default function App() {
 
             </Line>
 
+            
             <Line
               type="monotone"
-              dataKey="ReferenceTemp"
-              name="ReferenceTemp"
+              dataKey="ApparentPower"
+              name="ApparentPower"
               stroke="#800080"
+              strokeWidth={1} // 細線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="ActivePower"
+              name="ActivePower"
+              stroke="#800080"
+              strokeWidth={1} // 細線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+
+           <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="CumulativeEnergy"
+              name="CumulativeEnergy"
+              stroke="orange" // オレンジ色
               strokeWidth={3} // 太線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
             />
+
+           <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="CumulativeEnergy"
+              name="CumulativeEnergy"
+              stroke="orange" // オレンジ色
+              strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+
           </LineChart>
         </ResponsiveContainer>
       </div>

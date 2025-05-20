@@ -238,9 +238,9 @@ const schema = a.schema({
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
+    DeviceType: a.string(),
     Controller: a.string(),
     ControlStage: a.string(),
-    CumulativeEnergy: a.string(),
     Power: a.string(),
     WeightedTemp: a.string(),
     ReferenceTemp: a.string(), 
@@ -248,7 +248,9 @@ const schema = a.schema({
     PresetTemp: a.string(),
     ActualTemp: a.string(),
     ActualHumidity: a.string(),
-    DeviceType: a.string(),
+    ApparentPower: a.string(),
+    ActivePower: a.string(),
+    CumulativeEnergy: a.string(),
     Division: a.string(), 
   }),
 
