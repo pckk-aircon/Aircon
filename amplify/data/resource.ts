@@ -120,6 +120,11 @@ const schema = a.schema({
     DeviceType: a.string(),
     Division: a.string(),
     gltf: a.string(),
+    direction: a.string(),
+    height: a.string(),
+    lat: a.string(),
+    lon: a.string(),
+    model: a.string(),
   }),
 
   // add
@@ -132,7 +137,12 @@ const schema = a.schema({
       DeviceType: a.string(),
       Division: a.string(),
       gltf: a.string(),
-    })
+      direction: a.string(),
+      height: a.string(),
+      lat: a.string(),
+      lon: a.string(),
+      model: a.string(),
+      })
     .returns(a.ref("Device"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
@@ -152,6 +162,11 @@ const schema = a.schema({
     DeviceType: a.string(),
     Division: a.string(),
     gltf: a.string(),
+    direction: a.string(),
+    height: a.string(),
+    lat: a.string(),
+    lon: a.string(),
+    model: a.string(),
   })
   .returns(a.ref("Device").array())
   .authorization(allow => [allow.publicApiKey()])
