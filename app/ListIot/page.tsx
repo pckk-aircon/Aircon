@@ -545,7 +545,6 @@ export default function App() {
     return newItem;
   });
     
-
   //console.log("divisionLists（handle直前）=", divisionLists);
   //console.log("deviceLists（handle直前）=", deviceLists);
 
