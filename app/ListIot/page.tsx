@@ -688,6 +688,7 @@ const downloadCSV = () => {
 
   const rows: any[] = [];
 
+  /*
   mergedData.forEach((item) => {
     Object.keys(deviceNameMapping).forEach((deviceKey) => {
       const actualTemp = item[deviceKey];
@@ -708,6 +709,27 @@ const downloadCSV = () => {
       }
     });
   });
+  */
+
+  
+  mergedData.forEach((item) => {
+    const deviceName = deviceNameMapping[item.Device] || item.Device;
+    rows.push({
+      DeviceDatetime: item.DeviceDatetime,
+      Device: item.Device,
+      DeviceName: deviceName,
+      ActualTemp: item.ActualTemp ?? '',
+      WeightedTemp: item.WeightedTemp ?? '',
+      TargetTemp: item.TargetTemp ?? '',
+      PresetTemp: item.PresetTemp ?? '',
+      ReferenceTemp: item.ReferenceTemp ?? '',
+      ControlStage: item.ControlStage ?? '',
+      ActivePower: item.ActivePower ?? '',
+      ApparentPower: item.ApparentPower ?? '',
+      CumulativeEnergy: item.CumulativeEnergy ?? '',
+    });
+  });
+
 
   const csv = Papa.unparse(rows);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
