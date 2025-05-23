@@ -173,6 +173,7 @@ export default function App() {
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示。
+ 
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
@@ -247,40 +248,14 @@ export default function App() {
   }, {});
 
 
+  const handleDownloadCSV = () => {
+    const csv = Papa.unparse(mergedData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const filename = `chart_data_${format(startDate, "yyyyMMdd")}_${format(endDate, "yyyyMMdd")}.csv`;
+    saveAs(blob, filename);
+  };
 
-// CSVダウンロード関数
-const downloadCSV = () => {
-  if (!mergedData || mergedData.length === 0) {
-    alert("データがありません。");
-    return;
-  }
 
-  const rows: any[] = [];
-
-  mergedData.forEach((item) => {
-    Object.keys(deviceNameMapping).forEach((deviceKey) => {
-      if (item[deviceKey] !== undefined && item[deviceKey] !== null) {
-        rows.push({
-          DeviceDatetime: item.DeviceDatetime,
-          DeviceName: deviceNameMapping[deviceKey],
-          ActualTemp: item[deviceKey],
-          WeightedTemp: item.WeightedTemp,
-          TargetTemp: item.TargetTemp,
-          PresetTemp: item.PresetTemp,
-          ReferenceTemp: item.ReferenceTemp,
-          ControlStage: item.ControlStage,
-          ActivePower: item.ActivePower,
-          ApparentPower: item.ApparentPower,
-          CumulativeEnergy: item.CumulativeEnergy,
-        });
-      }
-    });
-  });
-
-  const csv = Papa.unparse(rows);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  saveAs(blob, `merged_data_${format(startDate, 'yyyyMMdd')}_${format(endDate, 'yyyyMMdd')}.csv`);
-};
 
 
 
@@ -306,7 +281,7 @@ const downloadCSV = () => {
       </div>
       <div>
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
-        <button onClick={downloadCSV}>CSVダウンロード</button>
+        <button onClick={handleDownloadCSV}>CSVダウンロード</button>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -551,11 +526,22 @@ export default function App() {
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
+        /*
         (
           item?.DeviceType === 'Temp' || 
           (item?.DeviceType === 'Aircon' || item?.DeviceType === 'Power') && 
           FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
         )
+        */
+
+        (
+          item?.DeviceType === 'Temp' || 
+          (
+            (item?.DeviceType === 'Aircon' || item?.DeviceType === 'Power') && 
+            FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
+          )
+        )
+
       )
 
         .map(item => {
@@ -612,16 +598,6 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
-
-  /*
-  const mergedData = chartData.map(item => {
-    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
-    Object.keys(groupedData).forEach(device => {
-      const deviceName = deviceNameMapping[device] || device;
-      const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[deviceName] = deviceData ? deviceData.ActualTemp : null;
-    });
-  */
 
     newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
