@@ -191,7 +191,7 @@ export default function App() {
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = {
       DeviceDatetime: item.DeviceDatetime,
-      DeviceName: item.Device ? (deviceNameMapping?.[item.Device] ?? item.Device) : "Unknown" //←追加。
+      //DeviceName: item.Device ? (deviceNameMapping?.[item.Device] ?? item.Device) : "Unknown" //←consoleエラー。
     };
 
     Object.keys(groupedData).forEach(device => {
