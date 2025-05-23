@@ -191,7 +191,7 @@ export default function App() {
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = {
       DeviceDatetime: item.DeviceDatetime,
-      DeviceName: deviceNameMapping[item.Device] || item.Device // DeviceName を追加
+      //DeviceName: deviceNameMapping[item.Device] || item.Device // DeviceName を追加→consoleエラー。
     };
 
     Object.keys(groupedData).forEach(device => {
@@ -273,7 +273,11 @@ export default function App() {
   }
 
   const csv = Papa.unparse(chartData);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+  const bom = new Uint8Array([0xef, 0xbb, 0xbf]); // 追加：BOM
+  const blob = new Blob([bom, csv], { type: "text/csv;charset=utf-8;" }); // 修正：BOM付きでBlobを作成
+
+  //const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const filename = `iot_data_${format(startDate, "yyyyMMdd")}_${format(endDate, "yyyyMMdd")}.csv`;
   saveAs(blob, filename);
 };
