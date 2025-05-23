@@ -189,7 +189,11 @@ export default function App() {
   // デバイスごとのデータを統合して表示。
  
   const mergedData = chartData.map(item => {
-    const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
+    const newItem: Record<string, any> = {
+      DeviceDatetime: item.DeviceDatetime,
+      DeviceName: deviceNameMapping[item.Device] || item.Device // DeviceName を追加
+    };
+
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
