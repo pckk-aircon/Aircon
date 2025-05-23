@@ -107,8 +107,21 @@ export const data = defineData({
 */
 
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { postConfirmation } from "../auth/post-confirmation/resource";
 
 const schema = a.schema({
+
+
+  UserProfile: a
+    .model({
+      email: a.string(),
+      profileOwner: a.string(),
+    })
+    .authorization((allow) => [
+      allow.ownerDefinedIn("profileOwner"),
+    ]),
+
+
 
  // ＊＊＊＊ Device ＊＊＊＊
 
