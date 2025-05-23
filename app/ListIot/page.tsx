@@ -605,15 +605,15 @@ export default function App() {
   const colors = ["mediumvioletred","deeppink", "hotpink", "palevioletred", "pink"];
 
   // デバイスごとのデータを統合して表示。
-  /*
+ 
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[device] = deviceData ? deviceData.ActualTemp : null;
     });
-  */
 
+  /*
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = { DeviceDatetime: item.DeviceDatetime };
     Object.keys(groupedData).forEach(device => {
@@ -621,7 +621,7 @@ export default function App() {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[deviceName] = deviceData ? deviceData.ActualTemp : null;
     });
-
+  */
 
     newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
