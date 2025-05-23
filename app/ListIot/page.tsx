@@ -679,62 +679,13 @@ export default function App() {
   }, {});
 
 
+  const handleDownloadCSV = () => {
+    const csv = Papa.unparse(mergedData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const filename = `chart_data_${format(startDate, "yyyyMMdd")}_${format(endDate, "yyyyMMdd")}.csv`;
+    saveAs(blob, filename);
+  };
 
-const downloadCSV = () => {
-  if (!mergedData || mergedData.length === 0) {
-    alert("データがありません。");
-    return;
-  }
-
-  const rows: any[] = [];
-
-  /*
-  mergedData.forEach((item) => {
-    Object.keys(deviceNameMapping).forEach((deviceKey) => {
-      const actualTemp = item[deviceKey];
-      if (actualTemp !== undefined && actualTemp !== null) {
-        rows.push({
-          DeviceDatetime: item.DeviceDatetime,
-          DeviceName: deviceNameMapping[deviceKey],
-          ActualTemp: actualTemp,
-          WeightedTemp: item.WeightedTemp ?? '',
-          TargetTemp: item.TargetTemp ?? '',
-          PresetTemp: item.PresetTemp ?? '',
-          ReferenceTemp: item.ReferenceTemp ?? '',
-          ControlStage: item.ControlStage ?? '',
-          ActivePower: item.ActivePower ?? '',
-          ApparentPower: item.ApparentPower ?? '',
-          CumulativeEnergy: item.CumulativeEnergy ?? '',
-        });
-      }
-    });
-  });
-  */
-
-  
-  mergedData.forEach((item) => {
-    const deviceName = deviceNameMapping[item.Device] || item.Device;
-    rows.push({
-      DeviceDatetime: item.DeviceDatetime,
-      Device: item.Device,
-      DeviceName: deviceName,
-      ActualTemp: item.ActualTemp ?? '',
-      WeightedTemp: item.WeightedTemp ?? '',
-      TargetTemp: item.TargetTemp ?? '',
-      PresetTemp: item.PresetTemp ?? '',
-      ReferenceTemp: item.ReferenceTemp ?? '',
-      ControlStage: item.ControlStage ?? '',
-      ActivePower: item.ActivePower ?? '',
-      ApparentPower: item.ApparentPower ?? '',
-      CumulativeEnergy: item.CumulativeEnergy ?? '',
-    });
-  });
-
-
-  const csv = Papa.unparse(rows);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  saveAs(blob, `merged_data_${format(startDate, 'yyyyMMdd')}_${format(endDate, 'yyyyMMdd')}.csv`);
-};
 
 
 
@@ -761,7 +712,7 @@ const downloadCSV = () => {
       </div>
       <div>
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
-        <button onClick={downloadCSV}>CSVダウンロード</button>
+        <button onClick={handleDownloadCSV}>CSVダウンロード</button>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
