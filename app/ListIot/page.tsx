@@ -373,6 +373,9 @@ import { format, parseISO } from "date-fns";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
+import { saveAs } from 'file-saver'; // 追加: ファイル保存用ライブラリ
+import Papa from 'papaparse'; // 追加: CSV変換用ライブラリ
+
 //Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
@@ -600,6 +603,44 @@ export default function App() {
     return acc;
   }, {});
 
+
+
+// CSVダウンロード関数
+const downloadCSV = () => {
+  if (!mergedData || mergedData.length === 0) {
+    alert("データがありません。");
+    return;
+  }
+
+  const rows: any[] = [];
+
+  mergedData.forEach((item) => {
+    Object.keys(deviceNameMapping).forEach((deviceKey) => {
+      if (item[deviceKey] !== undefined && item[deviceKey] !== null) {
+        rows.push({
+          DeviceDatetime: item.DeviceDatetime,
+          DeviceName: deviceNameMapping[deviceKey],
+          ActualTemp: item[deviceKey],
+          WeightedTemp: item.WeightedTemp,
+          TargetTemp: item.TargetTemp,
+          PresetTemp: item.PresetTemp,
+          ReferenceTemp: item.ReferenceTemp,
+          ControlStage: item.ControlStage,
+          ActivePower: item.ActivePower,
+          ApparentPower: item.ApparentPower,
+          CumulativeEnergy: item.CumulativeEnergy,
+        });
+      }
+    });
+  });
+
+  const csv = Papa.unparse(rows);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  saveAs(blob, `merged_data_${format(startDate, 'yyyyMMdd')}_${format(endDate, 'yyyyMMdd')}.csv`);
+};
+
+
+
   return (
     <main>
       <div>
@@ -622,6 +663,7 @@ export default function App() {
       </div>
       <div>
         <h1>Temperature Data for {divisionLists[currentDivisionIndex].DivisionName} _ {FiltereddeviceLists[currentDeviceIndex]?.DeviceName}</h1>
+        <button onClick={downloadCSV}>CSVダウンロード</button>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
