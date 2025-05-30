@@ -19,6 +19,9 @@
         "name": "next"
       }
     ],
+    
+    "baseUrl": "./",
+
     "paths": {
       "@/*": ["./*"],
       "$amplify/*": ["amplify/*"]

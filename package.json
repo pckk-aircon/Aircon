@@ -8,9 +8,13 @@
     "start": "next start",
     "lint": "next lint"
   },
+
   "dependencies": {
     "@aws-amplify/geo": "^3.0.71",
+    "@aws-amplify/graphql-api-construct": "^1.20.1",
+    "@aws-amplify/graphql-schema-generator": "^0.11.11",
     "@aws-amplify/ui-react": "^6.11.1",
+    "@aws-sdk/client-ec2": "^3.819.0",
     "@babel/plugin-transform-class-properties": "^7.25.9",
     "@babel/plugin-transform-object-rest-spread": "^7.25.9",
     "@babylonjs/core": "^8.4.2",
