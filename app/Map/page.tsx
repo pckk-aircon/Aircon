@@ -279,7 +279,6 @@ import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
-
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
