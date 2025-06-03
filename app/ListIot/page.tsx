@@ -521,8 +521,10 @@ export default function App() {
     console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
-      StartDatetime: startDatetime,
-      EndDatetime: endDatetime,
+      //StartDatetime: startDatetime,
+      //EndDatetime: endDatetime,
+      StartDatetime: '2025-06-01 23:59:59+09:00',      
+      EndDatetime: '2025-06-03 23:59:59+09:00',
     });
     console.log('★★★Iotdata（listIot-queries直後）=', data)
 
