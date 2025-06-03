@@ -557,7 +557,11 @@ export default function App() {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
-    console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
+    console.log("★★★startDate:", startDate);
+    console.log("★★★endDate:", endDate);
+    console.log("★★★startDatetime:", startDatetime);
+    console.log("★★★endDatetime:", endDatetime);
+
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
