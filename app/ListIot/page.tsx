@@ -1,5 +1,6 @@
 /*
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,8 +41,24 @@ interface ChartData {
 
 export default function App() {
 
-  const [startDate, setStartDatetime] = useState(new Date()); 
-  const [endDate, setEndDatetime] = useState(new Date());
+  //const [startDate, setStartDatetime] = useState(new Date()); 
+  //const [endDate, setEndDatetime] = useState(new Date());
+
+  const [startDate, setStartDatetime] = useState(new Date());
+  const [endDate, setEndDatetime] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 2);
+    return tomorrow;
+  });
+
+  //ここに追加
+  useEffect(() => {
+    const nextDay = new Date(startDate);
+    nextDay.setDate(startDate.getDate() + 2);
+    setEndDatetime(nextDay); //ここでendDateを更新。
+  }, [startDate]);
+
+  
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
@@ -75,6 +92,7 @@ export default function App() {
     fetchData();
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
+
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
@@ -97,13 +115,14 @@ export default function App() {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
+    console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
+    console.log('★★★Iotdata（listIot-queries直後）=', data)
 
-    //console.log('Iotdata（listIot）=', data)
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
@@ -418,6 +437,7 @@ export default function App() {
   );
 }
 
+
 */
 
 
@@ -472,13 +492,6 @@ export default function App() {
     return tomorrow;
   });
 
-  //ここに追加
-  useEffect(() => {
-    const nextDay = new Date(startDate);
-    nextDay.setDate(startDate.getDate() + 2);
-    setEndDatetime(nextDay); //ここでendDateを更新。
-  }, [startDate]);
-
   
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -506,12 +519,24 @@ export default function App() {
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
 
+
+  //ここに追加
   useEffect(() => {
-    async function fetchData() {
-        await listIot();
-    }
-    fetchData();
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+    const nextDay = new Date(startDate);
+    nextDay.setDate(startDate.getDate() + 2);
+    setEndDatetime(nextDay); //ここでendDateを更新。
+
+    useEffect(() => {
+      async function fetchData() {
+          await listIot();
+      }
+      fetchData();
+    }, [currentDivisionIndex, currentDeviceIndex]);
+
+  }, [startDate]);
+
+
+
 
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
