@@ -464,6 +464,14 @@ export default function App() {
   const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
+  const [startDate, setStartDatetime] = useState(new Date());
+  const [endDate, setEndDatetime] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow;
+  });
+
+
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -521,10 +529,8 @@ export default function App() {
     console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
-      //StartDatetime: startDatetime,
-      //EndDatetime: endDatetime,
-      StartDatetime: '2025-05-01 00:00:00',      
-      EndDatetime: '2025-05-31 23:59:59',
+      StartDatetime: startDatetime,
+      EndDatetime: endDatetime,
     });
     console.log('★★★Iotdata（listIot-queries直後）=', data)
 
