@@ -523,8 +523,8 @@ export default function App() {
       Controller: "Mutsu01",
       //StartDatetime: startDatetime,
       //EndDatetime: endDatetime,
-      StartDatetime: '2025-06-01 23:59:59+09:00',      
-      EndDatetime: '2025-06-03 23:59:59+09:00',
+      StartDatetime: '2025-05-01 00:00:00',      
+      EndDatetime: '2025-05-31 23:59:59',
     });
     console.log('★★★Iotdata（listIot-queries直後）=', data)
 
