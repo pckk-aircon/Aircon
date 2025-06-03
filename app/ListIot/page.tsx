@@ -492,6 +492,13 @@ export default function App() {
     return tomorrow;
   });
 
+  //ここに追加
+  useEffect(() => {
+    const nextDay = new Date(startDate);
+    nextDay.setDate(startDate.getDate() + 2);
+    setEndDatetime(nextDay); //ここでendDateを更新。
+  }, [startDate]);
+
   
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -519,23 +526,12 @@ export default function App() {
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
 
-
-  //ここに追加
   useEffect(() => {
-    const nextDay = new Date(startDate);
-    nextDay.setDate(startDate.getDate() + 2);
-    setEndDatetime(nextDay); //ここでendDateを更新。
-
-    useEffect(() => {
-      async function fetchData() {
-          await listIot();
-      }
-      fetchData();
-    }, [currentDivisionIndex, currentDeviceIndex]);
-
-  }, [startDate]);
-
-
+    async function fetchData() {
+      await listIot();
+    }
+    fetchData();
+  }, [currentDivisionIndex, currentDeviceIndex]);
 
 
   async function listIot() {
