@@ -469,8 +469,17 @@ export default function App() {
   const [endDate, setEndDatetime] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow;
+    return tomorrow;
   });
+
+  //ここに追加
+  useEffect(() => {
+    const nextDay = new Date(startDate);
+    nextDay.setDate(startDate.getDate() + 1);
+    setEndDatetime(nextDay); //ここでendDateを更新。
+  }, [startDate]);
+
+  
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
