@@ -461,8 +461,15 @@ interface ChartData {
 
 export default function App() {
 
+  //const [startDate, setStartDatetime] = useState(new Date()); 
+  //const [endDate, setEndDatetime] = useState(new Date());
+  
   const [startDate, setStartDatetime] = useState(new Date()); 
-  const [endDate, setEndDatetime] = useState(new Date());
+  const [endDate, setEndDatetime] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow;
+  });
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
