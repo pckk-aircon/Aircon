@@ -421,6 +421,7 @@ export default function App() {
 */
 
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -461,8 +462,8 @@ interface ChartData {
 
 export default function App() {
 
-  const [startDate, setStartDatetime] = useState(new Date()); 
-  const [endDate, setEndDatetime] = useState(new Date());
+  //const [startDate, setStartDatetime] = useState(new Date()); 
+  //const [endDate, setEndDatetime] = useState(new Date());
 
   const [startDate, setStartDatetime] = useState(new Date());
   const [endDate, setEndDatetime] = useState(() => {
@@ -470,7 +471,6 @@ export default function App() {
     tomorrow.setDate(tomorrow.getDate() + 1);
   return tomorrow;
   });
-
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
