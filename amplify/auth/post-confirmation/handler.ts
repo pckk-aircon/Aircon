@@ -5,9 +5,6 @@ import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 
 import { env } from "$amplify/env/post-confirmation";
-// @ts-ignore
-
-
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   env
