@@ -468,14 +468,14 @@ export default function App() {
   const [startDate, setStartDatetime] = useState(new Date());
   const [endDate, setEndDatetime] = useState(() => {
     const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setDate(tomorrow.getDate() + 2);
     return tomorrow;
   });
 
   //ここに追加
   useEffect(() => {
     const nextDay = new Date(startDate);
-    nextDay.setDate(startDate.getDate() + 1);
+    nextDay.setDate(startDate.getDate() + 2);
     setEndDatetime(nextDay); //ここでendDateを更新。
   }, [startDate]);
 
