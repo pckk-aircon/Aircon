@@ -531,17 +531,23 @@ export default function App() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
+    console.log('★★★startDate（listIot-queries直前）=', startDate)
+    console.log('★★★endDate（listIot-queries直前）=', endDate)
+    console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
+    console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
     console.log('★★★Iotdata（listIot-queries直後）=', data)
+    console.log('★★★errors（listIot-queries直後）=', errors)
 
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
     //追記部分: divisionListsのデータ取得と状態更新
 
+    /*
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
@@ -555,12 +561,7 @@ export default function App() {
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
-
-    console.log("★★★startDate:", startDate);
-    console.log("★★★endDate:", endDate);
-    console.log("★★★startDatetime:", startDatetime);
-    console.log("★★★endDatetime:", endDatetime);
-
+    */
 
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
