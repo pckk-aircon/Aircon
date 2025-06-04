@@ -483,7 +483,7 @@ interface ChartData {
 export default function App() {
 
   const [startDate, setStartDatetime] = useState(new Date()); 
-  //const [endDate, setEndDatetime] = useState(new Date());
+  const [endDate, setEndDatetime] = useState(new Date());
 
   //ここに追加
   useEffect(() => {
