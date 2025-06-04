@@ -491,7 +491,6 @@ export default function App() {
   }, [startDate]);
 
   
-
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
