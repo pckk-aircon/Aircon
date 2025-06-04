@@ -41,15 +41,8 @@ interface ChartData {
 
 export default function App() {
 
-  //const [startDate, setStartDatetime] = useState(new Date()); 
-  //const [endDate, setEndDatetime] = useState(new Date());
-
-  const [startDate, setStartDatetime] = useState(new Date());
-  const [endDate, setEndDatetime] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 2);
-    return tomorrow;
-  });
+  const [startDate, setStartDatetime] = useState(new Date()); 
+  const [endDate, setEndDatetime] = useState(new Date());
 
   //ここに追加
   useEffect(() => {
@@ -87,9 +80,10 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-        await listIot();
+      await listIot();
     }
     fetchData();
+  //}, [currentDivisionIndex, currentDeviceIndex]);
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
 
@@ -115,7 +109,11 @@ export default function App() {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
-    console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
+    console.log("★★★startDate:", startDate);
+    console.log("★★★endDate:", endDate);
+    console.log("★★★startDatetime:", startDatetime);
+    console.log("★★★endDatetime:", endDatetime);
+
     const { data, errors } = await client.queries.listIot({
       Controller: "Mutsu01",
       StartDatetime: startDatetime,
@@ -507,7 +505,7 @@ export default function App() {
   //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
-
+  //デフォルトのdivision、device設定。
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
@@ -519,18 +517,27 @@ export default function App() {
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
 
+  //グラフデータの抽出。
   useEffect(() => {
     async function fetchData() {
       await listIot();
     }
     fetchData();
   //}, [currentDivisionIndex, currentDeviceIndex]);
+ // }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
   }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
 
 
   async function listIot() {
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
+
+    const { data, errors } = await client.queries.listIot({
+      Controller: "Mutsu01",
+      StartDatetime: startDatetime,
+      EndDatetime: endDatetime,
+    });
+    console.log('★★★Iotdata（listIot-queries直後）=', data)
 
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
@@ -555,12 +562,6 @@ export default function App() {
     console.log("★★★startDatetime:", startDatetime);
     console.log("★★★endDatetime:", endDatetime);
 
-    const { data, errors } = await client.queries.listIot({
-      Controller: "Mutsu01",
-      StartDatetime: startDatetime,
-      EndDatetime: endDatetime,
-    });
-    console.log('★★★Iotdata（listIot-queries直後）=', data)
 
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
