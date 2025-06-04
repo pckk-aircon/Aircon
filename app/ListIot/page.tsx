@@ -524,7 +524,7 @@ export default function App() {
     fetchData();
   //}, [currentDivisionIndex, currentDeviceIndex]);
  // }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [endDate, currentDivisionIndex, currentDeviceIndex]);
 
 
   async function listIot() {
