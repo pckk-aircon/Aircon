@@ -486,7 +486,7 @@ export default function App() {
   //ここに追加
   useEffect(() => {
     const nextDay = new Date(startDate);
-    nextDay.setDate(startDate.getDate() + 8);
+    nextDay.setDate(startDate.getDate() + 0);
     setEndDatetime(nextDay); //ここでendDateを更新。
   }, [startDate]);
 
