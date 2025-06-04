@@ -528,8 +528,11 @@ export default function App() {
 
 
   async function listIot() {
+
+    //const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
+    //const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
-    const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
+    const endDatetime = `${format(endDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     //const startDatetime = startDate.toISOString(); // 例: 2025-01-30T15:00:00.000Z
     //const endDatetime = endDate.toISOString();     // 例: 2025-01-31T14:59:59.999Z
     //const startDatetime = `${format(startDate, "yyyy-MM-dd'T'00:00:00xxx")}`; // JSTで +09:00 を含む
