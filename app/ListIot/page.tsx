@@ -528,9 +528,10 @@ export default function App() {
 
 
   async function listIot() {
-    const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
-    const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
 
+    const startDatetime = startDate.toISOString(); // 例: 2025-01-30T15:00:00.000Z
+    const endDatetime = endDate.toISOString();     // 例: 2025-01-31T14:59:59.999Z
+    
     console.log('★★★startDate（listIot-queries直前）=', startDate)
     console.log('★★★endDate（listIot-queries直前）=', endDate)
     console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
@@ -547,7 +548,7 @@ export default function App() {
     //console.log("EndDatetime=", endDate);
     //追記部分: divisionListsのデータ取得と状態更新
 
-    /*
+
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
     });
@@ -561,7 +562,7 @@ export default function App() {
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
-    */
+  
 
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
