@@ -1,3 +1,4 @@
+/*
 
 import { util } from '@aws-appsync/utils';
 
@@ -17,3 +18,21 @@ export function request(ctx) {
 }
 
 export const response = (ctx) => ctx.result.items;
+
+*/
+
+
+export function request(ctx) {
+  return {
+    operation: 'Query',
+    query: {
+      expression: 'Controller = :controller AND DeviceDatetime >= :startDatetime AND DeviceDatetime <= :endDatetime',
+      expressionValues: util.dynamodb.toMapValues({ 
+        ':controller': ctx.args.Controller,
+        ':startDatetime': ctx.args.StartDatetime,
+        ':endDatetime': ctx.args.EndDatetime
+      })
+    },
+    index: 'Controller-DeviceDatetime-index'
+  };
+}
