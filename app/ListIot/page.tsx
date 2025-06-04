@@ -531,9 +531,10 @@ export default function App() {
 
     //const startDatetime = startDate.toISOString(); // 例: 2025-01-30T15:00:00.000Z
     //const endDatetime = endDate.toISOString();     // 例: 2025-01-31T14:59:59.999Z
-    const startDatetime = `${format(startDate, "yyyy-MM-dd'T'00:00:00xxx")}`; // JSTで +09:00 を含む
-    const endDatetime = `${format(endDate, "yyyy-MM-dd'T'23:59:59xxx")}`;
-
+    //const startDatetime = `${format(startDate, "yyyy-MM-dd'T'00:00:00xxx")}`; // JSTで +09:00 を含む
+    //const endDatetime = `${format(endDate, "yyyy-MM-dd'T'23:59:59xxx")}`;
+    const startDatetime = `${format(startDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
+    const endDatetime = `${format(endDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
     
     console.log('★★★startDate（listIot-queries直前）=', startDate)
     console.log('★★★endDate（listIot-queries直前）=', endDate)
