@@ -172,7 +172,7 @@ export default function App() {
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
             ActivePower: item?.ActivePower !== undefined && item.ActivePower !== null ? parseFloat(item.ActivePower) : null,
             ApparentPower: item?.ApparentPower !== undefined && item.ApparentPower !== null ? parseFloat(item.ApparentPower) : null,
-            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,            
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
@@ -522,6 +522,9 @@ export default function App() {
 
   const [FiltereddeviceLists, setFiltereddevice] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>>([]);
  
+  const [firstCumulativeEnergy, setFirstCumulativeEnergy] = useState<number | null>(null);
+
+
   //console.log("divisionLists（State直後）=", divisionLists);
   //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
@@ -604,6 +607,7 @@ export default function App() {
       console.log('☆☆☆powerData=', powerData)
       
       //findで、DeviceType === 'Powerの先頭行を取得。
+      /*
       const firstPowerRow = data.find(item => item?.DeviceType === 'Power');
         if (firstPowerRow && firstPowerRow.CumulativeEnergy !== undefined && firstPowerRow.CumulativeEnergy !== null) {
         } else {
@@ -611,6 +615,18 @@ export default function App() {
         }
       const firstCumulativeEnergy = firstPowerRow?.CumulativeEnergy ;
       console.log("☆☆☆firstCumulativeEnergy:", firstCumulativeEnergy);
+      */
+      
+      const firstPowerRow = data.find(item => item?.DeviceType === 'Power');
+      if (firstPowerRow?.CumulativeEnergy != null) {
+        //setFirstCumulativeEnergy(firstPowerRow.CumulativeEnergy);
+        setFirstCumulativeEnergy(parseFloat(firstPowerRow.CumulativeEnergy));
+        console.log("☆☆☆firstCumulativeEnergy:", firstPowerRow.CumulativeEnergy);
+      } else {
+        console.log("Powerデータが見つからないか、CumulativeEnergyが未定義です");
+      }
+
+
       
       const formattedData = data
       .filter(item => 
@@ -677,7 +693,7 @@ export default function App() {
   const mergedData = chartData.map(item => {
     const newItem: Record<string, any> = {
       DeviceDatetime: item.DeviceDatetime,
-      //DeviceName: item.Device ? (deviceNameMapping?.[item.Device] ?? item.Device) : "Unknown" //←consoleエラー。
+      firstCumulativeEnergyLine: firstCumulativeEnergy, // 追加
     };
 
     Object.keys(groupedData).forEach(device => {
@@ -693,6 +709,7 @@ export default function App() {
     newItem.ActivePower = item.ActivePower;  
     newItem.ApparentPower = item.ApparentPower;   
     newItem.CumulativeEnergy = item.CumulativeEnergy;
+
     return newItem;
   });
     
@@ -904,6 +921,18 @@ export default function App() {
               name="CumulativeEnergy"
               stroke="orange" // オレンジ色
               strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="firstCumulativeEnergyLine"
+              name="First Cumulative Energy"
+              stroke="gray"
+              strokeDasharray="5 5"
               dot={false}
               connectNulls
               isAnimationActive={false}
