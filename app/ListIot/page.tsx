@@ -492,6 +492,7 @@ interface ChartData {
   ApparentPower: number | null;
   Division: string;
   DivisionName?: string; // DivisionNameを追加
+  DeviceType?: string
 }
 
 export default function App() {
@@ -592,21 +593,12 @@ export default function App() {
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
     //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
 
-    const powerRows = chartData.filter(item => {
-      return (
-        item?.Device &&
-        deviceLists?.find(d => d?.Device === item.Device && d.DeviceType === 'Power') &&
-        item.CumulativeEnergy !== null &&
-        item.CumulativeEnergy !== undefined
-      );
-    });
-    const firstPowerRow = powerRows.sort((a, b) => new Date(a.DeviceDatetime).getTime() - new Date(b.DeviceDatetime).getTime())[0];
-    console.log('☆☆☆firstPowerRow=', firstPowerRow)
-
     if (data) { 
-
+      
+      const powerData = data.filter(item => item?.DeviceType === 'Power');
+      console.log('☆☆☆powerData=', powerData)
+      
       const formattedData = data
-
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
