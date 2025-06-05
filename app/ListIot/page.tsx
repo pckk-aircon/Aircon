@@ -598,6 +598,16 @@ export default function App() {
       const powerData = data.filter(item => item?.DeviceType === 'Power');
       console.log('☆☆☆powerData=', powerData)
       
+      //findで、DeviceType === 'Powerの先頭行を取得。
+      const firstPowerRow = data.find(item => item?.DeviceType === 'Power');
+        if (firstPowerRow && firstPowerRow.CumulativeEnergy !== undefined && firstPowerRow.CumulativeEnergy !== null) {
+          console.log("☆☆☆firstCumulativeEnergy:", firstPowerRow.CumulativeEnergy);
+        } else {
+          console.log("Powerデータが見つからないか、CumulativeEnergyが未定義です");
+        }
+      const firstCumulativeEnergy = firstPowerRow?.CumulativeEnergy ;
+      console.log("☆☆☆firstCumulativeEnergy:", firstCumulativeEnergy);
+      
       const formattedData = data
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
