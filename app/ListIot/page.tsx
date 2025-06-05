@@ -511,6 +511,7 @@ interface ChartData {
   PresetTemp: number | null;
   ReferenceTemp: number | null;
   CumulativeEnergy: number | null;
+  InitializedCumulativeEnergy?: number | null;
   ActivePower: number | null;
   ApparentPower: number | null;
   Division: string;
@@ -649,13 +650,15 @@ export default function App() {
         )
       )
 
+        //csvダウンロードの項目はこちら。
         .map(item => {
           return {
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
             ActivePower: item?.ActivePower !== undefined && item.ActivePower !== null ? parseFloat(item.ActivePower) : null,
             ApparentPower: item?.ApparentPower !== undefined && item.ApparentPower !== null ? parseFloat(item.ApparentPower) : null,
-            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,            
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null, 
+            InitializedCumulativeEnergy: firstCumulativeEnergy != null && item?.CumulativeEnergy != null ? parseFloat(item.CumulativeEnergy) - firstCumulativeEnergy : null,
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
@@ -664,7 +667,6 @@ export default function App() {
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
             DivisionName: divisionLists?.[currentDivisionIndex]?.DivisionName ?? '', // オプショナルチェーンを使用
-
           };
         });
 
