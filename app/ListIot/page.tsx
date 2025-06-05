@@ -47,13 +47,12 @@ export default function App() {
   //ここに追加
   useEffect(() => {
     const nextDay = new Date(startDate);
-    nextDay.setDate(startDate.getDate() + 2);
+    nextDay.setDate(startDate.getDate() + 1);
     setEndDatetime(nextDay); //ここでendDateを更新。
   }, [startDate]);
 
-  
-
   const [chartData, setChartData] = useState<ChartData[]>([]);
+
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
@@ -66,7 +65,7 @@ export default function App() {
   //console.log("deviceLists（State直後）=", deviceLists);
   console.log("FiltereddeviceLists（State直後）=", FiltereddeviceLists);
 
-
+  //デフォルトのdivision、device設定。
   useEffect(() => {
     if (divisionLists.length > 0 && deviceLists.length > 0) {
       const selectedDivision = divisionLists[currentDivisionIndex].Division;
@@ -78,22 +77,51 @@ export default function App() {
     }
   }, [divisionLists, deviceLists, currentDivisionIndex, currentDeviceIndex]);
 
+  //グラフデータの抽出。
   useEffect(() => {
     async function fetchData() {
       await listIot();
     }
     fetchData();
   //}, [currentDivisionIndex, currentDeviceIndex]);
-  }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+ // }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [endDate, currentDivisionIndex, currentDeviceIndex]);
 
 
   async function listIot() {
+
+    //const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
+    //const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
-    const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
+    const endDatetime = `${format(endDate, "yyyy-MM-dd")} 00:00:00+09:00`;
+    //const startDatetime = startDate.toISOString(); // 例: 2025-01-30T15:00:00.000Z
+    //const endDatetime = endDate.toISOString();     // 例: 2025-01-31T14:59:59.999Z
+    //const startDatetime = `${format(startDate, "yyyy-MM-dd'T'00:00:00xxx")}`; // JSTで +09:00 を含む
+    //const endDatetime = `${format(endDate, "yyyy-MM-dd'T'23:59:59xxx")}`;
+    //const startDatetime = `${format(startDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
+    //const endDatetime = `${format(endDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
+
+    console.log('★★★startDate（listIot-queries直前）=', startDate)
+    console.log('★★★endDate（listIot-queries直前）=', endDate)
+    console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
+    console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
+    const { data, errors } = await client.queries.listIot({
+      Controller: "Mutsu01",
+      StartDatetime: startDatetime,
+      EndDatetime: endDatetime,
+    });
+    console.log('★★★Iotdata（listIot-queries直後）=', data)
+    console.log('★★★errors（listIot-queries直後）=', errors)
+
+    if (data && data.length > 2) {
+      const third = data[2];
+      console.log("3番目のIotデータ:", third);
+    } 
 
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
     //追記部分: divisionListsのデータ取得と状態更新
+
 
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
@@ -108,18 +136,7 @@ export default function App() {
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
-
-    console.log("★★★startDate:", startDate);
-    console.log("★★★endDate:", endDate);
-    console.log("★★★startDatetime:", startDatetime);
-    console.log("★★★endDatetime:", endDatetime);
-
-    const { data, errors } = await client.queries.listIot({
-      Controller: "Mutsu01",
-      StartDatetime: startDatetime,
-      EndDatetime: endDatetime,
-    });
-    console.log('★★★Iotdata（listIot-queries直後）=', data)
+  
 
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
@@ -142,7 +159,6 @@ export default function App() {
             FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
           )
         )
-
       )
 
         .map(item => {
@@ -552,15 +568,9 @@ export default function App() {
     console.log('★★★Iotdata（listIot-queries直後）=', data)
     console.log('★★★errors（listIot-queries直後）=', errors)
 
-    if (data && data.length > 2) {
-      const third = data[2];
-      console.log("3番目のIotデータ:", third);
-    } 
-
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
     //追記部分: divisionListsのデータ取得と状態更新
-
 
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
@@ -576,12 +586,22 @@ export default function App() {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   
-
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
-    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
+    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
+
+    const powerRows = chartData.filter(item => {
+      return (
+        item?.Device &&
+        deviceLists?.find(d => d?.Device === item.Device && d.DeviceType === 'Power') &&
+        item.CumulativeEnergy !== null &&
+        item.CumulativeEnergy !== undefined
+      );
+    });
+    const firstPowerRow = powerRows.sort((a, b) => new Date(a.DeviceDatetime).getTime() - new Date(b.DeviceDatetime).getTime())[0];
+    console.log('☆☆☆firstPowerRow=', firstPowerRow)
 
     if (data) { 
 
@@ -598,7 +618,6 @@ export default function App() {
             FiltereddeviceLists[currentDeviceIndex]?.Device === item?.Device
           )
         )
-
       )
 
         .map(item => {
