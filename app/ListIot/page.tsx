@@ -37,6 +37,7 @@ interface ChartData {
   ApparentPower: number | null;
   Division: string;
   DivisionName?: string; // DivisionNameを追加
+  DeviceType?: string
 }
 
 export default function App() {
@@ -113,15 +114,9 @@ export default function App() {
     console.log('★★★Iotdata（listIot-queries直後）=', data)
     console.log('★★★errors（listIot-queries直後）=', errors)
 
-    if (data && data.length > 2) {
-      const third = data[2];
-      console.log("3番目のIotデータ:", third);
-    } 
-
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
     //追記部分: divisionListsのデータ取得と状態更新
-
 
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
       Controller: "Mutsu01",
@@ -137,17 +132,27 @@ export default function App() {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   
-
     //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
-    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)   
+    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
 
     if (data) { 
-
+      
+      const powerData = data.filter(item => item?.DeviceType === 'Power');
+      console.log('☆☆☆powerData=', powerData)
+      
+      //findで、DeviceType === 'Powerの先頭行を取得。
+      const firstPowerRow = data.find(item => item?.DeviceType === 'Power');
+        if (firstPowerRow && firstPowerRow.CumulativeEnergy !== undefined && firstPowerRow.CumulativeEnergy !== null) {
+        } else {
+          console.log("Powerデータが見つからないか、CumulativeEnergyが未定義です");
+        }
+      const firstCumulativeEnergy = firstPowerRow?.CumulativeEnergy ;
+      console.log("☆☆☆firstCumulativeEnergy:", firstCumulativeEnergy);
+      
       const formattedData = data
-
       .filter(item => 
         divisionLists?.[currentDivisionIndex]?.Division && // オプショナルチェーンを使用
         item?.Division === divisionLists[currentDivisionIndex].Division && 
@@ -601,7 +606,6 @@ export default function App() {
       //findで、DeviceType === 'Powerの先頭行を取得。
       const firstPowerRow = data.find(item => item?.DeviceType === 'Power');
         if (firstPowerRow && firstPowerRow.CumulativeEnergy !== undefined && firstPowerRow.CumulativeEnergy !== null) {
-          console.log("☆☆☆firstCumulativeEnergy:", firstPowerRow.CumulativeEnergy);
         } else {
           console.log("Powerデータが見つからないか、CumulativeEnergyが未定義です");
         }
@@ -628,7 +632,7 @@ export default function App() {
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
             ActivePower: item?.ActivePower !== undefined && item.ActivePower !== null ? parseFloat(item.ActivePower) : null,
             ApparentPower: item?.ApparentPower !== undefined && item.ApparentPower !== null ? parseFloat(item.ApparentPower) : null,
-            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,
+            CumulativeEnergy: item?.CumulativeEnergy !== undefined && item.CumulativeEnergy !== null ? parseFloat(item.CumulativeEnergy) : null,            
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
