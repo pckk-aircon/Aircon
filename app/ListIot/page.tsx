@@ -952,7 +952,7 @@ export default function App() {
             />
 
             <Line
-              yAxisId="right"
+              yAxisId="right2"
               type="monotone"
               dataKey="InitializedCumulativeEnergy"
               name="InitializedCumulativeEnergy"
