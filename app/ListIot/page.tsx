@@ -492,41 +492,6 @@ export default function App() {
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
 
-  const getEarliestCumulativeEnergy = () => {
-    if (chartData.length === 0) return null;
-
-    // DeviceType が 'Power' かつ CumulativeEnergy が存在するデータに絞る
-    const filtered = chartData.filter(
-      item =>
-        item.Device &&
-        deviceLists.find(d => d.Device === item.Device && d.DeviceType === 'Power') &&
-        item.CumulativeEnergy !== null &&
-        item.CumulativeEnergy !== undefined
-    );
-
-    if (filtered.length === 0) return null;
-
-    // DeviceDatetime が最も早いものを取得
-    const earliest = filtered.reduce((minItem, current) => {
-      return new Date(current.DeviceDatetime) < new Date(minItem.DeviceDatetime) ? current : minItem;
-    });
-
-    return {
-      datetime: earliest.DeviceDatetime,
-      cumulativeEnergy: earliest.CumulativeEnergy,
-      device: earliest.Device,
-    };
-  };
-
-
-
-
-
-
-
-
-
-
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
@@ -574,11 +539,6 @@ export default function App() {
     //const endDatetime = `${format(endDate, "yyyy-MM-dd'T'23:59:59xxx")}`;
     //const startDatetime = `${format(startDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
     //const endDatetime = `${format(endDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
-    
-    const result = getEarliestCumulativeEnergy();
-    console.log("最初のPowerデバイスの時刻:", result?.datetime);
-    console.log("デバイス:", result?.device);
-    console.log("CumulativeEnergy:", result?.cumulativeEnergy);
 
     console.log('★★★startDate（listIot-queries直前）=', startDate)
     console.log('★★★endDate（listIot-queries直前）=', endDate)
@@ -591,6 +551,11 @@ export default function App() {
     });
     console.log('★★★Iotdata（listIot-queries直後）=', data)
     console.log('★★★errors（listIot-queries直後）=', errors)
+
+    if (data && data.length > 2) {
+      const third = data[2];
+      console.log("3番目のIotデータ:", third);
+    } 
 
     //console.log("StartDatetime=", startDate);
     //console.log("EndDatetime=", endDate);
