@@ -495,8 +495,14 @@ export default function App() {
   const getEarliestCumulativeEnergy = () => {
     if (chartData.length === 0) return null;
 
-    // CumulativeEnergy が null または undefined でないデータだけを対象にする
-    const filtered = chartData.filter(item => item.CumulativeEnergy !== null && item.CumulativeEnergy !== undefined);
+    // DeviceType が 'Power' かつ CumulativeEnergy が存在するデータに絞る
+    const filtered = chartData.filter(
+      item =>
+        item.Device &&
+        deviceLists.find(d => d.Device === item.Device && d.DeviceType === 'Power') &&
+        item.CumulativeEnergy !== null &&
+        item.CumulativeEnergy !== undefined
+    );
 
     if (filtered.length === 0) return null;
 
@@ -508,8 +514,18 @@ export default function App() {
     return {
       datetime: earliest.DeviceDatetime,
       cumulativeEnergy: earliest.CumulativeEnergy,
+      device: earliest.Device,
     };
-  }
+  };
+
+
+
+
+
+
+
+
+
 
   const [currentDivisionIndex, setCurrentDivisionIndex] = useState(0);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -558,12 +574,12 @@ export default function App() {
     //const endDatetime = `${format(endDate, "yyyy-MM-dd'T'23:59:59xxx")}`;
     //const startDatetime = `${format(startDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
     //const endDatetime = `${format(endDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
-
     
     const result = getEarliestCumulativeEnergy();
-    console.log("最も早いCumulativeEnergyの時刻:", result?.datetime);
-    console.log("CumulativeEnergyの値:", result?.cumulativeEnergy);
-    
+    console.log("最初のPowerデバイスの時刻:", result?.datetime);
+    console.log("デバイス:", result?.device);
+    console.log("CumulativeEnergy:", result?.cumulativeEnergy);
+
     console.log('★★★startDate（listIot-queries直前）=', startDate)
     console.log('★★★endDate（listIot-queries直前）=', endDate)
     console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
