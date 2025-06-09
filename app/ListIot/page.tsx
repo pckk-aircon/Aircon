@@ -701,7 +701,8 @@ export default function App() {
 
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
-      newItem[device] = deviceData ? deviceData.ActualTemp : null;
+      newItem[`${device}_ActualTemp`] = deviceData ? deviceData.ActualTemp : null;
+      newItem[`${device}_PanelTemp`] = deviceData ? deviceData.PanelTemp : null; // ← 追加
     });
 
     newItem.WeightedTemp = item.WeightedTemp;
@@ -843,15 +844,29 @@ export default function App() {
             <YAxis />
             <Tooltip />
             <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+
             {Object.keys(groupedData).map((device, index) => (
               deviceNameMapping[device] && ( // deviceNameMappingに存在するデバイスのみ表示
               <Line
-                key={device}
+                key={`${device}_ActualTemp`}
                 type="monotone"
-                dataKey={device}
-                //name={device}
-                name={deviceNameMapping[device]} // DeviceNameを使用
+                dataKey={`${device}_ActualTemp`}
+                name={`${deviceNameMapping[device]} ActualTemp`} // DeviceNameを使用
                 stroke={colors[index % colors.length]} // デバイスごとに色を変更
+                dot={false}
+                connectNulls
+              />
+              )
+            ))}
+
+            {Object.keys(groupedData).map((device, index) => (
+              deviceNameMapping[device] && ( // deviceNameMappingに存在するデバイスのみ表示
+              <Line
+                key={`${device}_PanelTemp`}
+                type="monotone"
+                dataKey={`${device}_PanelTemp`}
+                name={`${deviceNameMapping[device]} PanelTemp`}
+                stroke="#8884d8"
                 dot={false}
                 connectNulls
               />
