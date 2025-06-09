@@ -507,6 +507,7 @@ interface ChartData {
   WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
+  PanelTemp: number | null;
   ReferenceTemp: number | null;
   CumulativeEnergy: number | null;
   InitializedCumulativeEnergy?: number | null;
@@ -571,16 +572,8 @@ export default function App() {
 
   async function listIot() {
 
-    //const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
-    //const endDatetime = `${format(endDate, "yyyy-MM-dd")} 23:59:59+09:00`;
     const startDatetime = `${format(startDate, "yyyy-MM-dd")} 00:00:00+09:00`;
     const endDatetime = `${format(endDate, "yyyy-MM-dd")} 00:00:00+09:00`;
-    //const startDatetime = startDate.toISOString(); // 例: 2025-01-30T15:00:00.000Z
-    //const endDatetime = endDate.toISOString();     // 例: 2025-01-31T14:59:59.999Z
-    //const startDatetime = `${format(startDate, "yyyy-MM-dd'T'00:00:00xxx")}`; // JSTで +09:00 を含む
-    //const endDatetime = `${format(endDate, "yyyy-MM-dd'T'23:59:59xxx")}`;
-    //const startDatetime = `${format(startDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
-    //const endDatetime = `${format(endDate, "yyyy-MM-dd HH:mm:ssxxx")}`;
 
     console.log('★★★startDate（listIot-queries直前）=', startDate)
     console.log('★★★endDate（listIot-queries直前）=', endDate)
@@ -660,6 +653,9 @@ export default function App() {
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
+            PanelTemp: item?.PanelTemp !== undefined && item.PanelTemp !== null ? parseFloat(item.PanelTemp) : null,
+            SetTemp: item?.SetTemp !== undefined && item.SetTemp !== null ? parseFloat(item.SetTemp) : null,
+            SetTime: item?.SetTime !== undefined && item.SetTime !== null ? parseFloat(item.SetTime) : null,
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
@@ -711,6 +707,7 @@ export default function App() {
     newItem.WeightedTemp = item.WeightedTemp;
     newItem.TargetTemp = item.TargetTemp;
     newItem.PresetTemp = item.PresetTemp;
+    newItem.PanelTemp = item.PanelTemp;
     newItem.ReferenceTemp = item.ReferenceTemp;
     newItem.ControlStage = item.ControlStage;
     newItem.ActivePower = item.ActivePower;  
@@ -888,6 +885,19 @@ export default function App() {
               name="PresetTemp"
               stroke="#0000ff"
               strokeWidth={3} // 太線にする
+              dot={false}
+              connectNulls
+              isAnimationActive={false}
+              >
+              <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '6px', fill: '#000' }} />
+            </Line>
+
+            <Line
+              type="monotone"
+              dataKey="PanelTemp"
+              name="PanelTemp"
+              stroke="#0000ff"
+              strokeWidth={1} // 細線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
