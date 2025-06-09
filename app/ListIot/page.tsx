@@ -782,6 +782,14 @@ export default function App() {
     return acc;
   }, {});
 
+  // DeviceとDeviceNameのマッピングを作成
+  const deviceAirconMapping = deviceLists
+  .filter(item => item.DeviceType === 'Aircon') //DeviceTypeが'Aircon'である項目に限定して
+  .reduce<Record<string, string>>((acc, item) => {
+    acc[item.Device] = item.DeviceName;
+    return acc;
+  }, {});
+
 
   const handleDownloadCSV = () => {
     if (chartData.length === 0) {
@@ -860,12 +868,12 @@ export default function App() {
             ))}
 
             {Object.keys(groupedData).map((device, index) => (
-              deviceNameMapping[device] && ( // deviceNameMappingに存在するデバイスのみ表示
+              deviceAirconMapping[device] && ( // deviceNameMappingに存在するデバイスのみ表示
               <Line
                 key={`${device}_PanelTemp`}
                 type="monotone"
                 dataKey={`${device}_PanelTemp`}
-                name={`${deviceNameMapping[device]} PanelTemp`}
+                name={`${deviceAirconMapping[device]} PanelTemp`}
                 stroke="#8884d8"
                 dot={false}
                 connectNulls
