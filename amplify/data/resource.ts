@@ -256,6 +256,7 @@ const schema = a.schema({
     DeviceType: a.string(),
     Controller: a.string(),
     ControlStage: a.string(),
+    ControlMode: a.string(),
     Power: a.string(),
     WeightedTemp: a.string(),
     ReferenceTemp: a.string(), 
