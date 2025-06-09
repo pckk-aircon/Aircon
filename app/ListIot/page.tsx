@@ -428,48 +428,24 @@ export default function App() {
             />
 
             <Line
-              yAxisId="right2"
+              yAxisId="right"
               type="monotone"
               dataKey="ActivePower"
               name="ActivePower"
               stroke="orange" // オレンジ色
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 中線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
             />
 
             <Line
-              yAxisId="right2"
+              yAxisId="right"
               type="monotone"
               dataKey="ApparentPower"
               name="ApparentPower"
               stroke="orange" // オレンジ色
-              strokeWidth={1} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="CumulativeEnergy"
-              name="CumulativeEnergy"
-              stroke="orange" // オレンジ色
-              strokeWidth={3} // 太線にする
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="firstCumulativeEnergyLine"
-              name="First Cumulative Energy"
-              stroke="gray"
-              strokeDasharray="5 5"
+              strokeWidth={1} // 細線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -480,7 +456,8 @@ export default function App() {
               type="monotone"
               dataKey="InitializedCumulativeEnergy"
               name="InitializedCumulativeEnergy"
-              stroke="teal"
+              stroke="orange"
+              strokeDasharray="5 5"
               strokeWidth={2}
               dot={false}
               connectNulls
@@ -739,13 +716,16 @@ export default function App() {
     newItem.ActivePower = item.ActivePower;  
     newItem.ApparentPower = item.ApparentPower;   
     newItem.CumulativeEnergy = item.CumulativeEnergy;
+    newItem.InitializedCumulativeEnergy = item.InitializedCumulativeEnergy ?? null;
 
+    /*
     // 差分を計算して追加
     newItem.InitializedCumulativeEnergy =
       firstCumulativeEnergy != null && item.CumulativeEnergy != null
       ? item.CumulativeEnergy - firstCumulativeEnergy
       : null;
-
+    */
+   
     return newItem;
   });
     
