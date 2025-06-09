@@ -783,12 +783,12 @@ export default function App() {
   }, {});
 
   // DeviceとDeviceNameのマッピングを作成
-  const deviceAirconMapping = deviceLists
-  .filter(item => item.DeviceType === 'Aircon') //DeviceTypeが'Aircon'である項目に限定して
-  .reduce<Record<string, string>>((acc, item) => {
-    acc[item.Device] = item.DeviceName;
-    return acc;
-  }, {});
+  //const deviceAirconMapping = deviceLists
+  //.filter(item => item.DeviceType === 'Aircon') //DeviceTypeが'Aircon'である項目に限定して
+  //.reduce<Record<string, string>>((acc, item) => {
+    //acc[item.Device] = item.DeviceName;
+    //return acc;
+  //}, {});
 
 
   const handleDownloadCSV = () => {
@@ -867,20 +867,6 @@ export default function App() {
               )
             ))}
 
-            {Object.keys(groupedData).map((device, index) => (
-              deviceAirconMapping[device] && ( // deviceNameMappingに存在するデバイスのみ表示
-              <Line
-                key={`${device}_PanelTemp`}
-                type="monotone"
-                dataKey={`${device}_PanelTemp`}
-                name={`${deviceAirconMapping[device]} PanelTemp`}
-                stroke="#8884d8"
-                dot={false}
-                connectNulls
-              />
-              )
-            ))}
-
             <Line
               type="monotone"
               dataKey="WeightedTemp"
@@ -920,7 +906,7 @@ export default function App() {
               dataKey="PanelTemp"
               name="PanelTemp"
               stroke="#0000ff"
-              strokeWidth={1} // 細線にする
+              strokeWidth={6} // 細線にする
               dot={false}
               connectNulls
               isAnimationActive={false}
