@@ -906,6 +906,7 @@ export default function App() {
               dataKey="PanelTemp"
               name="PanelTemp"
               stroke="steelblue"
+              strokeDasharray="5 5"
               strokeWidth={5} // 極太
               dot={false}
               connectNulls
