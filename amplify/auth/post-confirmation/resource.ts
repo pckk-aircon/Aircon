@@ -10,7 +10,6 @@ export const postConfirmation = defineFunction({
 import { defineAuth } from '@aws-amplify/backend';
 
 //import { postConfirmation } from './post-confirmation/resource';
-
 //copilot案により修正。
 import { defineFunction } from '@aws-amplify/backend';
 export const postConfirmation = defineFunction({
