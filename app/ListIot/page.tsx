@@ -870,7 +870,7 @@ export default function App() {
               dataKey="WeightedTemp"
               name="WeightedTemp"
               stroke="#ff0000" // 赤色
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -880,7 +880,7 @@ export default function App() {
               dataKey="TargetTemp"
               name="TargetTemp"
               stroke="#00ff00"
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -891,7 +891,7 @@ export default function App() {
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
-              strokeWidth={2} // 太線にする
+              strokeWidth={3} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -904,13 +904,11 @@ export default function App() {
               dataKey="PanelSetTemp"
               name="PanelSetTemp"
               stroke="steelblue"
-              strokeDasharray="5 5"
-              strokeWidth={5} // 極太
+              strokeWidth={3} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
               >
-              <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '6px', fill: '#000' }} />
             </Line>
 
             <Line
@@ -918,7 +916,7 @@ export default function App() {
               dataKey="ReferenceTemp"
               name="ReferenceTemp"
               stroke="#800080"
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -930,7 +928,7 @@ export default function App() {
               dataKey="ActivePower"
               name="ActivePower"
               stroke="orange" // オレンジ色
-              strokeWidth={2} // 中線にする
+              strokeWidth={2} // 中線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -953,7 +951,7 @@ export default function App() {
               type="monotone"
               dataKey="InitializedCumulativeEnergy"
               name="InitializedCumulativeEnergy"
-              stroke="orange"
+              stroke="orange" // オレンジ色
               strokeDasharray="5 5"
               strokeWidth={2}
               dot={false}
