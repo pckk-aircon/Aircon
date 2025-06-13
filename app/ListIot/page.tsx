@@ -516,7 +516,7 @@ interface ChartData {
   WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
-  PanelTemp: number | null;
+  PanelSetTemp: number | null;
   ReferenceTemp: number | null;
   CumulativeEnergy: number | null;
   InitializedCumulativeEnergy?: number | null;
@@ -663,7 +663,7 @@ export default function App() {
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
-            PanelTemp: item?.PanelTemp !== undefined && item.PanelTemp !== null ? parseFloat(item.PanelTemp) : null,
+            PanelSetTemp: item?.PanelSetTemp !== undefined && item.PanelSetTemp !== null ? parseFloat(item.PanelSetTemp) : null,
             SetTemp: item?.SetTemp !== undefined && item.SetTemp !== null ? parseFloat(item.SetTemp) : null,
             SetTime: item?.SetTime !== undefined && item.SetTime !== null ? parseFloat(item.SetTime) : null,
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
@@ -712,7 +712,7 @@ export default function App() {
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[`${device}_ActualTemp`] = deviceData ? deviceData.ActualTemp : null;
-      newItem[`${device}_PanelTemp`] = deviceData ? deviceData.PanelTemp : null; // ← 追加
+      newItem[`${device}_PanelSetTemp`] = deviceData ? deviceData.PanelSetTemp : null; // ← 追加
     });
 
     //newItem.WeightedTemp = item.WeightedTemp;
@@ -723,7 +723,7 @@ export default function App() {
     newItem.TargetTemp = item.ControlMode === '2' ? item.TargetTemp : null;
     newItem.PresetTemp = item.ControlMode === '2' ? item.PresetTemp : null;
     newItem.ReferenceTemp = item.ControlMode === '2' ? item.ReferenceTemp : null;
-    newItem.PanelTemp = item.PanelTemp;
+    newItem.PanelSetTemp = item.PanelSetTemp;
     newItem.ControlStage = item.ControlStage;
     newItem.ActivePower = item.ActivePower;  
     newItem.ApparentPower = item.ApparentPower;   

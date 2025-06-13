@@ -262,7 +262,7 @@ const schema = a.schema({
     ReferenceTemp: a.string(), 
     TargetTemp: a.string(),
     PresetTemp: a.string(),
-    PanelTemp: a.string(),
+    PanelSetTemp: a.string(),
     SetTemp: a.string(),
     SetTime: a.string(),
     ActualTemp: a.string(),
