@@ -723,7 +723,7 @@ export default function App() {
     newItem.TargetTemp = item.ControlMode === '2' ? item.TargetTemp : null;
     newItem.PresetTemp = item.ControlMode === '2' ? item.PresetTemp : null;
     newItem.ReferenceTemp = item.ControlMode === '2' ? item.ReferenceTemp : null;
-    newItem.PanelSetTemp = item.PanelSetTemp;
+    newItem.PanelSetTemp = item.ControlMode === '1' ? item.PanelSetTemp : null;
     newItem.ControlStage = item.ControlStage;
     newItem.ActivePower = item.ActivePower;  
     newItem.ApparentPower = item.ApparentPower;   
@@ -901,8 +901,8 @@ export default function App() {
 
             <Line
               type="monotone"
-              dataKey="PanelTemp"
-              name="PanelTemp"
+              dataKey="PanelSetTemp"
+              name="PanelSetTemp"
               stroke="steelblue"
               strokeDasharray="5 5"
               strokeWidth={5} // 極太
