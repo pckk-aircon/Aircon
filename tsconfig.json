@@ -22,8 +22,10 @@
 
     "baseUrl": ".",
     "paths": {
-      "$amplify/*": ["amplify/*"]
+      "$amplify/*": ["amplify/*"] ,
     }
+
+
 
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
