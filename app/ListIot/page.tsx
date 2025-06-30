@@ -590,7 +590,7 @@ export default function App() {
     console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
     console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
-      Controller: "Mutsu01",
+      Controller: controller,
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
@@ -602,14 +602,14 @@ export default function App() {
     //追記部分: divisionListsのデータ取得と状態更新
 
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
+      Controller: controller,
     });
     if (divisionLists) {
       setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
-      Controller: "Mutsu01",
+      Controller: controller,
     });
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
