@@ -24,6 +24,8 @@ import Papa from 'papaparse'; // 追加: CSV変換用ライブラリ
 const client = generateClient<Schema>();
 
 interface ChartData {
+  
+  ControlMode: string;
   DeviceDatetime: string;
   ControlStage: string | null;
   Device: string;
@@ -31,7 +33,7 @@ interface ChartData {
   WeightedTemp: number | null;
   TargetTemp: number | null;
   PresetTemp: number | null;
-  PanelTemp: number | null;
+  PanelSetTemp: number | null;
   ReferenceTemp: number | null;
   CumulativeEnergy: number | null;
   InitializedCumulativeEnergy?: number | null;
@@ -168,6 +170,7 @@ export default function App() {
         //csvダウンロードの項目はこちら。
         .map(item => {
           return {
+            ControlMode: item?.ControlMode ?? '',
             DeviceDatetime: item?.DeviceDatetime ?? '',
             ActualTemp: item?.ActualTemp !== undefined && item.ActualTemp !== null ? parseFloat(item.ActualTemp) : null,
             ActivePower: item?.ActivePower !== undefined && item.ActivePower !== null ? parseFloat(item.ActivePower) : null,
@@ -177,7 +180,7 @@ export default function App() {
             WeightedTemp: item?.WeightedTemp !== undefined && item.WeightedTemp !== null ? parseFloat(item.WeightedTemp) : null,
             TargetTemp: item?.TargetTemp !== undefined && item.TargetTemp !== null ? parseFloat(item.TargetTemp) : null,
             PresetTemp: item?.PresetTemp !== undefined && item.PresetTemp !== null ? parseFloat(item.PresetTemp) : null,
-            PanelTemp: item?.PanelTemp !== undefined && item.PanelTemp !== null ? parseFloat(item.PanelTemp) : null,
+            PanelSetTemp: item?.PanelSetTemp !== undefined && item.PanelSetTemp !== null ? parseFloat(item.PanelSetTemp) : null,
             SetTemp: item?.SetTemp !== undefined && item.SetTemp !== null ? parseFloat(item.SetTemp) : null,
             SetTime: item?.SetTime !== undefined && item.SetTime !== null ? parseFloat(item.SetTime) : null,
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
@@ -226,14 +229,18 @@ export default function App() {
     Object.keys(groupedData).forEach(device => {
       const deviceData = groupedData[device].find(d => d.DeviceDatetime === item.DeviceDatetime);
       newItem[`${device}_ActualTemp`] = deviceData ? deviceData.ActualTemp : null;
-      newItem[`${device}_PanelTemp`] = deviceData ? deviceData.PanelTemp : null; // ← 追加
+      newItem[`${device}_PanelSetTemp`] = deviceData ? deviceData.PanelSetTemp : null; // ← 追加
     });
 
-    newItem.WeightedTemp = item.WeightedTemp;
-    newItem.TargetTemp = item.TargetTemp;
-    newItem.PresetTemp = item.PresetTemp;
-    newItem.PanelTemp = item.PanelTemp;
-    newItem.ReferenceTemp = item.ReferenceTemp;
+    //newItem.WeightedTemp = item.WeightedTemp;
+    //newItem.TargetTemp = item.TargetTemp;
+    //newItem.PresetTemp = item.PresetTemp;
+    //newItem.ReferenceTemp = item.ReferenceTemp;
+    newItem.WeightedTemp = item.ControlMode === '2' ? item.WeightedTemp : null;
+    newItem.TargetTemp = item.ControlMode === '2' ? item.TargetTemp : null;
+    newItem.PresetTemp = item.ControlMode === '2' ? item.PresetTemp : null;
+    newItem.ReferenceTemp = item.ControlMode === '2' ? item.ReferenceTemp : null;
+    newItem.PanelSetTemp = item.ControlMode === '1' ? item.PanelSetTemp : null;
     newItem.ControlStage = item.ControlStage;
     newItem.ActivePower = item.ActivePower;  
     newItem.ApparentPower = item.ApparentPower;   
@@ -380,7 +387,7 @@ export default function App() {
               dataKey="WeightedTemp"
               name="WeightedTemp"
               stroke="#ff0000" // 赤色
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -390,7 +397,7 @@ export default function App() {
               dataKey="TargetTemp"
               name="TargetTemp"
               stroke="#00ff00"
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -401,7 +408,7 @@ export default function App() {
               dataKey="PresetTemp"
               name="PresetTemp"
               stroke="#0000ff"
-              strokeWidth={2} // 太線にする
+              strokeWidth={3} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -411,16 +418,14 @@ export default function App() {
 
             <Line
               type="monotone"
-              dataKey="PanelTemp"
-              name="PanelTemp"
+              dataKey="PanelSetTemp"
+              name="PanelSetTemp"
               stroke="steelblue"
-              strokeDasharray="5 5"
-              strokeWidth={5} // 極太
+              strokeWidth={3} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
               >
-              <LabelList dataKey="ControlStage" position="top" style={{ fontSize: '6px', fill: '#000' }} />
             </Line>
 
             <Line
@@ -428,7 +433,7 @@ export default function App() {
               dataKey="ReferenceTemp"
               name="ReferenceTemp"
               stroke="#800080"
-              strokeWidth={2} // 太線にする
+              strokeWidth={2} // 太線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -440,7 +445,7 @@ export default function App() {
               dataKey="ActivePower"
               name="ActivePower"
               stroke="orange" // オレンジ色
-              strokeWidth={2} // 中線にする
+              strokeWidth={2} // 中線
               dot={false}
               connectNulls
               isAnimationActive={false}
@@ -463,7 +468,7 @@ export default function App() {
               type="monotone"
               dataKey="InitializedCumulativeEnergy"
               name="InitializedCumulativeEnergy"
-              stroke="orange"
+              stroke="orange" // オレンジ色
               strokeDasharray="5 5"
               strokeWidth={2}
               dot={false}
@@ -529,6 +534,9 @@ interface ChartData {
 
 export default function App() {
 
+  const [controller, setController] = useState("Mutsu01");
+  const controllerOptions = ["Mutsu01", "Koura01"];
+
   const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
@@ -574,10 +582,7 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  //}, [currentDivisionIndex, currentDeviceIndex]);
- // }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  }, [endDate, currentDivisionIndex, currentDeviceIndex]);
-
+  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
 
   async function listIot() {
 
@@ -589,37 +594,32 @@ export default function App() {
     console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
     console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
-      Controller: "Mutsu01",
+      Controller: controller,
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
+
     console.log('★★★Iotdata（listIot-queries直後）=', data)
     console.log('★★★errors（listIot-queries直後）=', errors)
 
-    //console.log("StartDatetime=", startDate);
-    //console.log("EndDatetime=", endDate);
-    //追記部分: divisionListsのデータ取得と状態更新
-
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
+      Controller: controller,
     });
     if (divisionLists) {
       setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
-      Controller: "Mutsu01",
+      Controller: controller,
     });
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   
-    //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
-    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
-
+  
     if (data) { 
       
       const powerData = data.filter(item => item?.DeviceType === 'Power');
