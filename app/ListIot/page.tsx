@@ -789,29 +789,35 @@ export default function App() {
     return acc;
   }, {});
 
-
   const handleDownloadCSV = () => {
     if (chartData.length === 0) {
       alert("データがありません");
       return;
-  }
+    }
+    const csv = Papa.unparse(chartData);
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf]); // 追加：BOM
+    const blob = new Blob([bom, csv], { type: "text/csv;charset=utf-8;" }); // 修正：BOM付きでBlobを作成
+    const filename = `iot_data_${format(startDate, "yyyyMMdd")}_${format(endDate, "yyyyMMdd")}.csv`;
+    saveAs(blob, filename);
+  };
 
-  const csv = Papa.unparse(chartData);
-
-  const bom = new Uint8Array([0xef, 0xbb, 0xbf]); // 追加：BOM
-  const blob = new Blob([bom, csv], { type: "text/csv;charset=utf-8;" }); // 修正：BOM付きでBlobを作成
-
-  //const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const filename = `iot_data_${format(startDate, "yyyyMMdd")}_${format(endDate, "yyyyMMdd")}.csv`;
-  saveAs(blob, filename);
-};
-
-
-
-
-
+  
   return (
     <main>
+
+      <div>
+        <label>
+          Select Controller:
+          <select value={controller} onChange={(e) => setController(e.target.value)}>
+            {controllerOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       <div>
         <label>
           StartDatetime:
