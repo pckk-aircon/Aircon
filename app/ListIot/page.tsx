@@ -534,9 +534,6 @@ interface ChartData {
 
 export default function App() {
 
-  const [controller, setController] = useState("Mutsu01");
-  const controllerOptions = ["Mutsu01", "Koura01"];
-
   const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
@@ -582,7 +579,10 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
+  //}, [currentDivisionIndex, currentDeviceIndex]);
+ // }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [endDate, currentDivisionIndex, currentDeviceIndex]);
+
 
   async function listIot() {
 
@@ -594,32 +594,37 @@ export default function App() {
     console.log('★★★startDatetime（listIot-queries直前）=', startDatetime)
     console.log('★★★endDatetime（listIot-queries直前）=', endDatetime)
     const { data, errors } = await client.queries.listIot({
-      Controller: controller,
+      Controller: "Mutsu01",
       StartDatetime: startDatetime,
       EndDatetime: endDatetime,
     });
-
     console.log('★★★Iotdata（listIot-queries直後）=', data)
     console.log('★★★errors（listIot-queries直後）=', errors)
 
+    //console.log("StartDatetime=", startDate);
+    //console.log("EndDatetime=", endDate);
+    //追記部分: divisionListsのデータ取得と状態更新
+
     const {data: divisionLists, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: controller,
+      Controller: "Mutsu01",
     });
     if (divisionLists) {
       setPosts(divisionLists as Array<{ Division: string; DivisionName: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
 
     const {data: deviceLists, errors: deviceErrors } = await client.queries.listDevice({
-      Controller: controller,
+      Controller: "Mutsu01",
     });
     if (deviceLists) {
       setDevices(deviceLists as Array<{ Device: string; DeviceName: string; DeviceType: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
     }
   
+    //console.log('deviceLists（listIot）=', deviceLists)
     console.log('★currentDivisionIndex（listIot）=', currentDivisionIndex)
     console.log('★currentDeviceIndex（listIot）=', currentDeviceIndex)
     console.log('★currentDeviceIndex.Device（listIot）=', FiltereddeviceLists?.[currentDeviceIndex]?.Device) 
-  
+    //console.log('currentDeviceIndex[1]=', deviceLists?.[1]?.Device)
+
     if (data) { 
       
       const powerData = data.filter(item => item?.DeviceType === 'Power');
