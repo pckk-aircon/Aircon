@@ -529,6 +529,9 @@ interface ChartData {
 
 export default function App() {
 
+  const [controller, setController] = useState("Mutsu01");
+  const controllerOptions = ["Mutsu01", "Koura01"];
+
   const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
 
@@ -574,9 +577,7 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  //}, [currentDivisionIndex, currentDeviceIndex]);
- // }, [startDate, endDate, currentDivisionIndex, currentDeviceIndex]);
-  }, [endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
 
 
   async function listIot() {
