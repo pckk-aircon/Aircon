@@ -28,6 +28,7 @@ interface ChartData {
   ControlMode: string;
   DeviceDatetime: string;
   ControlStage: string | null;
+  Power: string | null;
   Device: string;
   ActualTemp: number | null;
   WeightedTemp: number | null;
@@ -185,6 +186,7 @@ export default function App() {
             SetTemp: item?.SetTemp !== undefined && item.SetTemp !== null ? parseFloat(item.SetTemp) : null,
             SetTime: item?.SetTime !== undefined && item.SetTime !== null ? parseFloat(item.SetTime) : null,
             ReferenceTemp: item?.ReferenceTemp !== undefined && item.ReferenceTemp !== null ? parseFloat(item.ReferenceTemp) : null,
+            Power: item?.Power ?? null,
             ControlStage: item?.ControlStage ?? null,
             Device: item?.Device ?? '',
             Division: item?.Division ?? '',
@@ -241,7 +243,7 @@ export default function App() {
     newItem.TargetTemp = item.ControlMode === '2' ? item.TargetTemp : null;
     newItem.PresetTemp = item.ControlMode === '2' ? item.PresetTemp : null;
     newItem.ReferenceTemp = item.ControlMode === '2' ? item.ReferenceTemp : null;
-    newItem.PanelSetTemp = item.ControlMode === '1' ? item.PanelSetTemp : null;
+    newItem.PanelSetTemp = item.ControlMode === '1' && item.Power === 'on' ? item.PanelSetTemp : null;
     newItem.ControlStage = item.ControlStage;
     newItem.ActivePower = item.ActivePower;  
     newItem.ApparentPower = item.ApparentPower;   
