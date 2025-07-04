@@ -544,6 +544,7 @@ interface ChartData {
 }
 
 export default function App() {
+  
 
   const [controller, setController] = useState("Mutsu01");
   const controllerOptions = ["Mutsu01", "Koura01"];
