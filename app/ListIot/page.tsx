@@ -517,7 +517,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { saveAs } from 'file-saver'; // 追加: ファイル保存用ライブラリ
 import Papa from 'papaparse'; // 追加: CSV変換用ライブラリ
 
-//Amplify.configure(outputs);
+import { useController } from "@/app/context/ControllerContext"; // ← 追加
 
 const client = generateClient<Schema>();
 
@@ -546,8 +546,10 @@ interface ChartData {
 export default function App() {
   
 
-  const [controller, setController] = useState("Mutsu01");
-  const controllerOptions = ["Mutsu01", "Koura01"];
+  const { controller } = useController(); // ← Sidebarで選択されたcontrollerを取得
+
+  //const [controller, setController] = useState("Mutsu01");
+  //const controllerOptions = ["Mutsu01", "Koura01"];
 
   const [startDate, setStartDatetime] = useState(new Date()); 
   const [endDate, setEndDatetime] = useState(new Date());
@@ -822,19 +824,6 @@ export default function App() {
   
   return (
     <main>
-
-      <div>
-        <label>
-          Select Controller:
-          <select value={controller} onChange={(e) => setController(e.target.value)}>
-            {controllerOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
 
       <div>
         <label>
