@@ -547,6 +547,7 @@ export default function App() {
   
 
   const { controller } = useController(); // ← Sidebarで選択されたcontrollerを取得
+  console.log('☆ontroller=', controller)
 
   //const [controller, setController] = useState("Mutsu01");
   //const controllerOptions = ["Mutsu01", "Koura01"];
@@ -596,7 +597,8 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
+  //}, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
+  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex, divisionLists, deviceLists]);
 
 
   async function listIot() {
