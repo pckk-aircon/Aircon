@@ -20,18 +20,16 @@ export default function Sidebar() {
 */
 
 
+
 "use client";
-import { useState } from 'react';
-import Link from 'next/link';
-// import styles from './sidebar.module.css'; // 必要に応じてCSSを使用
+import { useController } from "@/app/context/ControllerContext";
 
 export default function Sidebar() {
-  const [controller, setController] = useState('Mutsu01');
+  const { controller, setController } = useController();
 
   const handleControllerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setController(e.target.value);
-    // 必要に応じて、選択された拠点に応じてルーティングやデータ取得処理を追加
-    console.log('選択された拠点:', e.target.value);
+    console.log("選択された拠点:", e.target.value);
   };
 
   return (
@@ -41,15 +39,6 @@ export default function Sidebar() {
         <option value="Mutsu01">むつざわ</option>
         <option value="Koura01">こうら</option>
       </select>
-
-      <h2>メニュー</h2>
-      <ul>
-        <li><Link href="/">トップ画面</Link></li>
-        <li><Link href="/ListIot">ListIot</Link></li>
-        <li><Link href="/TableDivision">TableDivision</Link></li>
-        <li><Link href="/TableDevice">TableDevice</Link></li>
-        <li><Link href="/Map">Map</Link></li>
-      </ul>
     </div>
   );
 }

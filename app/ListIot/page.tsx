@@ -596,8 +596,8 @@ export default function App() {
       await listIot();
     }
     fetchData();
-  //}, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
-  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex, divisionLists, deviceLists]);
+  }, [controller, endDate, currentDivisionIndex, currentDeviceIndex]);
+  //}, [controller, endDate, currentDivisionIndex, currentDeviceIndex, divisionLists, deviceLists]);
 
 
   async function listIot() {
