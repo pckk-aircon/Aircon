@@ -102,6 +102,7 @@ export default function App() {
   // controllerが変更されたときにlistPostを実行
   useEffect(() => {
     if (controller) {
+      setPosts([]); // ← これを追加
       listPost();
     }
   }, [controller]);
@@ -127,7 +128,8 @@ export default function App() {
         });
       },
     });
-    return () => sub.unsubscribe();
+  
+    return () => sub.unsubscribe(); // クリーンアップ
   }, []);
 
   async function listPost() {
