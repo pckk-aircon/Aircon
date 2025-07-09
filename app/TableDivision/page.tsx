@@ -119,7 +119,7 @@ export default function App() {
                 Division: string;
                 DivisionName: string;
                 Geojson: string;
-                Controller?: string | null
+                Controller?: string | null;
               }
             ];
           }
