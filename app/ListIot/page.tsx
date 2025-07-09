@@ -545,9 +545,8 @@ interface ChartData {
 
 export default function App() {
   
-
   const { controller } = useController(); // ← Sidebarで選択されたcontrollerを取得
-  console.log('☆ontroller=', controller)
+  console.log('☆Controller=', controller)
 
   //const [controller, setController] = useState("Mutsu01");
   //const controllerOptions = ["Mutsu01", "Koura01"];

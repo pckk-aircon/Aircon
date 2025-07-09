@@ -26,7 +26,7 @@ import Link from 'next/link';
 // import styles from './sidebar.module.css'; // 必要に応じてCSSを使用
 
 export default function Sidebar() {
-  const [controller, setController] = useState('tokyo');
+  const [controller, setController] = useState('Mutsu01');
 
   const handleControllerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setController(e.target.value);
@@ -40,8 +40,6 @@ export default function Sidebar() {
       <select value={controller} onChange={handleControllerChange}>
         <option value="Mutsu01">むつざわ</option>
         <option value="Koura01">こうら</option>
-        <option value="nagoya">名古屋</option>
-        <option value="fukuoka">福岡</option>
       </select>
 
       <h2>メニュー</h2>
