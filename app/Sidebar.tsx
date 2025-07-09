@@ -20,8 +20,8 @@ export default function Sidebar() {
 */
 
 
-
 "use client";
+import Link from 'next/link';
 import { useController } from "@/app/context/ControllerContext";
 
 export default function Sidebar() {
@@ -39,6 +39,15 @@ export default function Sidebar() {
         <option value="Mutsu01">むつざわ</option>
         <option value="Koura01">こうら</option>
       </select>
+
+      <h2>メニュー</h2>
+      <ul>
+        <li><Link href="/">トップ画面</Link></li>
+        <li><Link href="/ListIot">ListIot</Link></li>
+        <li><Link href="/TableDivision">TableDivision</Link></li>
+        <li><Link href="/TableDevice">TableDevice</Link></li>
+        <li><Link href="/Map">Map</Link></li>
+      </ul>
     </div>
   );
 }
