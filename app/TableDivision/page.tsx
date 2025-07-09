@@ -99,9 +99,15 @@ export default function App() {
   const { controller } = useController(); // ← Sidebarで選択されたcontrollerを取得
   const [posts, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
 
+  // controllerが変更されたときにlistPostを実行
   useEffect(() => {
-    listPost();
-  
+    if (controller) {
+      listPost();
+    }
+  }, [controller]);
+
+  // サブスクリプションは初回のみ設定
+  useEffect(() => {
     const sub = client.subscriptions.receiveDivision().subscribe({
       next: (event) => {
         console.log("event=", event);
@@ -122,7 +128,7 @@ export default function App() {
       },
     });
     return () => sub.unsubscribe();
-  }, [controller]);
+  }, []);
 
   async function listPost() {
     const { data, errors } = await client.queries.listDivision({
