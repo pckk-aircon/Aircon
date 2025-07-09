@@ -10,7 +10,7 @@ type ControllerContextType = {
 const ControllerContext = createContext<ControllerContextType | undefined>(undefined);
 
 export const ControllerProvider = ({ children }: { children: ReactNode }) => {
-  const [controller, setController] = useState('tokyo'); // 初期値は東京など
+  const [controller, setController] = useState('Mutsu01'); // 初期値は東京など
 
   return (
     <ControllerContext.Provider value={{ controller, setController }}>
