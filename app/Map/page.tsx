@@ -279,11 +279,15 @@ import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
+import { useController } from "@/app/context/ControllerContext"; // ← 追加
+
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
 export default function App() {
+
+  const { controller } = useController(); // ← Sidebarで選択されたcontrollerを取得
 
   const [divisionLists, setPosts] = useState<Array<{ Division: string; DivisionName: string; Geojson: string ;Controller?: string | null }>>([]);
   const [deviceLists, setDevices] = useState<Array<{
@@ -300,13 +304,14 @@ export default function App() {
     Controller?: string | null }>>([]);
   
   console.log('divisionLists（State直後）=', divisionLists);
+  console.log("controller=", controller);
 
   useEffect(() => {
     async function fetchData() {
         await listPost();
     }
     fetchData();
-  }, []);
+  }, [controller]);
 
 
   //divisionLists の状態が更新された後に renderMap 関数を呼び出す
@@ -316,14 +321,15 @@ export default function App() {
     }
   }, [divisionLists]);
 
+
   async function listPost() {
 
     const { data: divisionData, errors: divisionErrors } = await client.queries.listDivision({
-      Controller: "Mutsu01",
+      Controller: controller,
     });
 
     const { data: deviceData, errors: deviceErrors } = await client.queries.listDevice({
-      Controller: "Mutsu01",
+      Controller: controller,
     });
 
     if (divisionData) {
