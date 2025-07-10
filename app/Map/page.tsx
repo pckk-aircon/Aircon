@@ -304,7 +304,6 @@ export default function App() {
     Controller?: string | null }>>([]);
   
   console.log('divisionLists（State直後）=', divisionLists);
-  console.log("controller=", controller);
 
   useEffect(() => {
     async function fetchData() {
@@ -356,6 +355,21 @@ export default function App() {
 
   async function renderMap() {
 
+    console.log("controller=", controller);
+
+    let lon, lat;
+
+    if (controller === "Mutsu01") {
+      lon = 140.302994;
+      lat = 35.353503;
+    } else if (controller === "Koura01") {
+      lon = 136.275547;
+      lat = 35.201848;
+    } else {
+      lon = 0;
+      lat = 0;
+    }
+
     //const map = new maplibregl.Map({
     map = new maplibregl.Map({
       container: 'map',
@@ -385,7 +399,8 @@ export default function App() {
           },
         ],
       },
-      center: [140.302994, 35.353503],
+      //center: [140.302994, 35.353503],
+      center: [lon, lat],
       zoom: 17,
       pitch: 30,
       bearing: 30,
