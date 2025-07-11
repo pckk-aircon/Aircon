@@ -19,3 +19,4 @@ frontend:
       - .next/cache/**/*
       - .npm/**/*
       - node_modules/**/*
+  runtime: nodejs20.x
