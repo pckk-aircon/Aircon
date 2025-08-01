@@ -433,6 +433,9 @@ async function renderMap() {
   const nav = new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true });
   map.addControl(nav, 'top-left');
 
+
+  console.log('deviceLists（表示直前）=', deviceLists);
+
   map.on('load', () => {
     // GeoJSONレイヤー追加
     divisionLists.forEach((division, index) => {
@@ -444,6 +447,8 @@ async function renderMap() {
       const lon = Number(device.lon);
       const lat = Number(device.lat);
       const height = Number(device.height);
+
+
 
       if (isNaN(lon) || isNaN(lat) || isNaN(height)) {
         console.warn(`無効な座標のためスキップ: device[${index}]`, device);
