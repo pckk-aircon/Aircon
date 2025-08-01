@@ -449,11 +449,14 @@ async function renderMap() {
       const height = Number(device.height);
 
 
+    if (
+      lon == null || lat == null || height == null ||
+      isNaN(lon) || isNaN(lat) || isNaN(height)
+    ) {
+      console.warn(`無効な座標のためスキップ: device[${index}]`, device);
+      return;
+    }
 
-      if (isNaN(lon) || isNaN(lat) || isNaN(height)) {
-        console.warn(`無効な座標のためスキップ: device[${index}]`, device);
-        return;
-      }
 
       const direction = JSON.parse(device.direction || '[0,0,0]');
       const worldOrigin: [number, number] = [lon, lat];
