@@ -294,7 +294,6 @@ export default function App() {
 */
 
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -473,34 +472,100 @@ export default function App() {
     });
 
 
-    map.on('style.load', () => {
-      deviceLists.forEach((device, index) => {
-        const origin: [number, number] = [Number(device.lon), Number(device.lat)];
-        const altitude = Number(device.height);
-        const rotation = JSON.parse(device.direction);
+    // 3Dモデルを表示するためのカスタムレイヤーを作成
+    //const gltfJson = JSON.parse(deviceLists[0].gltf);
+    //console.log('gltfJson[0]=', gltfJson);
 
-        const originMercator = maplibregl.MercatorCoordinate.fromLngLat(origin, altitude);
-        const scale = originMercator.meterInMercatorCoordinateUnits();
 
-        const matrix = BABYLON.Matrix.Compose(
-          new BABYLON.Vector3(scale, scale, scale),
-          BABYLON.Quaternion.FromEulerAngles(rotation[0], rotation[1], rotation[2]),
-          new BABYLON.Vector3(originMercator.x, originMercator.y, originMercator.z)
-        );
+    //const worldOrigin: [number, number] = [140.302994, 35.353503];
+    const worldOrigin: [number, number] = [Number(deviceLists[0].lon), Number(deviceLists[0].lat)];
+    const worldAltitude = Number(deviceLists[0].height);
+    //const worldRotate = [Math.PI / 2, 0, 0];
+    const worldRotate = JSON.parse(deviceLists[0].direction);
 
+    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
+      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+    );
+
+    const customLayer: maplibregl.CustomLayerInterface = {
+      id: '3d-model',
+      type: 'custom',
+      renderingMode: '3d',
+
+      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
+        // エンジン、シーン、カメラの初期化
+        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+        const scene = new BABYLON.Scene(engine);
+        scene.autoClear = false;
+        scene.detachControl();
+
+        scene.beforeRender = () => {
+          if (engine) {
+            engine.wipeCaches(true);
+          }
+        };
+
+        //const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+        //const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+        //light.intensity = 0.7;
+
+        new BABYLON.AxesViewer(scene, 10);
+
+        // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
           'sample.gltf',
-          //scene
-        ).then((container) => {
-          container.addAllToScene();
 
-          const rootMesh = container.createRootMesh();
-          rootMesh.freezeWorldMatrix(matrix); // 個別の位置・回転を固定
+          scene
+        ).then((modelContainer) => {
+
+          modelContainer.addAllToScene();
+
+          const rootMesh = modelContainer.createRootMesh();
+          const rootMesh2 = rootMesh.clone();
+
+          rootMesh2.position.x = 25;
+          rootMesh2.position.z = 25;
         });
-      });
+
+        // プロパティをカスタムレイヤーオブジェクトに追加
+        (this as any).map = map;
+        (this as any).engine = engine;
+        (this as any).scene = scene;
+        //(this as any).camera = camera;
+      },
+
+      render(gl: WebGLRenderingContext, args: any) {
+        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+
+        if ((this as any).camera) {
+          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
+        }
+        if ((this as any).scene) {
+          (this as any).scene.render(false);
+        }
+        if ((this as any).map) {
+          (this as any).map.triggerRepaint();
+        }
+      }
+    };
+
+    // 3Dモデルを地図に追加
+    map.on('style.load', () => {
+      if (!map.getLayer('3d-model')) {
+        map.addLayer(customLayer);
+      }
     });
 
+    return () => {
+      map.remove();
+    };
 
   }
 
