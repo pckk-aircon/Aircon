@@ -290,7 +290,6 @@ export default function App() {
 
 }
 
-
 */
 
 
@@ -391,185 +390,141 @@ export default function App() {
 
   let map: maplibregl.Map; // map変数をスコープ外で定義
 
+
+
   async function renderMap() {
+  console.log("controller=", controller);
 
-    console.log("controller=", controller);
+  let lon = 0, lat = 0;
+  if (controller === "Mutsu01") {
+    lon = 140.302994;
+    lat = 35.353503;
+  } else if (controller === "Koura01") {
+    lon = 136.275547;
+    lat = 35.201848;
+  }
 
-    let lon, lat;
-
-    if (controller === "Mutsu01") {
-      lon = 140.302994;
-      lat = 35.353503;
-    } else if (controller === "Koura01") {
-      lon = 136.275547;
-      lat = 35.201848;
-    } else {
-      lon = 0;
-      lat = 0;
-    }
-
-    //const map = new maplibregl.Map({
-    map = new maplibregl.Map({
-      container: 'map',
-      style: {
-        version: 8,
-        sources: {
-          'raster-tiles': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            minzoom: 0,
-            maxzoom: 19,
-          },
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {
+        'raster-tiles': {
+          type: 'raster',
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          minzoom: 0,
+          maxzoom: 19,
         },
-        layers: [
-          {
-            id: 'background',
-            type: 'background',
-            paint: {
-              'background-color': '#e0dfdf',
-            },
-          },
-          {
-            id: 'simple-tiles',
-            type: 'raster',
-            source: 'raster-tiles',
-          },
-        ],
       },
-      //center: [140.302994, 35.353503],
-      center: [lon, lat],
-      zoom: 17,
-      pitch: 30,
-      bearing: 30,
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': '#e0dfdf' },
+        },
+        {
+          id: 'simple-tiles',
+          type: 'raster',
+          source: 'raster-tiles',
+        },
+      ],
+    },
+    center: [lon, lat],
+    zoom: 17,
+    pitch: 30,
+    bearing: 30,
+  });
+
+  map.dragRotate.enable();
+  map.touchZoomRotate.enableRotation();
+
+  map.on('mousemove', (e) => {
+    if (e.originalEvent.buttons === 2) {
+      const rotationSpeed = 0.5;
+      map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
+    }
+  });
+
+  const nav = new maplibregl.NavigationControl({
+    showCompass: true,
+    visualizePitch: true,
+  });
+  map.addControl(nav, 'top-left');
+
+  map.on('load', () => {
+    divisionLists.forEach((division, index) => {
+      addGeoJsonLayerToMap(map, division, index);
     });
+  });
 
-    // マウス操作で回転と角度変更を有効にする
-    map.dragRotate.enable();
-    map.touchZoomRotate.enableRotation();
-      
-    // カスタムハンドラーを作成して回転の感度を調整
-    map.on('mousemove', (e) => {
-      if (e.originalEvent.buttons === 2) { // 右クリック
-        const rotationSpeed = 0.5; // 回転速度を調整
-        map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
-      }
-    });
-      
-    // NavigationControlの追加
-    const nav = new maplibregl.NavigationControl({
-      showCompass: true, // コンパスを表示
-      visualizePitch: true, // ピッチ（角度）を表示
-    });
-    map.addControl(nav, 'top-left');
+  const customLayer: maplibregl.CustomLayerInterface = {
+    id: '3d-models',
+    type: 'custom',
+    renderingMode: '3d',
 
-    map.on('load', () => {
+    onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
+      const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+      const scene = new BABYLON.Scene(engine);
+      scene.autoClear = false;
+      scene.detachControl();
 
-      divisionLists.forEach((division, index) => {
-        addGeoJsonLayerToMap(map, division, index);  
-      })//endEach
+      scene.beforeRender = () => {
+        engine.wipeCaches(true);
+      };
 
-    });
+      new BABYLON.AxesViewer(scene, 10);
 
+      deviceLists.forEach((device) => {
+        const origin: [number, number] = [Number(device.lon), Number(device.lat)];
+        const altitude = Number(device.height);
+        const rotate = JSON.parse(device.direction);
 
-    // 3Dモデルを表示するためのカスタムレイヤーを作成
-    //const gltfJson = JSON.parse(deviceLists[0].gltf);
-    //console.log('gltfJson[0]=', gltfJson);
+        const originMercator = maplibregl.MercatorCoordinate.fromLngLat(origin, altitude);
+        const scale = originMercator.meterInMercatorCoordinateUnits();
 
-
-    //const worldOrigin: [number, number] = [140.302994, 35.353503];
-    const worldOrigin: [number, number] = [Number(deviceLists[0].lon), Number(deviceLists[0].lat)];
-    const worldAltitude = Number(deviceLists[0].height);
-    //const worldRotate = [Math.PI / 2, 0, 0];
-    const worldRotate = JSON.parse(deviceLists[0].direction);
-
-    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
-
-    const worldMatrix = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(worldScale, worldScale, worldScale),
-      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
-      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
-    );
-
-    const customLayer: maplibregl.CustomLayerInterface = {
-      id: '3d-model',
-      type: 'custom',
-      renderingMode: '3d',
-
-      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
-        // エンジン、シーン、カメラの初期化
-        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-        const scene = new BABYLON.Scene(engine);
-        scene.autoClear = false;
-        scene.detachControl();
-
-        scene.beforeRender = () => {
-          if (engine) {
-            engine.wipeCaches(true);
-          }
-        };
-
-        //const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-        //const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-        //light.intensity = 0.7;
-
-        new BABYLON.AxesViewer(scene, 10);
-
-        // URLから.gltfファイルを読み込む
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
           'sample.gltf',
-
           scene
-        ).then((modelContainer) => {
+        ).then((container) => {
+          container.addAllToScene();
+          const mesh = container.createRootMesh();
 
-          modelContainer.addAllToScene();
-
-          const rootMesh = modelContainer.createRootMesh();
-          const rootMesh2 = rootMesh.clone();
-
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
+          mesh.position = new BABYLON.Vector3(originMercator.x, originMercator.y, originMercator.z);
+          mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
+          mesh.rotation = new BABYLON.Vector3(rotate[0], rotate[1], rotate[2]);
         });
+      });
 
-        // プロパティをカスタムレイヤーオブジェクトに追加
-        (this as any).map = map;
-        (this as any).engine = engine;
-        (this as any).scene = scene;
-        //(this as any).camera = camera;
-      },
+      (this as any).map = map;
+      (this as any).engine = engine;
+      (this as any).scene = scene;
+    },
 
-      render(gl: WebGLRenderingContext, args: any) {
-        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
-        if ((this as any).camera) {
-          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
-        }
-        if ((this as any).scene) {
-          (this as any).scene.render(false);
-        }
-        if ((this as any).map) {
-          (this as any).map.triggerRepaint();
-        }
+    render(gl: WebGLRenderingContext, args: any) {
+      if ((this as any).scene) {
+        (this as any).scene.render(false);
       }
-    };
-
-    // 3Dモデルを地図に追加
-    map.on('style.load', () => {
-      if (!map.getLayer('3d-model')) {
-        map.addLayer(customLayer);
+      if ((this as any).map) {
+        (this as any).map.triggerRepaint();
       }
-    });
+    }
+  };
 
-    return () => {
-      map.remove();
-    };
+  map.on('style.load', () => {
+    if (!map.getLayer('3d-models')) {
+      map.addLayer(customLayer);
+    }
+  });
 
-  }
+  return () => {
+    map.remove();
+  };
+}
+
+  
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 
 }
-
