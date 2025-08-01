@@ -393,6 +393,7 @@ export default function App() {
   let map: maplibregl.Map; // map変数をスコープ外で定義
 
 
+
 async function renderMap() {
   let lon = 0, lat = 0;
 
@@ -433,21 +434,30 @@ async function renderMap() {
   map.addControl(nav, 'top-left');
 
   map.on('load', () => {
+    // GeoJSONレイヤー追加
     divisionLists.forEach((division, index) => {
       addGeoJsonLayerToMap(map, division, index);
     });
 
+    // 3Dモデルを複数描画
     deviceLists.forEach((device, index) => {
-      const worldOrigin: [number, number] = [Number(device.lon), Number(device.lat)];
-      const worldAltitude = Number(device.height);
-      const worldRotate = JSON.parse(device.direction);
+      const lon = Number(device.lon);
+      const lat = Number(device.lat);
+      const height = Number(device.height);
 
-      const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+      if (isNaN(lon) || isNaN(lat) || isNaN(height)) {
+        console.warn(`無効な座標のためスキップ: device[${index}]`, device);
+        return;
+      }
+
+      const direction = JSON.parse(device.direction || '[0,0,0]');
+      const worldOrigin: [number, number] = [lon, lat];
+      const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, height);
       const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
 
       const worldMatrix = BABYLON.Matrix.Compose(
         new BABYLON.Vector3(worldScale, worldScale, worldScale),
-        BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
+        BABYLON.Quaternion.FromEulerAngles(direction[0], direction[1], direction[2]),
         new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
       );
 
@@ -506,6 +516,7 @@ async function renderMap() {
     });
   });
 }
+
 
 
 
