@@ -472,29 +472,26 @@ export default function App() {
 
 
     // 3Dモデルを表示するためのカスタムレイヤーを作成
-    //const gltfJson = JSON.parse(deviceLists[0].gltf);
-    //console.log('gltfJson[0]=', gltfJson);
+    deviceLists.forEach((device, index) => {
+      const worldOrigin: [number, number] = [Number(device.lon), Number(device.lat)];
+      const worldAltitude = Number(device.height);
+      //const worldRotate = [Math.PI / 2, 0, 0];
+      const worldRotate = JSON.parse(device.direction);
+
+      const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+      const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+      const worldMatrix = BABYLON.Matrix.Compose(
+        new BABYLON.Vector3(worldScale, worldScale, worldScale),
+        BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
+        new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+      );
 
 
-    //const worldOrigin: [number, number] = [140.302994, 35.353503];
-    const worldOrigin: [number, number] = [Number(deviceLists[0].lon), Number(deviceLists[0].lat)];
-    const worldAltitude = Number(deviceLists[0].height);
-    //const worldRotate = [Math.PI / 2, 0, 0];
-    const worldRotate = JSON.parse(deviceLists[0].direction);
-
-    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
-
-    const worldMatrix = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(worldScale, worldScale, worldScale),
-      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
-      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
-    );
-
-    const customLayer: maplibregl.CustomLayerInterface = {
-      id: '3d-model',
-      type: 'custom',
-      renderingMode: '3d',
+      const customLayer: maplibregl.CustomLayerInterface = {
+        id: '3d-model',
+        type: 'custom',
+        renderingMode: '3d',
 
       onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
         // エンジン、シーン、カメラの初期化
@@ -565,16 +562,18 @@ export default function App() {
       }
     };
 
-    // 3Dモデルを地図に追加
-    map.on('style.load', () => {
-      if (!map.getLayer('3d-model')) {
-        map.addLayer(customLayer);
-      }
-    });
+      // 3Dモデルを地図に追加
+      map.on('style.load', () => {
+        if (!map.getLayer('3d-model')) {
+          map.addLayer(customLayer);
+        }
+      });
 
-    return () => {
-      map.remove();
-    };
+      return () => {
+        map.remove();
+      };
+
+    }); //endEach
 
   }
 
