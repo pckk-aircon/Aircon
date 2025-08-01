@@ -487,9 +487,9 @@ export default function App() {
         new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
       );
 
-
       const customLayer: maplibregl.CustomLayerInterface = {
-        id: '3d-model',
+        id: `3d-model-${index}`, // カスタムレイヤーの ID を一意にするための識別子
+        //id: '3d-model',
         type: 'custom',
         renderingMode: '3d',
 
