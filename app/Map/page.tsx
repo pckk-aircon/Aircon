@@ -433,9 +433,6 @@ async function renderMap() {
   const nav = new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true });
   map.addControl(nav, 'top-left');
 
-
-  console.log('deviceLists（表示直前）=', deviceLists);
-
   map.on('load', () => {
     // GeoJSONレイヤー追加
     divisionLists.forEach((division, index) => {
@@ -448,20 +445,14 @@ async function renderMap() {
       const lat = Number(device.lat);
       const height = Number(device.height);
 
-
-    if (
-      lon == null || lat == null || height == null ||
-      isNaN(lon) || isNaN(lat) || isNaN(height)
-    ) {
-      console.warn(`無効な座標のためスキップ: device[${index}]`, device);
-      return;
-    }
-
+      if (index !== 0) return; // 0番目以外は何もしない
 
       const direction = JSON.parse(device.direction || '[0,0,0]');
       const worldOrigin: [number, number] = [lon, lat];
       const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, height);
       const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+      console.log('worldOrigin（表示直前）=', worldOrigin);
 
       const worldMatrix = BABYLON.Matrix.Compose(
         new BABYLON.Vector3(worldScale, worldScale, worldScale),
