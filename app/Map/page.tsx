@@ -503,7 +503,7 @@ export default function App() {
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
         light.intensity = 0.7;
 
-        //new BABYLON.AxesViewer(scene, 5); // 軸のサイズを小さく。デフォルトは10。
+        new BABYLON.AxesViewer(scene, 5); // 軸のサイズを小さく。デフォルトは10。
 
         // URLから.gltfファイルを読み込む
         console.log("DeviceType=", device.DeviceType);
@@ -514,6 +514,12 @@ export default function App() {
           scene
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
+
+          // モデル内のメッシュに対して回転を適用
+          modelContainer.meshes.forEach((mesh) => {
+            mesh.rotation.y = BABYLON.Tools.ToRadians(-45); // Y軸まわりに右回り回転
+          });
+
         });
 
         // プロパティをカスタムレイヤーオブジェクトに追加
