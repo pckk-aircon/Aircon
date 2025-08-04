@@ -222,29 +222,20 @@ export default function App() {
         new BABYLON.AxesViewer(scene, 10);
 
         // URLから.gltfファイルを読み込む
+        console.log("DeviceType=", device.DeviceType);
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          'sample.gltf',
-          //'sphere.gltf',
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          //'34M_17.gltf',
-
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
-          //'34M_17.gltf',
+          `${device.DeviceType}Model.glb`, // ← ここを動的に
+          //'sample.gltf',
 
           scene
         ).then((modelContainer) => {
-        //).then((gltfJson) => { //変更。         
-          //const modelContainer = gltfJson ; //変更。
-
           modelContainer.addAllToScene();
 
-          const rootMesh = modelContainer.createRootMesh();
-          const rootMesh2 = rootMesh.clone();
-
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
+          //const rootMesh = modelContainer.createRootMesh();
+          //const rootMesh2 = rootMesh.clone();
+          //rootMesh2.position.x = 25;
+          //rootMesh2.position.z = 25;
         });
 
         // プロパティをカスタムレイヤーオブジェクトに追加
@@ -511,7 +502,7 @@ export default function App() {
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
         light.intensity = 0.7;
 
-        new BABYLON.AxesViewer(scene, 10);
+        new BABYLON.AxesViewer(scene, 2); // 軸のサイズを小さく。デフォルトは10。
 
         // URLから.gltfファイルを読み込む
         console.log("DeviceType=", device.DeviceType);
@@ -523,6 +514,7 @@ export default function App() {
           scene
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
+
           //const rootMesh = modelContainer.createRootMesh();
           //const rootMesh2 = rootMesh.clone();
           //rootMesh2.position.x = 25;
