@@ -515,11 +515,6 @@ export default function App() {
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
 
-          // モデル内のメッシュに対して回転を適用
-          modelContainer.meshes.forEach((mesh) => {
-            mesh.rotation.y = BABYLON.Tools.ToRadians(-45); // Y軸まわりに右回り回転
-          });
-
         });
 
         // プロパティをカスタムレイヤーオブジェクトに追加
@@ -562,6 +557,16 @@ export default function App() {
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 
+}
+
+function createCombinedQuaternionFromDirection(direction: [number, number, number]): BABYLON.Quaternion {
+  const [x, y, z] = direction;
+
+  const xRot = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, x);
+  const yRot = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, y);
+  const zRot = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, z);
+
+  return xRot.multiply(yRot).multiply(zRot); // X → Y → Z の順で合成
 }
 
 /*
