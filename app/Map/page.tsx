@@ -517,7 +517,7 @@ export default function App() {
         console.log("DeviceType=", device.DeviceType);
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          `${device.DeviceType}Model.gltf`, // ← ここを動的に
+          `${device.DeviceType}Model.glb`, // ← ここを動的に
           //'sample.gltf',
 
           scene
