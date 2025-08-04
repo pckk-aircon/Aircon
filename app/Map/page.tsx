@@ -467,6 +467,7 @@ export default function App() {
       const worldOrigin: [number, number] = [Number(device.lon), Number(device.lat)];
       const worldAltitude = Number(device.height);
       const worldRotate = JSON.parse(device.direction);
+      const combinedRotation = createCombinedQuaternionFromDirection(worldRotate); // 合成Quaternionを生成
 
       const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
       const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
@@ -476,7 +477,6 @@ export default function App() {
         BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
         new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
       );
-
 
       const customLayer: maplibregl.CustomLayerInterface = {
         id: `3d-model-${index}`, // カスタムレイヤーの ID を一意にするための識別子
