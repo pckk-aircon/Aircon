@@ -466,9 +466,7 @@ export default function App() {
     deviceLists.forEach((device, index) => {
       const worldOrigin: [number, number] = [Number(device.lon), Number(device.lat)];
       const worldAltitude = Number(device.height);
-      //const worldRotate = [Math.PI / 2, 0, 0];
       const worldRotate = JSON.parse(device.direction);
-      worldRotate[1] += BABYLON.Tools.ToRadians(-45); // Y軸まわりに右回り回転
 
       const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
       const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
