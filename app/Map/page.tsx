@@ -523,10 +523,10 @@ export default function App() {
           scene
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
-          const rootMesh = modelContainer.createRootMesh();
-          const rootMesh2 = rootMesh.clone();
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
+          //const rootMesh = modelContainer.createRootMesh();
+          //const rootMesh2 = rootMesh.clone();
+          //rootMesh2.position.x = 25;
+          //rootMesh2.position.z = 25;
         });
 
         // プロパティをカスタムレイヤーオブジェクトに追加
