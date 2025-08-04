@@ -498,6 +498,7 @@ export default function App() {
         };
 
         const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+        camera.minZ = 0.001; // ← ここに追加
 
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
         light.intensity = 0.7;
