@@ -498,28 +498,22 @@ export default function App() {
         };
 
         const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-        camera.minZ = 0.001; // ← ここに追加
+        camera.minZ = 0.001; // ←小さいオブジェクトを正しく描画できるようにするための調整。
 
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
         light.intensity = 0.7;
 
-        new BABYLON.AxesViewer(scene, 5); // 軸のサイズを小さく。デフォルトは10。
+        new BABYLON.AxesViewer(scene, 2); // 軸のサイズを小さく。デフォルトは10。
 
         // URLから.gltfファイルを読み込む
         console.log("DeviceType=", device.DeviceType);
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          `${device.DeviceType}Model.glb`, // ← ここを動的に
-          //'sample.gltf',
+          `${device.DeviceType}Model.glb`, // ←ファイル名を動的に
 
           scene
         ).then((modelContainer) => {
           modelContainer.addAllToScene();
-
-          //const rootMesh = modelContainer.createRootMesh();
-          //const rootMesh2 = rootMesh.clone();
-          //rootMesh2.position.x = 25;
-          //rootMesh2.position.z = 25;
         });
 
         // プロパティをカスタムレイヤーオブジェクトに追加
