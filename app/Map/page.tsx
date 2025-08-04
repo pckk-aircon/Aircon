@@ -503,7 +503,7 @@ export default function App() {
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
         light.intensity = 0.7;
 
-        new BABYLON.AxesViewer(scene, 5); // 軸のサイズを小さく。デフォルトは10。
+        //new BABYLON.AxesViewer(scene, 5); // 軸のサイズを小さく。デフォルトは10。
 
         // URLから.gltfファイルを読み込む
         console.log("DeviceType=", device.DeviceType);
