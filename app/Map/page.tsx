@@ -468,6 +468,7 @@ export default function App() {
       const worldAltitude = Number(device.height);
       //const worldRotate = [Math.PI / 2, 0, 0];
       const worldRotate = JSON.parse(device.direction);
+      worldRotate[1] += BABYLON.Tools.ToRadians(-45); // Y軸まわりに右回り回転
 
       const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
       const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
@@ -477,6 +478,7 @@ export default function App() {
         BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
         new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
       );
+
 
       const customLayer: maplibregl.CustomLayerInterface = {
         id: `3d-model-${index}`, // カスタムレイヤーの ID を一意にするための識別子
