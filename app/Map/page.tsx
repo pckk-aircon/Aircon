@@ -560,11 +560,23 @@ export default function App() {
 
 }
 
+
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
 
   try {
+    // null や undefined の場合はエラーを投げる
+    if (!directionRaw || typeof directionRaw !== 'string') {
+      throw new Error("directionRaw is null, undefined, or not a string");
+    }
+
+    // カンマ区切りの数値列をJSON配列形式に変換
+    if (!directionRaw.trim().startsWith("[")) {
+      directionRaw = `[${directionRaw}]`;
+    }
+
     const parsed = JSON.parse(directionRaw);
+
     if (
       Array.isArray(parsed) &&
       parsed.length === 3 &&
@@ -588,6 +600,8 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 
   return xRot.multiply(yRot).multiply(zRot);
 }
+
+
 
 
 /*
