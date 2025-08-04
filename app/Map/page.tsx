@@ -514,6 +514,7 @@ export default function App() {
         new BABYLON.AxesViewer(scene, 10);
 
         // URLから.gltfファイルを読み込む
+        console.log("DeviceType=", device.DeviceType);
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
           `${device.DeviceType}Model.gltf`, // ← ここを動的に
