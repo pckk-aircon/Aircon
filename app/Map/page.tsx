@@ -473,6 +473,8 @@ export default function App() {
 
       const worldOrigin: [number, number] = [lon, lat];
       const worldAltitude = height;
+      
+      console.log("device.direction☆", device.direction);
       const worldRotate = createCombinedQuaternionFromDirection(device.direction);
       const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
       const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
