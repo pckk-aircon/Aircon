@@ -253,6 +253,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 
 
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -425,13 +426,20 @@ export default function App() {
         );
 
         try {
-          const modelContainer = await BABYLON.SceneLoader.LoadAssetContainerAsync(
+          const result = await BABYLON.SceneLoader.ImportMeshAsync(
+            null,
             'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
             `${device.DeviceType}Model.glb`,
             scene
           );
 
-          modelContainer.addAllToScene();
+          result.meshes.forEach(mesh => {
+            mesh.alwaysSelectAsActiveMesh = true;
+            mesh.computeWorldMatrix(true);
+            mesh.freezeWorldMatrix();
+            mesh.setPivotMatrix(BABYLON.Matrix.Identity());
+            mesh.setAbsolutePosition(worldOriginMercator);
+          });
 
           const customLayer: maplibregl.CustomLayerInterface = {
             id: `3d-model-${device.Device}`,
