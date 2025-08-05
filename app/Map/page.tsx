@@ -446,15 +446,22 @@ export default function App() {
             id: `3d-model-${device.Device}`,
             type: 'custom',
             renderingMode: '3d',
-            onAdd() {},
+            onAdd() {
+              // Babylon.jsの初期化はここで行うことも可能ですが、今回はrender内で完結させます
+            },
             render(gl, args) {
               const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
               const wvpMatrix = worldMatrix.multiply(cameraMatrix);
               camera.freezeProjectionMatrix(wvpMatrix);
+
+              // Babylon.jsのシーンを1フレームだけ描画
               scene.render(false);
+
+              // MapLibreに再描画を促す
               map.triggerRepaint();
             }
           };
+
 
           map.addLayer(customLayer);
         });
