@@ -514,8 +514,11 @@ export default function App() {
           renderingMode: '3d',
 
           onAdd(map, gl) {
-            const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-            const scene = new BABYLON.Scene(engine);
+            //const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+            //const scene = new BABYLON.Scene(engine);
+            engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+            scene = new BABYLON.Scene(engine);
+
             scene.autoClear = false;
             scene.detachControl();
 
