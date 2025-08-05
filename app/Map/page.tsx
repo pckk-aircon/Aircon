@@ -253,7 +253,6 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 
 
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -419,10 +418,16 @@ export default function App() {
         const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
         const worldRotate = createCombinedQuaternionFromDirection(device.direction);
 
+        const worldPosition = new BABYLON.Vector3(
+          worldOriginMercator.x,
+          worldOriginMercator.y,
+          worldOriginMercator.z
+        );
+
         const worldMatrix = BABYLON.Matrix.Compose(
           new BABYLON.Vector3(worldScale, worldScale, worldScale),
           worldRotate,
-          new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+          worldPosition
         );
 
         try {
@@ -438,7 +443,7 @@ export default function App() {
             mesh.computeWorldMatrix(true);
             mesh.freezeWorldMatrix();
             mesh.setPivotMatrix(BABYLON.Matrix.Identity());
-            mesh.setAbsolutePosition(worldOriginMercator);
+            mesh.setAbsolutePosition(worldPosition);
           });
 
           const customLayer: maplibregl.CustomLayerInterface = {
@@ -509,6 +514,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 
   return xRot.multiply(yRot).multiply(zRot);
 }
+
 
 
 
