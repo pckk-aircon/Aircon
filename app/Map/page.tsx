@@ -409,7 +409,7 @@ export default function App() {
       new BABYLON.AxesViewer(scene, 5);
 
       //for (const device of deviceLists) {  
-      for (const device of deviceLists.slice(0, 4)) {
+      for (const device of deviceLists.slice(1, 4)) {
 
         const lon = Number(device.lon);
         const lat = Number(device.lat);
