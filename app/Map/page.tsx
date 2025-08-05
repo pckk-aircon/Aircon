@@ -162,10 +162,24 @@ export default function App() {
         const lon = Number(device.lon);
         const lat = Number(device.lat);
         const height = Number(device.height);
-        if (isNaN(lon) || isNaN(lat) || isNaN(height)) continue;
+        //if (isNaN(lon) || isNaN(lat) || isNaN(height)) continue;
+        if (
+          device.lon == null || device.lat == null || device.height == null ||
+          isNaN(Number(device.lon)) || isNaN(Number(device.lat)) || isNaN(Number(device.height))
+        ) {
+          console.warn(`無効な座標または高さ:`, device);
+          continue;
+        }
+
 
         const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
         const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+        if (!worldScale || isNaN(worldScale)) {
+          console.warn(`無効なスケール値:`, worldScale);
+          continue;
+        }
+
         const worldRotate = createCombinedQuaternionFromDirection(device.direction);
 
         const worldPosition = new BABYLON.Vector3(
@@ -520,9 +534,9 @@ export default function App() {
         }
       }
 
-      engine.runRenderLoop(() => {
-        scene.render();
-      });
+      //engine.runRenderLoop(() => {
+        //scene.render();
+      //});
 
     });
   }
