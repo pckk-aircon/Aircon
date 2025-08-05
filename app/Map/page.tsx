@@ -347,6 +347,9 @@ export default function App() {
     }
   }
 
+  let map: maplibregl.Map;
+
+
   async function renderMap() {
     let lon = 0, lat = 0;
     if (controller === "Mutsu01") {
@@ -408,7 +411,7 @@ export default function App() {
 
       new BABYLON.AxesViewer(scene, 5);
 
-      deviceLists.forEach((device) => {
+      deviceLists.forEach((device, index) => {
         const lon = Number(device.lon);
         const lat = Number(device.lat);
         const height = Number(device.height);
@@ -424,44 +427,28 @@ export default function App() {
           new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
         );
 
-        const modelFileName = `${device.DeviceType}Model.glb`;
+        console.log("device.DeviceType☆=", device.DeviceType);
 
         BABYLON.SceneLoader.LoadAssetContainerAsync(
           'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          modelFileName,
+          `${device.DeviceType}Model.glb`,
           scene
         ).then((modelContainer) => {
-          const { rootNodes } = modelContainer.instantiateModelsToScene();
-
-          rootNodes.forEach((node) => {
-            if (node instanceof BABYLON.TransformNode) {
-              node.setEnabled(true);
-              node.position = new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z);
-              node.rotationQuaternion = worldRotate;
-              node.scaling = new BABYLON.Vector3(worldScale, worldScale, worldScale);
-            }
-          });
+          modelContainer.addAllToScene();
 
           const customLayer: maplibregl.CustomLayerInterface = {
             id: `3d-model-${device.Device}`,
             type: 'custom',
             renderingMode: '3d',
-            onAdd() {
-              // Babylon.jsの初期化はここで行うことも可能ですが、今回はrender内で完結させます
-            },
+            onAdd() {}, // 初期化済みなので空
             render(gl, args) {
               const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
               const wvpMatrix = worldMatrix.multiply(cameraMatrix);
               camera.freezeProjectionMatrix(wvpMatrix);
-
-              // Babylon.jsのシーンを1フレームだけ描画
               scene.render(false);
-
-              // MapLibreに再描画を促す
               map.triggerRepaint();
             }
           };
-
 
           map.addLayer(customLayer);
         });
@@ -474,7 +461,7 @@ export default function App() {
   }
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
-}
+}//end App
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
@@ -489,6 +476,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
     }
 
     const parsed = JSON.parse(directionRaw);
+    console.log("parsed☆", parsed);
 
     if (
       Array.isArray(parsed) &&
