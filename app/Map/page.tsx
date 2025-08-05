@@ -466,7 +466,10 @@ export default function App() {
         addGeoJsonLayerToMap(map, division, index);
       });
     });
-
+    
+    //1つのengineとsceneをグローバルに定義して共有する
+    let engine: BABYLON.Engine;
+    let scene: BABYLON.Scene;
 
     map.on('style.load', () => {
 
