@@ -441,6 +441,14 @@ export default function App() {
             scene
           );
 
+          
+          if (result.meshes.length === 0) {
+            console.warn(`メッシュが読み込まれませんでした: ${device.DeviceType}`);
+          } else {
+            console.log(`メッシュ読み込み成功: ${device.DeviceType}`, result.meshes);
+          }
+
+
           result.meshes.forEach(mesh => {
             mesh.alwaysSelectAsActiveMesh = true;
             mesh.computeWorldMatrix(true);
