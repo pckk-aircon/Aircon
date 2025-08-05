@@ -395,7 +395,10 @@ export default function App() {
       const gl = (map.getCanvas() as HTMLCanvasElement).getContext('webgl2');
       if (!gl) return;
 
-      const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+      //const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+      const canvas = map.getCanvas() as HTMLCanvasElement;
+      const engine = new BABYLON.Engine(canvas, true);
+
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
