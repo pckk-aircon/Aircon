@@ -402,9 +402,9 @@ export default function App() {
 
   let map: maplibregl.Map;
 
+
   async function renderMap() {
     let lon = 0, lat = 0;
-
     if (controller === "Mutsu01") {
       lon = 140.302994;
       lat = 35.353503;
@@ -413,7 +413,7 @@ export default function App() {
       lat = 35.201848;
     }
 
-    map = new maplibregl.Map({
+    const map = new maplibregl.Map({
       container: 'map',
       style: {
         version: 8,
@@ -427,16 +427,8 @@ export default function App() {
           },
         },
         layers: [
-          {
-            id: 'background',
-            type: 'background',
-            paint: { 'background-color': '#e0dfdf' },
-          },
-          {
-            id: 'simple-tiles',
-            type: 'raster',
-            source: 'raster-tiles',
-          },
+          { id: 'background', type: 'background', paint: { 'background-color': '#e0dfdf' } },
+          { id: 'simple-tiles', type: 'raster', source: 'raster-tiles' },
         ],
       },
       center: [lon, lat],
@@ -448,59 +440,39 @@ export default function App() {
     map.dragRotate.enable();
     map.touchZoomRotate.enableRotation();
 
-    map.on('mousemove', (e) => {
-      if (e.originalEvent.buttons === 2) {
-        const rotationSpeed = 0.5;
-        map.rotateTo(map.getBearing() + e.originalEvent.movementX * rotationSpeed);
-      }
-    });
-
-    const nav = new maplibregl.NavigationControl({
-      showCompass: true,
-      visualizePitch: true,
-    });
+    const nav = new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true });
     map.addControl(nav, 'top-left');
 
     map.on('load', () => {
       divisionLists.forEach((division, index) => {
         addGeoJsonLayerToMap(map, division, index);
       });
-    });
-    
-    //1つのengineとsceneをグローバルに定義して共有する
-    let engine: BABYLON.Engine;
-    let scene: BABYLON.Scene;
 
-    map.on('style.load', () => {
+      const gl = (map.getCanvas() as HTMLCanvasElement).getContext('webgl2');
+      if (!gl) return;
+
+      const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+      const scene = new BABYLON.Scene(engine);
+      scene.autoClear = false;
+      scene.detachControl();
+
+      const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+      camera.minZ = 0.001;
+
+      const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+      light.intensity = 0.7;
+
+      new BABYLON.AxesViewer(scene, 5);
 
       deviceLists.forEach((device, index) => {
-        if (
-          !device.direction ||
-          typeof device.direction !== 'string' ||
-          device.lon == null ||
-          device.lat == null ||
-          device.height == null
-        ) {
-          console.warn(`Invalid data for device ${device.DeviceName}, skipping.`);
-          return;
-        }
-
         const lon = Number(device.lon);
         const lat = Number(device.lat);
         const height = Number(device.height);
+        if (isNaN(lon) || isNaN(lat) || isNaN(height)) return;
 
-        if (isNaN(lon) || isNaN(lat) || isNaN(height)) {
-          console.warn(`Non-numeric coordinates for device ${device.DeviceName}, skipping.`);
-          return;
-        }
-
-        const worldOrigin: [number, number] = [lon, lat];
-        const worldAltitude = height;
-      
-        console.log("device.direction☆", device.direction);
-        const worldRotate = createCombinedQuaternionFromDirection(device.direction);
-        const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+        const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
         const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+        const worldRotate = createCombinedQuaternionFromDirection(device.direction);
 
         const worldMatrix = BABYLON.Matrix.Compose(
           new BABYLON.Vector3(worldScale, worldScale, worldScale),
@@ -508,65 +480,36 @@ export default function App() {
           new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
         );
 
-        const customLayer: maplibregl.CustomLayerInterface = {
-          id: `3d-model-${index}`,
-          type: 'custom',
-          renderingMode: '3d',
+        BABYLON.SceneLoader.LoadAssetContainerAsync(
+          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+          `${device.DeviceType}Model.glb`,
+          scene
+        ).then((modelContainer) => {
+          modelContainer.addAllToScene();
 
-          onAdd(map, gl) {
-            //const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-            //const scene = new BABYLON.Scene(engine);
-            engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-            scene = new BABYLON.Scene(engine);
-
-            scene.autoClear = false;
-            scene.detachControl();
-
-            scene.beforeRender = () => {
-              engine.wipeCaches(true);
-            };
-
-            const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-            camera.minZ = 0.001;
-
-            const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-            light.intensity = 0.7;
-
-            new BABYLON.AxesViewer(scene, 5);
-
-            BABYLON.SceneLoader.LoadAssetContainerAsync(
-              'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-              `${device.DeviceType}Model.glb`,
-              scene
-            ).then((modelContainer) => {
-              modelContainer.addAllToScene();
-            });
-
-            (this as any).map = map;
-            (this as any).engine = engine;
-            (this as any).scene = scene;
-            (this as any).camera = camera;
-          },
-
-          render(gl, args) {
-            const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-            const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
-            if ((this as any).camera) {
-              (this as any).camera.freezeProjectionMatrix(wvpMatrix);
+          const customLayer: maplibregl.CustomLayerInterface = {
+            id: `3d-model-${device.Device}`,
+            type: 'custom',
+            renderingMode: '3d',
+            onAdd() {}, // 初期化済みなので空
+            render(gl, args) {
+              const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+              const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+              camera.freezeProjectionMatrix(wvpMatrix);
+              scene.render(false);
+              map.triggerRepaint();
             }
-            if ((this as any).scene) {
-              (this as any).scene.render(false);
-            }
-            if ((this as any).map) {
-              (this as any).map.triggerRepaint();
-            }
-          }
-        };//end customLayer
-      });//end forEach
+          };
 
-    });//end map.on('style.load')
-  }//end renderMap
+          map.addLayer(customLayer);
+        });
+      });
+
+      engine.runRenderLoop(() => {
+        scene.render();
+      });
+    });
+  }
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }//end App
@@ -645,3 +588,5 @@ function add3DModels() {
 
 
 */
+
+
