@@ -562,6 +562,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
     }
 
     const parsed = JSON.parse(directionRaw);
+    console.log("parsed☆", parsed);
 
     if (
       Array.isArray(parsed) &&
