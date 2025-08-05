@@ -429,6 +429,9 @@ export default function App() {
           worldRotate,
           worldPosition
         );
+        console.log("device.DeviceType☆=", device.DeviceType);
+        const modelUrl = `${device.DeviceType}Model.glb`;
+        console.log("Model URL☆=", modelUrl);
 
         try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync(
