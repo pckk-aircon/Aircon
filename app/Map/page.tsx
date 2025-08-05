@@ -395,10 +395,7 @@ export default function App() {
       const gl = (map.getCanvas() as HTMLCanvasElement).getContext('webgl2');
       if (!gl) return;
 
-      //const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-      const canvas = map.getCanvas() as HTMLCanvasElement;
-      const engine = new BABYLON.Engine(canvas, true);
-
+      const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
@@ -412,7 +409,7 @@ export default function App() {
       new BABYLON.AxesViewer(scene, 5);
 
       //for (const device of deviceLists) {  
-      for (const device of deviceLists.slice(1, 4)) {
+      for (const device of deviceLists.slice(0, 4)) {
 
         const lon = Number(device.lon);
         const lat = Number(device.lat);
@@ -485,6 +482,7 @@ export default function App() {
       engine.runRenderLoop(() => {
         scene.render();
       });
+
     });
   }
 
