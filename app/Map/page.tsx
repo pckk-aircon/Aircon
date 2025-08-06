@@ -325,24 +325,24 @@ export default function BabylonMap(): JSX.Element {
       bearing: 30,
     });
 
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const engine = new BABYLON.Engine(canvas, true, {
+      preserveDrawingBuffer: true,
+      premultipliedAlpha: false,
+    });
+
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+
+    const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 5, -10), scene);
+    camera.setTarget(BABYLON.Vector3.Zero());
+    camera.minZ = 0.001;
+
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
     map.on("load", () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const engine = new BABYLON.Engine(canvas, true, {
-        preserveDrawingBuffer: true,
-        premultipliedAlpha: false, // 透明背景のために追加
-      });
-
-      const scene = new BABYLON.Scene(engine);
-      scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // 背景を透明に
-
-      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 5, -10), scene);
-      camera.setTarget(BABYLON.Vector3.Zero());
-      camera.minZ = 0.001;
-
-      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-
       deviceLists.forEach(async (device) => {
         const lon = Number(device.lon);
         const lat = Number(device.lat);
@@ -364,6 +364,10 @@ export default function BabylonMap(): JSX.Element {
             mesh.setAbsolutePosition(position);
             mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
           });
+
+          // カメラをモデルに合わせて移動
+          camera.setTarget(position);
+          camera.position = new BABYLON.Vector3(position.x, position.y + 5, position.z - 10);
         } catch (error) {
           console.error("モデルの読み込みに失敗しました:", error);
         }
@@ -372,11 +376,11 @@ export default function BabylonMap(): JSX.Element {
       engine.runRenderLoop(() => {
         scene.render();
       });
-
-      return () => {
-        engine.dispose();
-      };
     });
+
+    return () => {
+      engine.dispose();
+    };
   }, [deviceLists]);
 
   return (
@@ -387,7 +391,7 @@ export default function BabylonMap(): JSX.Element {
           height: "100vh",
           width: "100vw",
           position: "absolute",
-          zIndex: 2, // 地図を前面に
+          zIndex: 1,
         }}
       ></div>
 
@@ -401,16 +405,14 @@ export default function BabylonMap(): JSX.Element {
           width: "100vw",
           height: "100vh",
           pointerEvents: "none",
-          zIndex: 1,
+          zIndex: 2,
           backgroundColor: "transparent",
-          display: "none", // ← 一時的に非表示にして地図が表示されるか確認
         }}
       ></canvas>
-
-
     </>
   );
 }
+
 
 
 
