@@ -331,8 +331,12 @@ export default function BabylonMap(): JSX.Element {
 
       const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true });
       const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // 背景を透明に
+
       const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, 0), scene);
+      camera.setTarget(BABYLON.Vector3.Zero()); // カメラの向き
       camera.minZ = 0.001;
+
       const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
       deviceLists.forEach(async (device) => {
@@ -379,7 +383,7 @@ export default function BabylonMap(): JSX.Element {
           height: "100vh",
           width: "100vw",
           position: "absolute",
-          zIndex: 1,
+          zIndex: 2, // 地図を前面に
         }}
       ></div>
       <canvas
@@ -392,12 +396,13 @@ export default function BabylonMap(): JSX.Element {
           width: "100vw",
           height: "100vh",
           pointerEvents: "none",
-          zIndex: 0,
+          zIndex: 1, // Babylon canvas を背面に
         }}
       ></canvas>
     </>
   );
 }
+
 
 
 
