@@ -294,8 +294,9 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 
 */
 
-"use client";
 
+
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { generateClient } from "aws-amplify/data";
@@ -312,14 +313,19 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { useController } from "@/app/context/ControllerContext";
 
+type DivisionType = NonNullable<Schema["Division"]["type"]>;
+type DeviceType = NonNullable<Schema["Device"]["type"]>;
+
 Amplify.configure(outputs);
 const client = generateClient<Schema>();
 
 export default function App() {
   const { controller } = useController();
-  const [divisionLists, setPosts] = useState([]);
-  const [deviceLists, setDevices] = useState([]);
-  const mapRef = useRef(null);
+  const [divisionLists, setPosts] = useState<DivisionType[]>([]);
+  const [deviceLists, setDevices] = useState<DeviceType[]>([]);
+
+  const mapContainerRef = useRef<HTMLDivElement | null>(null); // DOM 用
+  const mapRef = useRef<maplibregl.Map | null>(null); // MapLibre 用
 
   useEffect(() => {
     async function fetchData() {
@@ -329,17 +335,23 @@ export default function App() {
   }, [controller]);
 
   useEffect(() => {
-    if (divisionLists.length > 0) {
+    if (divisionLists.length > 0 && deviceLists.length > 0) {
       renderMap();
     }
-  }, [divisionLists]);
+  }, [divisionLists, deviceLists]);
 
   async function listPost() {
     const { data: divisionData } = await client.queries.listDivision({ Controller: controller });
     const { data: deviceData } = await client.queries.listDevice({ Controller: controller });
 
     if (divisionData) {
-      const filteredDivisionData = divisionData.filter(item => item?.DivisionName && item?.Geojson);
+      const filteredDivisionData = divisionData.filter(
+        (item): item is DivisionType =>
+          item !== null &&
+          item !== undefined &&
+          item.DivisionName !== undefined &&
+          item.Geojson !== undefined
+      );
       setPosts(filteredDivisionData);
     }
 
@@ -359,8 +371,10 @@ export default function App() {
       lat = 35.201848;
     }
 
+    if (!mapContainerRef.current) return;
+
     const map = new maplibregl.Map({
-      container: 'map',
+      container: mapContainerRef.current,
       style: {
         version: 8,
         sources: {
@@ -391,10 +405,23 @@ export default function App() {
 
     map.on('load', () => {
       divisionLists.forEach((division, index) => {
-        addGeoJsonLayerToMap(map, division, index);
+        if (division.DivisionName && division.Geojson) {
+          addGeoJsonLayerToMap(map, {
+            Division: division.Division,
+            DivisionName: division.DivisionName,
+            Geojson: division.Geojson,
+          }, index);
+        }
       });
 
-      const renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: map.getCanvas().getContext('webgl2'), alpha: true });
+      const canvas = map.getCanvas();
+      const gl = canvas.getContext('webgl2');
+      if (!gl) {
+        console.error('WebGL2 context を取得できませんでした。');
+        return;
+      }
+
+      const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true });
       renderer.autoClear = false;
 
       const scene = new THREE.Scene();
@@ -425,12 +452,14 @@ export default function App() {
         );
       }
 
-      const customLayer = {
+
+
+      const customLayer: maplibregl.CustomLayerInterface = {
         id: 'threejs-layer',
         type: 'custom',
         renderingMode: '3d',
         onAdd() {},
-        render(gl, matrix) {
+        render(gl: WebGLRenderingContext, matrix: any) {
           const m = new THREE.Matrix4().fromArray(matrix.defaultProjectionData.mainMatrix);
           camera.projectionMatrix = m;
           renderer.state.reset();
@@ -439,12 +468,17 @@ export default function App() {
         }
       };
 
+
       map.addLayer(customLayer);
     });
+
+    mapRef.current = map;
   }
 
-  return <div id="map" style={{ height: '80vh', width: '80%' }} ref={mapRef} />;
+  return <div id="map" style={{ height: '80vh', width: '80%' }} ref={mapContainerRef} />;
 }
+
+
 
 
 
