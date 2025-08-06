@@ -390,6 +390,7 @@ export default function BabylonMap(): JSX.Element {
           zIndex: 2, // 地図を前面に
         }}
       ></div>
+
       <canvas
         ref={canvasRef}
         id="babylonCanvas"
@@ -400,10 +401,13 @@ export default function BabylonMap(): JSX.Element {
           width: "100vw",
           height: "100vh",
           pointerEvents: "none",
-          zIndex: 1, // Babylon canvas を背面に
-          backgroundColor: "transparent", // 透明背景を明示
+          zIndex: 1,
+          backgroundColor: "transparent",
+          display: "none", // ← 一時的に非表示にして地図が表示されるか確認
         }}
       ></canvas>
+
+
     </>
   );
 }
