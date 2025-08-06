@@ -270,10 +270,9 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 */
 
 
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { Amplify } from "aws-amplify";
@@ -296,6 +295,7 @@ interface Device {
 
 export default function BabylonMap(): JSX.Element {
   const [deviceLists, setDeviceLists] = useState<Device[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     async function fetchDevices() {
@@ -315,7 +315,6 @@ export default function BabylonMap(): JSX.Element {
     fetchDevices();
   }, []);
 
-
   useEffect(() => {
     const map = new maplibregl.Map({
       container: "map",
@@ -326,48 +325,65 @@ export default function BabylonMap(): JSX.Element {
       bearing: 30,
     });
 
-    const canvas = document.getElementById("babylonCanvas") as HTMLCanvasElement;
-    const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true });
-    const scene = new BABYLON.Scene(engine);
-    const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, 0), scene);
-    camera.minZ = 0.001;
-    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    map.on("load", () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    deviceLists.forEach(async (device) => {
-      const lon = Number(device.lon);
-      const lat = Number(device.lat);
-      const height = Number(device.height);
+      const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true });
+      const scene = new BABYLON.Scene(engine);
+      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, 0), scene);
+      camera.minZ = 0.001;
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
-      const mercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
-      const scale = mercator.meterInMercatorCoordinateUnits();
-      const position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
+      deviceLists.forEach(async (device) => {
+        const lon = Number(device.lon);
+        const lat = Number(device.lat);
+        const height = Number(device.height);
 
-      const result = await BABYLON.SceneLoader.ImportMeshAsync(
-        null,
-        "https://pckk-device.s3.ap-southeast-2.amazonaws.com/",
-        `${device.DeviceType}Model.glb`,
-        scene
-      );
+        const mercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
+        const scale = mercator.meterInMercatorCoordinateUnits();
+        const position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
 
-      result.meshes.forEach((mesh) => {
-        mesh.setAbsolutePosition(position);
-        mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
+        try {
+          const result = await BABYLON.SceneLoader.ImportMeshAsync(
+            null,
+            "https://pckk-device.s3.ap-southeast-2.amazonaws.com/",
+            `${device.DeviceType}Model.glb`,
+            scene
+          );
+
+          result.meshes.forEach((mesh) => {
+            mesh.setAbsolutePosition(position);
+            mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
+          });
+        } catch (error) {
+          console.error("モデルの読み込みに失敗しました:", error);
+        }
       });
-    });
 
-    engine.runRenderLoop(() => {
-      scene.render();
-    });
+      engine.runRenderLoop(() => {
+        scene.render();
+      });
 
-    return () => {
-      engine.dispose();
-    };
+      return () => {
+        engine.dispose();
+      };
+    });
   }, [deviceLists]);
 
   return (
     <>
-      <div id="map" style={{ height: "100vh", width: "100vw" }} />
+      <div
+        id="map"
+        style={{
+          height: "100vh",
+          width: "100vw",
+          position: "absolute",
+          zIndex: 1,
+        }}
+      ></div>
       <canvas
+        ref={canvasRef}
         id="babylonCanvas"
         style={{
           position: "absolute",
@@ -376,11 +392,13 @@ export default function BabylonMap(): JSX.Element {
           width: "100vw",
           height: "100vh",
           pointerEvents: "none",
+          zIndex: 0,
         }}
-      />
+      ></canvas>
     </>
   );
 }
+
 
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
