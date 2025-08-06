@@ -295,6 +295,7 @@ interface Device {
 
 export default function BabylonMap(): JSX.Element {
   const [deviceLists, setDeviceLists] = useState<Device[]>([]);
+  const [logMessage, setLogMessage] = useState<string>("初期化中...");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -310,6 +311,9 @@ export default function BabylonMap(): JSX.Element {
             !isNaN(Number(d.lon))
         );
         setDeviceLists(filtered);
+        setLogMessage(`デバイス ${filtered.length} 件を取得しました`);
+      } else {
+        setLogMessage("デバイス情報の取得に失敗しました");
       }
     }
     fetchDevices();
@@ -326,7 +330,10 @@ export default function BabylonMap(): JSX.Element {
     });
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      setLogMessage("Canvas が見つかりません");
+      return;
+    }
 
     const engine = new BABYLON.Engine(canvas, true, {
       preserveDrawingBuffer: true,
@@ -341,6 +348,9 @@ export default function BabylonMap(): JSX.Element {
     camera.minZ = 0.001;
 
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // デバッグレイヤー表示（任意）
+    scene.debugLayer.show({ embedMode: true });
 
     map.on("load", () => {
       deviceLists.forEach(async (device) => {
@@ -362,14 +372,16 @@ export default function BabylonMap(): JSX.Element {
 
           result.meshes.forEach((mesh) => {
             mesh.setAbsolutePosition(position);
-            mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
+            mesh.scaling = new BABYLON.Vector3(scale * 10, scale * 10, scale * 10); // 拡大
+            mesh.isVisible = true;
           });
 
-          // カメラをモデルに合わせて移動
           camera.setTarget(position);
-          camera.position = new BABYLON.Vector3(position.x, position.y + 5, position.z - 10);
+          camera.position = new BABYLON.Vector3(position.x, position.y + 10, position.z - 20);
+
+          setLogMessage(`モデル ${device.DeviceType} を読み込みました`);
         } catch (error) {
-          console.error("モデルの読み込みに失敗しました:", error);
+          setLogMessage(`モデルの読み込みに失敗しました: ${error}`);
         }
       });
 
@@ -409,9 +421,25 @@ export default function BabylonMap(): JSX.Element {
           backgroundColor: "transparent",
         }}
       ></canvas>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          backgroundColor: "rgba(0,0,0,0.7)",
+          color: "white",
+          padding: "10px",
+          zIndex: 9999,
+          fontSize: "14px",
+        }}
+      >
+        {logMessage}
+      </div>
     </>
   );
 }
+
 
 
 
