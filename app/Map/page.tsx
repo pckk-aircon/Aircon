@@ -312,34 +312,56 @@ import { useController } from "@/app/context/ControllerContext";
 Amplify.configure(outputs);
 const client = generateClient<Schema>();
 
-export default function App() {
+interface Division {
+  Division: string;
+  DivisionName: string;
+  Geojson: string;
+  Controller?: string | null;
+}
+
+interface Device {
+  Device: string;
+  DeviceName: string;
+  DeviceType: string;
+  gltf: string;
+  direction: string;
+  height: string;
+  lat: string;
+  lon: string;
+  model: string;
+  Division: string;
+  Controller?: string | null;
+}
+
+export default function App(): JSX.Element {
   const { controller } = useController();
 
-  const [divisionLists, setPosts] = useState<Array<{
-    Division: string;
-    DivisionName: string;
-    Geojson: string;
-    Controller?: string | null;
-  }>>([]);
-
-  const [deviceLists, setDevices] = useState<Array<{
-    Device: string;
-    DeviceName: string;
-    DeviceType: string;
-    gltf: string;
-    direction: string;
-    height: string;
-    lat: string;
-    lon: string;
-    model: string;
-    Division: string;
-    Controller?: string | null;
-  }>>([]);
+  const [divisionLists, setDivisionLists] = useState<Division[]>([]);
+  const [deviceLists, setDeviceLists] = useState<Device[]>([]);
 
   useEffect(() => {
     async function fetchData() {
-      await listPost();
+      const { data: divisionData } = await client.queries.listDivision({ Controller: controller });
+      const { data: deviceData } = await client.queries.listDevice({ Controller: controller });
+
+      if (divisionData) {
+        const filteredDivisionData = divisionData.filter(
+          (item): item is Division =>
+            item?.DivisionName !== undefined && item?.Geojson !== undefined
+        );
+        setDivisionLists(filteredDivisionData);
+      }
+
+      if (deviceData) {
+        const filteredDeviceData = deviceData.filter(
+          (item): item is Device =>
+            item !== null && item !== undefined &&
+            item.lat !== undefined && item.lon !== undefined && item.height !== undefined
+        );
+        setDeviceLists(filteredDeviceData);
+      }
     }
+
     fetchData();
   }, [controller]);
 
@@ -349,43 +371,7 @@ export default function App() {
     }
   }, [divisionLists]);
 
-  async function listPost() {
-    const { data: divisionData } = await client.queries.listDivision({ Controller: controller });
-    const { data: deviceData } = await client.queries.listDevice({ Controller: controller });
-
-    if (divisionData) {
-      const filteredDivisionData = divisionData.filter(
-        (item): item is {
-          Division: string;
-          DivisionName: string;
-          Geojson: string;
-          Controller?: string | null;
-        } => item?.DivisionName !== undefined && item?.Geojson !== undefined
-      );
-      setPosts(filteredDivisionData);
-    }
-
-    if (deviceData) {
-      const filteredDeviceData = deviceData.filter(
-        (item): item is {
-          Device: string;
-          DeviceName: string;
-          DeviceType: string;
-          gltf: string;
-          direction: string;
-          height: string;
-          lat: string;
-          lon: string;
-          model: string;
-          Division: string;
-          Controller?: string | null;
-        } => item !== null && item !== undefined
-      );
-      setDevices(filteredDeviceData);
-    }
-  }
-
-  async function renderMap() {
+  function renderMap(): void {
     let lon = 0, lat = 0;
     if (controller === "Mutsu01") {
       lon = 140.302994;
@@ -433,7 +419,10 @@ export default function App() {
       const gl = (map.getCanvas() as HTMLCanvasElement).getContext('webgl2');
       if (!gl) return;
 
-      const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+      const engine = new BABYLON.Engine(gl, true, {
+        preserveDrawingBuffer: true,
+        useHighPrecisionMatrix: true
+      }, true);
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
@@ -446,27 +435,24 @@ export default function App() {
 
       new BABYLON.AxesViewer(scene, 5);
 
-      //for (const device of deviceLists) {  
       for (const device of deviceLists.slice(0, 4)) {
-
         const lon = Number(device.lon);
         const lat = Number(device.lat);
         const height = Number(device.height);
-        //if (isNaN(lon) || isNaN(lat) || isNaN(height)) continue;
+
         if (
           device.lon == null || device.lat == null || device.height == null ||
-          isNaN(Number(device.lon)) || isNaN(Number(device.lat)) || isNaN(Number(device.height))
+          isNaN(lon) || isNaN(lat) || isNaN(height)
         ) {
-          console.warn(`無効な座標または高さ:`, device);
+          console.warn(`Invalid coordinates or height:`, device);
           continue;
         }
-
 
         const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
         const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
 
         if (!worldScale || isNaN(worldScale)) {
-          console.warn(`無効なスケール値:`, worldScale);
+          console.warn(`Invalid scale value:`, worldScale);
           continue;
         }
 
@@ -483,23 +469,19 @@ export default function App() {
           worldRotate,
           worldPosition
         );
-        console.log("device.DeviceType☆=", device.DeviceType);
+
         const modelUrl = `${device.DeviceType}Model.glb`;
-        console.log("Model URL☆=", modelUrl);
 
         try {
-          const modelUrl = `AirconModel.glb`;
           const result = await BABYLON.SceneLoader.ImportMeshAsync(
             null,
             'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
             modelUrl,
             scene
           );
-          
+
           if (result.meshes.length === 0) {
-            console.warn(`メッシュが読み込まれませんでした: ${device.DeviceType}`);
-          } else {
-            console.log(`メッシュ読み込み成功: ${device.DeviceType}`, result.meshes);
+            console.warn(`No mesh loaded: ${device.DeviceType}`);
           }
 
           result.meshes.forEach(mesh => {
@@ -515,7 +497,7 @@ export default function App() {
             type: 'custom',
             renderingMode: '3d',
             onAdd() {},
-            render(gl, args) {
+            render(gl: WebGLRenderingContext, args: any) {
               const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
               const wvpMatrix = worldMatrix.multiply(cameraMatrix);
               camera.freezeProjectionMatrix(wvpMatrix);
@@ -526,10 +508,9 @@ export default function App() {
 
           map.addLayer(customLayer);
         } catch (error) {
-          console.error(`モデルの読み込みに失敗しました: ${device.DeviceType}`, error);
+          console.error(`Failed to load model: ${device.DeviceType}`, error);
         }
       }
-
     });
   }
 
@@ -549,7 +530,6 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
     }
 
     const parsed = JSON.parse(directionRaw);
-    console.log("parsed☆", parsed);
 
     if (
       Array.isArray(parsed) &&
