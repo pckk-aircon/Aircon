@@ -1,5 +1,3 @@
-/*
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -9,339 +7,175 @@ import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO } from "date-fns";
-
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
+import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { useController } from "@/app/context/ControllerContext";
 
-import * as BABYLON from 'babylonjs';
-import 'babylonjs-loaders';
+type DivisionType = NonNullable<Schema["Division"]["type"]>;
+type DeviceType = NonNullable<Schema["Device"]["type"]>;
 
+Amplify.configure(outputs);
 const client = generateClient<Schema>();
 
-//const MapWith3DModel: React.FC = () => {
 export default function App() {
-  const mapContainer = useRef<HTMLDivElement>(null);
+  const { controller } = useController();
+  const [divisionLists, setPosts] = useState<DivisionType[]>([]);
+  const [deviceLists, setDevices] = useState<DeviceType[]>([]);
 
-  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>>([]);
-  console.log('deviceLists=', deviceLists);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null); // DOM 用
+  const mapRef = useRef<maplibregl.Map | null>(null); // MapLibre 用
 
   useEffect(() => {
     async function fetchData() {
-        await listPost();
+      await listPost();
     }
     fetchData();
-  }, []);
+  }, [controller]);
 
-  //deviceLists の状態が更新された後に renderMap 関数を呼び出す
   useEffect(() => {
-    if (deviceLists.length > 0) {
+    if (divisionLists.length > 0 && deviceLists.length > 0) {
       renderMap();
     }
-  }, [deviceLists]);
+  }, [divisionLists, deviceLists]);
 
   async function listPost() {
-    const { data, errors } = await client.queries.listDevice({
-      Controller: "Mutsu01",
-    });
-    console.log('data（関数内）=', data);
-    //divisionLists の状態を更新
-    if (data) {
-      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
+    const { data: divisionData } = await client.queries.listDivision({ Controller: controller });
+    const { data: deviceData } = await client.queries.listDevice({ Controller: controller });
+
+    if (divisionData) {
+      const filteredDivisionData = divisionData.filter(
+        (item): item is DivisionType =>
+          item !== null &&
+          item !== undefined &&
+          item.DivisionName !== undefined &&
+          item.Geojson !== undefined
+      );
+      setPosts(filteredDivisionData);
+    }
+
+    if (deviceData) {
+      const filteredDeviceData = deviceData.filter(item => item !== null && item !== undefined);
+      setDevices(filteredDeviceData);
     }
   }
 
   async function renderMap() {
+    let lon = 0, lat = 0;
+    if (controller === "Mutsu01") {
+      lon = 140.302994;
+      lat = 35.353503;
+    } else if (controller === "Koura01") {
+      lon = 136.275547;
+      lat = 35.201848;
+    }
+
+    if (!mapContainerRef.current) return;
+
     const map = new maplibregl.Map({
-      container: mapContainer.current!,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
-      zoom: 18,
-      center: [140.302994, 35.353503],
-      pitch: 60,
-      canvasContextAttributes: { antialias: true }
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          'raster-tiles': {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            minzoom: 0,
+            maxzoom: 19,
+          },
+        },
+        layers: [
+          { id: 'background', type: 'background', paint: { 'background-color': '#e0dfdf' } },
+          { id: 'simple-tiles', type: 'raster', source: 'raster-tiles' },
+        ],
+      },
+      center: [lon, lat],
+      zoom: 17,
+      pitch: 30,
+      bearing: 30,
     });
 
-    const worldOrigin: [number, number] = [140.302994, 35.353503];
-    const worldAltitude = 0;
-    const worldRotate = [Math.PI / 2, 0, 0];
+    map.dragRotate.enable();
+    map.touchZoomRotate.enableRotation();
 
-    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+    const nav = new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true });
+    map.addControl(nav, 'top-left');
 
-    const worldMatrix = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(worldScale, worldScale, worldScale),
-      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
-      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
-    );
-
-    const customLayer: maplibregl.CustomLayerInterface = {
-      id: '3d-model',
-      type: 'custom',
-      renderingMode: '3d',
-
-      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
-        // エンジン、シーン、カメラの初期化
-        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-        const scene = new BABYLON.Scene(engine);
-        scene.autoClear = false;
-        scene.detachControl();
-
-        scene.beforeRender = () => {
-          if (engine) {
-            engine.wipeCaches(true);
-          }
-        };
-
-        const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-
-        const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-        light.intensity = 0.7;
-
-        new BABYLON.AxesViewer(scene, 10);
-
-        //const gltfJson = JSON.parse(device.gltf);
-        const gltfJson = JSON.parse(deviceLists[0].gltf);
-        console.log('gltfJson[0]=', gltfJson);
-
-
-
-        // URLから.gltfファイルを読み込む
-        BABYLON.SceneLoader.LoadAssetContainerAsync(
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          'sample.gltf',
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          //'34M_17.gltf',
-
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
-          //'34M_17.gltf',
-
-          scene
-        //).then((modelContainer) => {
-        ).then((gltfJson) => { //変更。         
-          const modelContainer = gltfJson ; //変更。
-
-          modelContainer.addAllToScene();
-
-
-
-          const rootMesh = modelContainer.createRootMesh();
-          const rootMesh2 = rootMesh.clone();
-
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
-        });
-
-        // プロパティをカスタムレイヤーオブジェクトに追加
-        (this as any).map = map;
-        (this as any).engine = engine;
-        (this as any).scene = scene;
-        (this as any).camera = camera;
-      },
-
-      render(gl: WebGLRenderingContext, args: any) {
-        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
-        if ((this as any).camera) {
-          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
+    map.on('load', () => {
+      divisionLists.forEach((division, index) => {
+        if (division.DivisionName && division.Geojson) {
+          addGeoJsonLayerToMap(map, {
+            Division: division.Division,
+            DivisionName: division.DivisionName,
+            Geojson: division.Geojson,
+          }, index);
         }
-        if ((this as any).scene) {
-          (this as any).scene.render(false);
-        }
-        if ((this as any).map) {
-          (this as any).map.triggerRepaint();
-        }
+      });
+
+      const canvas = map.getCanvas();
+      const gl = canvas.getContext('webgl2');
+      if (!gl) {
+        console.error('WebGL2 context を取得できませんでした。');
+        return;
       }
-    };
 
-    map.on('style.load', () => {
+      const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true });
+      renderer.autoClear = false;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.Camera();
+      const loader = new GLTFLoader();
+
+      for (const device of deviceLists.slice(0, 4)) {
+        const lon = Number(device.lon);
+        const lat = Number(device.lat);
+        const height = Number(device.height);
+        if (isNaN(lon) || isNaN(lat) || isNaN(height)) continue;
+
+        const mercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
+        const scale = mercator.meterInMercatorCoordinateUnits();
+
+        loader.load(
+          `https://pckk-device.s3.ap-southeast-2.amazonaws.com/${device.DeviceType}Model.glb`,
+          gltf => {
+            const model = gltf.scene;
+            model.scale.set(scale, scale, scale);
+            model.position.set(mercator.x, mercator.y, mercator.z);
+            scene.add(model);
+          },
+          undefined,
+          error => {
+            console.error(`モデルの読み込みに失敗しました: ${device.DeviceType}`, error);
+          }
+        );
+      }
+
+
+
+      const customLayer: maplibregl.CustomLayerInterface = {
+        id: 'threejs-layer',
+        type: 'custom',
+        renderingMode: '3d',
+        onAdd() {},
+        render(gl: WebGLRenderingContext, matrix: any) {
+          const m = new THREE.Matrix4().fromArray(matrix.defaultProjectionData.mainMatrix);
+          camera.projectionMatrix = m;
+          renderer.state.reset();
+          renderer.render(scene, camera);
+          map.triggerRepaint();
+        }
+      };
+
+
       map.addLayer(customLayer);
     });
 
-    return () => {
-      map.remove();
-    };
-
+    mapRef.current = map;
   }
 
-  return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
-};
-
-*/
-
-
-"use client";
-
-import { useState, useEffect, useRef } from "react";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-import { Amplify } from "aws-amplify";
-//import outputs from "@/amplify_outputs.json";
-import "@aws-amplify/ui-react/styles.css";
-
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO } from "date-fns";
-
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-
-import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
-
-import * as BABYLON from 'babylonjs';
-import 'babylonjs-loaders';
-
-const client = generateClient<Schema>();
-
-//const MapWith3DModel: React.FC = () => {
-export default function App() {
-  const mapContainer = useRef<HTMLDivElement>(null);
-
-  const [deviceLists, setDevices] = useState<Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>>([]);
-  console.log('deviceLists=', deviceLists);
-
-  useEffect(() => {
-    async function fetchData() {
-        await listPost();
-    }
-    fetchData();
-  }, []);
-
-  //deviceLists の状態が更新された後に renderMap 関数を呼び出す
-  useEffect(() => {
-    if (deviceLists.length > 0) {
-      renderMap();
-    }
-  }, [deviceLists]);
-
-  async function listPost() {
-    const { data, errors } = await client.queries.listDevice({
-      Controller: "Mutsu01",
-    });
-    console.log('data（関数内）=', data);
-    //divisionLists の状態を更新
-    if (data) {
-      setDevices(data as Array<{ Device: string; DeviceName: string; DeviceType: string; gltf: string; Division: string; Controller?: string | null }>); // 型を明示的にキャストする
-    }
-  }
-
-  async function renderMap() {
-    const map = new maplibregl.Map({
-      container: mapContainer.current!,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL', // APIキー
-      zoom: 18,
-      center: [140.302994, 35.353503],
-      pitch: 60,
-      canvasContextAttributes: { antialias: true }
-    });
-
-    const worldOrigin: [number, number] = [140.302994, 35.353503];
-    const worldAltitude = 0;
-    const worldRotate = [Math.PI / 2, 0, 0];
-
-    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
-
-    const worldMatrix = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(worldScale, worldScale, worldScale),
-      BABYLON.Quaternion.FromEulerAngles(worldRotate[0], worldRotate[1], worldRotate[2]),
-      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
-    );
-
-    const customLayer: maplibregl.CustomLayerInterface = {
-      id: '3d-model',
-      type: 'custom',
-      renderingMode: '3d',
-
-      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext) {
-        // エンジン、シーン、カメラの初期化
-        const engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-        const scene = new BABYLON.Scene(engine);
-        scene.autoClear = false;
-        scene.detachControl();
-
-        scene.beforeRender = () => {
-          if (engine) {
-            engine.wipeCaches(true);
-          }
-        };
-
-        const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-
-        const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-        light.intensity = 0.7;
-
-        new BABYLON.AxesViewer(scene, 10);
-
-        //const gltfJson = JSON.parse(device.gltf);
-        const gltfJson = JSON.parse(deviceLists[0].gltf);
-        console.log('gltfJson[0]=', gltfJson);
-
-
-        // URLから.gltfファイルを読み込む
-        BABYLON.SceneLoader.LoadAssetContainerAsync(
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-          'sample.gltf',
-          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          //'34M_17.gltf',
-
-          //'https://pckk-device.s3.ap-northeast-1.amazonaws.com/',
-          //'34M_17.gltf',
-
-          scene
-        //).then((modelContainer) => {
-        ).then((gltfJson) => { //変更。         
-          const modelContainer = gltfJson ; //変更。
-
-          modelContainer.addAllToScene();
-
-
-
-          const rootMesh = modelContainer.createRootMesh();
-          const rootMesh2 = rootMesh.clone();
-
-          rootMesh2.position.x = 25;
-          rootMesh2.position.z = 25;
-        });
-
-        // プロパティをカスタムレイヤーオブジェクトに追加
-        (this as any).map = map;
-        (this as any).engine = engine;
-        (this as any).scene = scene;
-        (this as any).camera = camera;
-      },
-
-      render(gl: WebGLRenderingContext, args: any) {
-        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
-        if ((this as any).camera) {
-          (this as any).camera.freezeProjectionMatrix(wvpMatrix);
-        }
-        if ((this as any).scene) {
-          (this as any).scene.render(false);
-        }
-        if ((this as any).map) {
-          (this as any).map.triggerRepaint();
-        }
-      }
-    };
-
-    map.on('style.load', () => {
-      map.addLayer(customLayer);
-    });
-
-    return () => {
-      map.remove();
-    };
-
-  }
-
-  return <div ref={mapContainer} style={{ width: '80%', height: '200%' }} />;
-};
+  return <div id="map" style={{ height: '80vh', width: '80%' }} ref={mapContainerRef} />;
+}
