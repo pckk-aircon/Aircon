@@ -493,20 +493,19 @@ export default function App() {
         console.log("Model URL☆=", modelUrl);
 
         try {
+          const modelUrl = `AirconModel.glb`;
           const result = await BABYLON.SceneLoader.ImportMeshAsync(
             null,
             'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-            `${device.DeviceType}Model.glb`,
+            modelUrl,
             scene
           );
-
           
           if (result.meshes.length === 0) {
             console.warn(`メッシュが読み込まれませんでした: ${device.DeviceType}`);
           } else {
             console.log(`メッシュ読み込み成功: ${device.DeviceType}`, result.meshes);
           }
-
 
           result.meshes.forEach(mesh => {
             mesh.alwaysSelectAsActiveMesh = true;
