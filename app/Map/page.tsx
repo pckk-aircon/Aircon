@@ -282,8 +282,17 @@ import maplibregl from "maplibre-gl";
 import * as BABYLON from "babylonjs";
 import "babylonjs-loaders";
 
+import { useController } from "@/app/context/ControllerContext";
+
 Amplify.configure(outputs);
 const client = generateClient<Schema>();
+
+interface Division {
+  Division: string;
+  DivisionName: string;
+  Geojson: string;
+  Controller?: string | null;
+}
 
 interface Device {
   Device: string;
@@ -295,6 +304,9 @@ interface Device {
 }
 
 export default function BabylonMap(): JSX.Element {
+
+  const { controller } = useController();
+  const [divisionLists, setDivisionLists] = useState<Division[]>([]);
   const [deviceLists, setDeviceLists] = useState<Device[]>([]);
   const [logMessage, setLogMessage] = useState<string>("初期化中...");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -319,6 +331,32 @@ export default function BabylonMap(): JSX.Element {
     }
     fetchDevices();
   }, []);
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: divisionData } = await client.queries.listDivision({ Controller: controller });
+      const { data: deviceData } = await client.queries.listDevice({ Controller: controller });
+
+      if (divisionData) {
+        const filteredDivisionData = divisionData.filter(
+          (item): item is Division =>
+            item?.DivisionName !== undefined && item?.Geojson !== undefined
+        );
+        setDivisionLists(filteredDivisionData);
+      }
+
+      if (deviceData) {
+        const filteredDeviceData = deviceData.filter(
+          (item): item is Device =>
+            item !== null && item !== undefined &&
+            item.lat !== undefined && item.lon !== undefined && item.height !== undefined
+        );
+        setDeviceLists(filteredDeviceData);
+      }
+    }
+
+    fetchData();
+  }, [controller]);
 
   useEffect(() => {
     const map = new maplibregl.Map({
