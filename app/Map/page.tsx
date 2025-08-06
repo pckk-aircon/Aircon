@@ -270,6 +270,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 */
 
 
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -337,11 +338,11 @@ export default function BabylonMap(): JSX.Element {
 
     const engine = new BABYLON.Engine(canvas, true, {
       preserveDrawingBuffer: true,
-      premultipliedAlpha: false,
+      premultipliedAlpha: true, // 修正点: trueに変更
     });
 
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // 透明背景
 
     const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 5, -10), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
@@ -349,8 +350,8 @@ export default function BabylonMap(): JSX.Element {
 
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
-    // デバッグレイヤー表示（任意）
-    scene.debugLayer.show({ embedMode: true });
+    // デバッグレイヤーは無効化（必要に応じて有効化）
+    // scene.debugLayer.show({ embedMode: true });
 
     map.on("load", () => {
       deviceLists.forEach(async (device) => {
@@ -372,7 +373,7 @@ export default function BabylonMap(): JSX.Element {
 
           result.meshes.forEach((mesh) => {
             mesh.setAbsolutePosition(position);
-            mesh.scaling = new BABYLON.Vector3(scale * 10, scale * 10, scale * 10); // 拡大
+            mesh.scaling = new BABYLON.Vector3(scale * 10, scale * 10, scale * 10);
             mesh.isVisible = true;
           });
 
@@ -403,7 +404,7 @@ export default function BabylonMap(): JSX.Element {
           height: "100vh",
           width: "100vw",
           position: "absolute",
-          zIndex: 1,
+          zIndex: 0, // 修正点: 地図を最背面に
         }}
       ></div>
 
@@ -417,7 +418,7 @@ export default function BabylonMap(): JSX.Element {
           width: "100vw",
           height: "100vh",
           pointerEvents: "none",
-          zIndex: 2,
+          zIndex: 1, // 修正点: 地図より前面だがUIより背面
           backgroundColor: "transparent",
         }}
       ></canvas>
@@ -442,8 +443,7 @@ export default function BabylonMap(): JSX.Element {
 
 
 
-
-
+/*
 
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
