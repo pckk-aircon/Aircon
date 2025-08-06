@@ -311,9 +311,12 @@ export default function BabylonMap(): JSX.Element {
   const [logMessage, setLogMessage] = useState<string>("初期化中...");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+
   useEffect(() => {
-    async function fetchDevices() {
+  async function fetchDevices() {
+    try {
       const { data } = await client.queries.listDevice({});
+      console.log("取得データ:", data);
       if (data) {
         const filtered = data.filter(
           (d): d is Device =>
@@ -326,11 +329,16 @@ export default function BabylonMap(): JSX.Element {
         setDeviceLists(filtered);
         setLogMessage(`デバイス ${filtered.length} 件を取得しました`);
       } else {
-        setLogMessage("デバイス情報の取得に失敗しました");
+        setLogMessage("デバイス情報の取得に失敗しました（データなし）");
       }
+    } catch (error) {
+      console.error("API呼び出しエラー:", error);
+      setLogMessage("デバイス情報の取得に失敗しました（APIエラー）");
     }
-    fetchDevices();
-  }, []);
+  }
+  fetchDevices();
+}, []);
+
 
   useEffect(() => {
     async function fetchData() {
