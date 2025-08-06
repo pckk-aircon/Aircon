@@ -329,12 +329,16 @@ export default function BabylonMap(): JSX.Element {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true });
+      const engine = new BABYLON.Engine(canvas, true, {
+        preserveDrawingBuffer: true,
+        premultipliedAlpha: false, // 透明背景のために追加
+      });
+
       const scene = new BABYLON.Scene(engine);
       scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // 背景を透明に
 
-      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, 0), scene);
-      camera.setTarget(BABYLON.Vector3.Zero()); // カメラの向き
+      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 5, -10), scene);
+      camera.setTarget(BABYLON.Vector3.Zero());
       camera.minZ = 0.001;
 
       const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
@@ -397,11 +401,13 @@ export default function BabylonMap(): JSX.Element {
           height: "100vh",
           pointerEvents: "none",
           zIndex: 1, // Babylon canvas を背面に
+          backgroundColor: "transparent", // 透明背景を明示
         }}
       ></canvas>
     </>
   );
 }
+
 
 
 
