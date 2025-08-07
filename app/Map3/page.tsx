@@ -175,6 +175,7 @@ export default function App(): JSX.Element {
             scene.add(light);
 
             const loader = new GLTFLoader();
+            const modelUrl = "AirconModel.glb";
             loader.load(
               'https://pckk-device.s3.ap-southeast-2.amazonaws.com/' + modelUrl,
               (gltf) => {
