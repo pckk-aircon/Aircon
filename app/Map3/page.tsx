@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,8 +12,9 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
-import * as BABYLON from 'babylonjs';
-import 'babylonjs-loaders';
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { useController } from "@/app/context/ControllerContext";
 
@@ -145,8 +147,7 @@ export default function App(): JSX.Element {
 
         const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
         const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
-        const worldRotate = createCombinedQuaternionFromDirection(device.direction);
-        const worldPosition = new BABYLON.Vector3(
+        const worldPosition = new THREE.Vector3(
           worldOriginMercator.x,
           worldOriginMercator.y,
           worldOriginMercator.z
@@ -154,56 +155,46 @@ export default function App(): JSX.Element {
 
         const modelUrl = `${device.DeviceType}Model.glb`;
 
-        let engine: BABYLON.Engine;
-        let scene: BABYLON.Scene;
-        let camera: BABYLON.Camera;
+        let renderer: THREE.WebGLRenderer;
+        let scene: THREE.Scene;
+        let camera: THREE.Camera;
 
         const customLayer: maplibregl.CustomLayerInterface = {
           id: `3d-model-${device.Device}`,
           type: 'custom',
           renderingMode: '3d',
           onAdd(map, gl) {
-            engine = new BABYLON.Engine(gl, true, {
-              preserveDrawingBuffer: true,
-              useHighPrecisionMatrix: true
-            }, true);
+            renderer = new THREE.WebGLRenderer({ canvas: gl.canvas, context: gl, antialias: true });
+            renderer.autoClear = false;
 
-            scene = new BABYLON.Scene(engine);
-            scene.autoClear = false;
-            scene.detachControl();
+            scene = new THREE.Scene();
+            camera = new THREE.Camera();
 
-            camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-            camera.minZ = 0.01;
-            camera.maxZ = 10000;
+            const light = new THREE.DirectionalLight(0xffffff, 0.8);
+            light.position.set(0, 0, 100).normalize();
+            scene.add(light);
 
-            const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-            light.intensity = 0.7;
-
-            BABYLON.SceneLoader.ImportMeshAsync(
-              null,
-              'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-              modelUrl,
-              scene
-            ).then(result => {
-              result.meshes.forEach(mesh => {
-                mesh.alwaysSelectAsActiveMesh = true;
-                mesh.computeWorldMatrix(true);
-                mesh.freezeWorldMatrix();
-                mesh.setPivotMatrix(BABYLON.Matrix.Identity());
-                mesh.setAbsolutePosition(worldPosition);
-              });
-            }).catch(error => {
-              console.error(`Failed to load model: ${device.DeviceType}`, error);
-            });
+            const loader = new GLTFLoader();
+            loader.load(
+              'https://pckk-device.s3.ap-southeast-2.amazonaws.com/' + modelUrl,
+              (gltf) => {
+                const model = gltf.scene;
+                model.position.copy(worldPosition);
+                model.scale.setScalar(worldScale);
+                model.quaternion.copy(createCombinedQuaternionFromDirection(device.direction));
+                scene.add(model);
+              },
+              undefined,
+              (error) => {
+                console.error('Failed to load model:', error);
+              }
+            );
           },
           render(gl, matrix) {
-            try {
-              camera.freezeProjectionMatrix(BABYLON.Matrix.FromArray(matrix.defaultProjectionData.mainMatrix));
-              scene.render(false);
-              map.triggerRepaint();
-            } catch (error) {
-              console.error("Babylon render error:", error);
-            }
+            camera.projectionMatrix.fromArray(matrix.defaultProjectionData.mainMatrix);
+            renderer.state.reset();
+            renderer.render(scene, camera);
+            map.triggerRepaint();
           }
         };
 
@@ -215,8 +206,7 @@ export default function App(): JSX.Element {
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }
 
-
-function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
+function createCombinedQuaternionFromDirection(directionRaw: string): THREE.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
 
   try {
@@ -243,14 +233,14 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
     }
   } catch (error) {
     console.error("Failed to parse direction:", error);
-    return BABYLON.Quaternion.Identity();
+    return new THREE.Quaternion();
   }
 
   const [x, y, z] = direction;
 
-  const xRot = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, x);
-  const yRot = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, y);
-  const zRot = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, z);
+  const xRot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), x);
+  const yRot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), y);
+  const zRot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), z);
 
   return xRot.multiply(yRot).multiply(zRot);
 }
