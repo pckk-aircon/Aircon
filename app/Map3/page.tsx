@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -234,6 +235,7 @@ export default function App(): JSX.Element {
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }
+
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
