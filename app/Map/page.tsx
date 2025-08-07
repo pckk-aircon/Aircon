@@ -315,7 +315,9 @@ export default function BabylonMap(): JSX.Element {
   useEffect(() => {
   async function fetchDevices() {
     try {
+      setLogMessage("データ取得前");
       const { data } = await client.queries.listDevice({});
+      setLogMessage("データ取得中");
       console.log("取得データ:", data);
       if (data) {
         const filtered = data.filter(
