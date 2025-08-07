@@ -330,7 +330,7 @@ export default function App(): JSX.Element {
       }
 
       if (deviceData) {
-
+        console.log('deviceData====',deviceData)
         const filteredDeviceData = deviceData.filter(
           (item): item is Device =>
             item !== null &&
