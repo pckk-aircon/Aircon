@@ -341,9 +341,10 @@ export default function App(): JSX.Element {
             item.direction !== undefined &&
             !isNaN(Number(item.lat)) &&
             !isNaN(Number(item.lon)) &&
-            !isNaN(Number(item.height))&&
-            !isNaN(Number(item.direction))           
+            !isNaN(Number(item.height))        
         );
+
+
         console.log('filteredDeviceData====',filteredDeviceData)
 
         setDeviceLists(filteredDeviceData);
