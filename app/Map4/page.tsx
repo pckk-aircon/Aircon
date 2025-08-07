@@ -18,7 +18,9 @@ const ThreeDModelMap: React.FC = () => {
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style:
-        'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+        //'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+        'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
+        
       zoom: 18,
       center: [148.9819, -35.3981],
       pitch: 60,
