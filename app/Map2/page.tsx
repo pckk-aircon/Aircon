@@ -34,9 +34,9 @@ interface Device {
   DeviceType: string;
   gltf: string;
   direction: string;
-  height: string;
-  lat: string;
-  lon: string;
+  lat: string | null;
+  lon: string | null;
+  height: string | null;
   model: string;
   Division: string;
   Controller?: string | null;
@@ -62,11 +62,23 @@ export default function App(): JSX.Element {
       }
 
       if (deviceData) {
+
         const filteredDeviceData = deviceData.filter(
           (item): item is Device =>
-            item !== null && item !== undefined &&
-            item.lat !== undefined && item.lon !== undefined && item.height !== undefined
+            item !== null &&
+            item !== undefined &&
+            item.lat !== undefined &&
+            item.lon !== undefined &&
+            item.height !== undefined &&
+            item.direction !== undefined &&
+            !isNaN(Number(item.lat)) &&
+            !isNaN(Number(item.lon)) &&
+            !isNaN(Number(item.height))        
         );
+
+
+        console.log('filteredDeviceData====',filteredDeviceData)
+
         setDeviceLists(filteredDeviceData);
       }
     }
@@ -489,7 +501,9 @@ export default function App(): JSX.Element {
             render(gl: WebGLRenderingContext, args: any) {
               const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
               const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-              camera.freezeProjectionMatrix(wvpMatrix);
+              //camera.freezeProjectionMatrix(wvpMatrix);
+              camera._projectionMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+
               scene.render(false);
               map.triggerRepaint();
             }
