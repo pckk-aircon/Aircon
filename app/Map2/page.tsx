@@ -280,7 +280,6 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 */
 
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -498,7 +497,7 @@ export default function App(): JSX.Element {
             render(gl: WebGLRenderingContext, args: any) {
               try {
                 engine.wipeCaches();
-                camera._projectionMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+                camera.freezeProjectionMatrix(BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix));
                 scene.render(false);
                 map.triggerRepaint();
               } catch (error) {
@@ -517,7 +516,6 @@ export default function App(): JSX.Element {
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }
-
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
