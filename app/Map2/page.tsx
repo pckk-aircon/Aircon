@@ -280,6 +280,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 */
 
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -342,7 +343,6 @@ export default function App(): JSX.Element {
       }
 
       if (deviceData) {
-
         const filteredDeviceData = deviceData.filter(
           (item): item is Device =>
             item !== null &&
@@ -353,12 +353,8 @@ export default function App(): JSX.Element {
             item.direction !== undefined &&
             !isNaN(Number(item.lat)) &&
             !isNaN(Number(item.lon)) &&
-            !isNaN(Number(item.height))        
+            !isNaN(Number(item.height))
         );
-
-
-        console.log('filteredDeviceData====',filteredDeviceData)
-
         setDeviceLists(filteredDeviceData);
       }
     }
@@ -429,7 +425,8 @@ export default function App(): JSX.Element {
       scene.detachControl();
 
       const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-      camera.minZ = 0.001;
+      camera.minZ = 0.01;
+      camera.maxZ = 10000;
 
       const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
       light.intensity = 0.7;
@@ -499,13 +496,14 @@ export default function App(): JSX.Element {
             renderingMode: '3d',
             onAdd() {},
             render(gl: WebGLRenderingContext, args: any) {
-              const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-              const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-              //camera.freezeProjectionMatrix(wvpMatrix);
-              camera._projectionMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-
-              scene.render(false);
-              map.triggerRepaint();
+              try {
+                engine.wipeCaches();
+                camera._projectionMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+                scene.render(false);
+                map.triggerRepaint();
+              } catch (error) {
+                console.error("Babylon render error:", error);
+              }
             }
           };
 
@@ -519,6 +517,7 @@ export default function App(): JSX.Element {
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }
+
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
