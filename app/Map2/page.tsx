@@ -332,11 +332,19 @@ export default function App(): JSX.Element {
       if (deviceData) {
         const filteredDeviceData = deviceData.filter(
           (item): item is Device =>
-            item !== null && item !== undefined &&
-            item.lat !== undefined && item.lon !== undefined && item.height !== undefined
+            item !== null &&
+            item !== undefined &&
+            item.lat !== undefined &&
+            item.lon !== undefined &&
+            item.height !== undefined &&
+            !isNaN(Number(item.lat)) &&
+            !isNaN(Number(item.lon)) &&
+            !isNaN(Number(item.height))
         );
         setDeviceLists(filteredDeviceData);
       }
+
+
     }
 
     fetchData();
@@ -401,11 +409,13 @@ export default function App(): JSX.Element {
         useHighPrecisionMatrix: true
       }, true);
       const scene = new BABYLON.Scene(engine);
-      scene.autoClear = false;
+      //scene.autoClear = false; 
+      scene.autoClear = true; // 前のフレームが残り、描画が不安定になる可能性を排除。
       scene.detachControl();
 
       const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
       camera.minZ = 0.001;
+      scene.activeCamera = camera; //カメラをシーンの「アクティブカメラ」として設定
 
       const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
       light.intensity = 0.7;
@@ -479,10 +489,10 @@ export default function App(): JSX.Element {
 
               const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
               const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
               // フリーズではなく、毎フレーム更新
               camera.freezeProjectionMatrix(undefined); // フリーズ解除
               camera._projectionMatrix = wvpMatrix;
+              scene.activeCamera = camera; // 念のため再設定
 
               scene.render(false);
               map.triggerRepaint();
