@@ -279,6 +279,7 @@ function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Qu
 
 */
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -435,21 +436,25 @@ export default function App(): JSX.Element {
 
         const modelUrl = `${device.DeviceType}Model.glb`;
 
+        let engine: BABYLON.Engine;
+        let scene: BABYLON.Scene;
+        let camera: BABYLON.Camera;
+
         const customLayer: maplibregl.CustomLayerInterface = {
           id: `3d-model-${device.Device}`,
           type: 'custom',
           renderingMode: '3d',
           onAdd(map, gl) {
-            const engine = new BABYLON.Engine(gl, true, {
+            engine = new BABYLON.Engine(gl, true, {
               preserveDrawingBuffer: true,
               useHighPrecisionMatrix: true
             }, true);
 
-            const scene = new BABYLON.Scene(engine);
+            scene = new BABYLON.Scene(engine);
             scene.autoClear = false;
             scene.detachControl();
 
-            const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+            camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
             camera.minZ = 0.01;
             camera.maxZ = 10000;
 
@@ -472,18 +477,16 @@ export default function App(): JSX.Element {
             }).catch(error => {
               console.error(`Failed to load model: ${device.DeviceType}`, error);
             });
-
-            customLayer.render = function (gl, matrix) {
-              try {
-                camera.freezeProjectionMatrix(BABYLON.Matrix.FromArray(matrix.defaultProjectionData.mainMatrix));
-                scene.render(false);
-                map.triggerRepaint();
-              } catch (error) {
-                console.error("Babylon render error:", error);
-              }
-            };
           },
-          render() {} // 初期化時は空でOK
+          render(gl, matrix) {
+            try {
+              camera.freezeProjectionMatrix(BABYLON.Matrix.FromArray(matrix.defaultProjectionData.mainMatrix));
+              scene.render(false);
+              map.triggerRepaint();
+            } catch (error) {
+              console.error("Babylon render error:", error);
+            }
+          }
         };
 
         map.addLayer(customLayer);
@@ -493,7 +496,6 @@ export default function App(): JSX.Element {
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }
-
 
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
