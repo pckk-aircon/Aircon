@@ -330,7 +330,7 @@ export default function App(): JSX.Element {
       }
 
       if (deviceData) {
-        console.log('deviceData====',deviceData)
+
         const filteredDeviceData = deviceData.filter(
           (item): item is Device =>
             item !== null &&
@@ -338,10 +338,13 @@ export default function App(): JSX.Element {
             item.lat !== undefined &&
             item.lon !== undefined &&
             item.height !== undefined &&
+            item.direction !== undefined &&
             !isNaN(Number(item.lat)) &&
             !isNaN(Number(item.lon)) &&
-            !isNaN(Number(item.height))
+            !isNaN(Number(item.height))&&
+            !isNaN(Number(item.direction))           
         );
+        console.log('filteredDeviceData====',filteredDeviceData)
 
         setDeviceLists(filteredDeviceData);
       }
