@@ -49,6 +49,7 @@ export default function Sidebar() {
         <li><Link href="/Map">Map</Link></li>
         <li><Link href="/Map2">Map2</Link></li>
         <li><Link href="/Map3">Map3</Link></li>
+        <li><Link href="/Map4">Map4</Link></li>
       </ul>
     </div>
   );
