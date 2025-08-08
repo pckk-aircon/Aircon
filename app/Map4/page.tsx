@@ -32,7 +32,7 @@ const ThreeDModelMap: React.FC = () => {
       canvasContextAttributes: { antialias: true }
     });
 
-    const modelOrigin: [number, number] = [148.9819, -35.39847];
+    const modelOrigin: [number, number] = [140.302994, 35.353503];
     const modelAltitude = 0;
     const modelRotate: [number, number, number] = [Math.PI / 2, 0, 0];
 
