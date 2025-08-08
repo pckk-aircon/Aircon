@@ -76,9 +76,9 @@ const ThreeDModelMap: React.FC = () => {
         directionalLight2.position.set(0, 70, 100).normalize();
         this.scene.add(directionalLight2);
 
-        const modelUrl = "AirconModel.gltf";
+        //const modelUrl = "AirconModel.gltf";
+        const modelUrl = "AirconModel.glb";
         const fullModelUrl = "https://pckk-device.s3.ap-southeast-2.amazonaws.com/" + modelUrl;
-
 
         const loader = new GLTFLoader();
         loader.load(
