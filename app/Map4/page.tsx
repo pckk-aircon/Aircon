@@ -91,7 +91,7 @@ const ThreeDModelMap: React.FC = () => {
 
         const loader = new GLTFLoader();
         loader.load(
-          'https://example.com/path/to/model.glb', // .glbファイルのURL
+          fullModelUrl,
           (gltf) => {
             this.scene.add(gltf.scene); // 読み込んだモデルをシーンに追加
           },
