@@ -1,3 +1,8 @@
+/*
+
+*/
+
+
 "use client";
 
 import React, { useEffect, useRef } from 'react';
@@ -22,7 +27,7 @@ const ThreeDModelMap: React.FC = () => {
         'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
         
       zoom: 18,
-      center: [148.9819, -35.3981],
+      center: [140.302994, 35.353503],
       pitch: 60,
       canvasContextAttributes: { antialias: true }
     });
@@ -71,13 +76,31 @@ const ThreeDModelMap: React.FC = () => {
         directionalLight2.position.set(0, 70, 100).normalize();
         this.scene.add(directionalLight2);
 
+        const modelUrl = "AirconModel.gltf";
+        const fullModelUrl = "https://pckk-device.s3.ap-southeast-2.amazonaws.com/" + modelUrl;
+
+
+        //const loader = new GLTFLoader();
+        //loader.load(
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          //(gltf) => {
+            //this.scene.add(gltf.scene);
+          //}
+        //);
+
+
         const loader = new GLTFLoader();
         loader.load(
-          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          'https://example.com/path/to/model.glb', // .glbファイルのURL
           (gltf) => {
-            this.scene.add(gltf.scene);
+            this.scene.add(gltf.scene); // 読み込んだモデルをシーンに追加
+          },
+          undefined,
+          (error) => {
+            console.error('An error occurred while loading the GLB model:', error);
           }
         );
+
 
         this.renderer = new THREE.WebGLRenderer({
           canvas: map.getCanvas(),
