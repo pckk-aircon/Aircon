@@ -82,8 +82,8 @@ const ThreeDModelMap: React.FC = () => {
 
         const loader = new GLTFLoader();
         loader.load(
-          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          //fullModelUrl,
+          //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          fullModelUrl,
           (gltf) => {
             this.scene.add(gltf.scene);
           }
