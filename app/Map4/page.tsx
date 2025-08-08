@@ -180,35 +180,21 @@ const ThreeDModelMap: React.FC = () => {
           (gltf) => {
             const originalModel = gltf.scene;
 
+            // 表示したい地点の配列
             const locations: [number, number][] = [
               [140.302994, 35.353503],
               [140.303500, 35.353800],
               [140.304000, 35.354100]
+              // 必要に応じて追加
             ];
 
             locations.forEach((lngLat) => {
               const mercator = MercatorCoordinate.fromLngLat(lngLat, 0);
-              const scale = mercator.meterInMercatorCoordinateUnits();
 
               const model = originalModel.clone();
-              model.matrixAutoUpdate = false;
-
-              const translation = new THREE.Matrix4().makeTranslation(
-                mercator.x,
-                mercator.y,
-                mercator.z
-              );
-              const rotationX = new THREE.Matrix4().makeRotationX(modelRotate[0]);
-              const rotationY = new THREE.Matrix4().makeRotationY(modelRotate[1]);
-              const rotationZ = new THREE.Matrix4().makeRotationZ(modelRotate[2]);
-              const scaleMatrix = new THREE.Matrix4().makeScale(scale, -scale, scale);
-
-              model.matrix = new THREE.Matrix4()
-                .multiply(translation)
-                .multiply(rotationX)
-                .multiply(rotationY)
-                .multiply(rotationZ)
-                .multiply(scaleMatrix);
+              model.position.set(mercator.x, mercator.y, mercator.z);
+              model.scale.setScalar(mercator.meterInMercatorCoordinateUnits());
+              model.rotation.set(modelRotate[0], modelRotate[1], modelRotate[2]);
 
               this.scene.add(model);
             });
@@ -224,7 +210,7 @@ const ThreeDModelMap: React.FC = () => {
           context: gl,
           antialias: true
         });
-        this.renderer.autoClear = true;
+        this.renderer.autoClear = false;
       },
       render(gl: WebGLRenderingContext, args: any) {
         const m = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
