@@ -80,15 +80,16 @@ const ThreeDModelMap: React.FC = () => {
         const fullModelUrl = "https://pckk-device.s3.ap-southeast-2.amazonaws.com/" + modelUrl;
 
 
-        //const loader = new GLTFLoader();
-        //loader.load(
+        const loader = new GLTFLoader();
+        loader.load(
           //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-          //(gltf) => {
-            //this.scene.add(gltf.scene);
-          //}
-        //);
+          fullModelUrl,
+          (gltf) => {
+            this.scene.add(gltf.scene);
+          }
+        );
 
-
+        /*
         const loader = new GLTFLoader();
         loader.load(
           fullModelUrl,
@@ -100,6 +101,7 @@ const ThreeDModelMap: React.FC = () => {
             console.error('An error occurred while loading the GLB model:', error);
           }
         );
+        */
 
 
         this.renderer = new THREE.WebGLRenderer({
