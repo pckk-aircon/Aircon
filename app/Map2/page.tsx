@@ -425,33 +425,33 @@ export default function App(): JSX.Element {
         useHighPrecisionMatrix: true
       }, true);
 
+
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
 
-      // 環境光の反射とトーンマッピングの設定
+      // 環境光とトーンマッピングの調整
       scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
         'https://assets.babylonjs.com/environments/environment.env',
         scene
       );
-      scene.environmentIntensity = 0.6;
+      scene.environmentIntensity = 1.0;
 
       scene.imageProcessingConfiguration.toneMappingEnabled = true;
       scene.imageProcessingConfiguration.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-      scene.imageProcessingConfiguration.exposure = 0.6;
+      scene.imageProcessingConfiguration.exposure = 1.2;
 
-      //const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
-      //camera.minZ = 0.001;
+      // ライトの調整（真上から照らす）
+      const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(0, -1, 0), scene);
+      light.position = new BABYLON.Vector3(0, 10, 0);
+      //const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+      //light.position = new BABYLON.Vector3(20, 40, 20);
+      //light.intensity = 0.7;
 
-      //FreeCamera に変更
+      // カメラの調整。FreeCamera に変更
       const camera = new BABYLON.FreeCamera('Camera', new BABYLON.Vector3(0, 5, -10), scene);
       camera.setTarget(BABYLON.Vector3.Zero());
-      camera.minZ = 0.001;
-
-      // DirectionalLight に変更
-      const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
-      light.position = new BABYLON.Vector3(20, 40, 20);
-      light.intensity = 0.7;
+      camera.minZ = 0.0001;
 
       new BABYLON.AxesViewer(scene, 5);
 
