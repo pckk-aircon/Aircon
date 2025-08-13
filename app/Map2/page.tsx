@@ -492,6 +492,9 @@ export default function App(): JSX.Element {
             console.warn(`No mesh loaded: ${device.DeviceType}`);
           }
 
+          const material = new BABYLON.StandardMaterial("mat", scene);
+          material.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8); // グレーなど任意の色
+
           result.meshes.forEach(mesh => {
             mesh.alwaysSelectAsActiveMesh = true;
             mesh.computeWorldMatrix(true);
