@@ -424,15 +424,15 @@ export default function App(): JSX.Element {
         preserveDrawingBuffer: true,
         useHighPrecisionMatrix: true
       }, true);
-
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
 
-      // カメラの調整。FreeCamera に変更
-      const camera = new BABYLON.FreeCamera('Camera', new BABYLON.Vector3(0, 5, -10), scene);
-      camera.setTarget(BABYLON.Vector3.Zero());
-      camera.minZ = 0.0001;
+      const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+      camera.minZ = 0.001;
+
+      const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+      light.intensity = 0.7;
 
       new BABYLON.AxesViewer(scene, 5);
 
@@ -476,10 +476,10 @@ export default function App(): JSX.Element {
         try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync(
             null,
-            //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-            //modelUrl,
             'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
             '',
+            //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+            //modelUrl,
             scene
           );
 
