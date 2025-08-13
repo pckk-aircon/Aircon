@@ -303,6 +303,37 @@ export default function BabylonMap(): JSX.Element {
   const [logMessage, setLogMessage] = useState<string>("初期化中...");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+
+  useEffect(() => {
+  async function fetchDevices() {
+    try {
+      setLogMessage("データ取得前");
+      const { data } = await client.queries.listDevice({});
+      setLogMessage("データ取得中");
+      console.log("取得データ:", data);
+      if (data) {
+        const filtered = data.filter(
+          (d): d is Device =>
+            typeof d?.lat === "string" &&
+            typeof d?.lon === "string" &&
+            typeof d?.height === "string" &&
+            !isNaN(Number(d.lat)) &&
+            !isNaN(Number(d.lon))
+        );
+        setDeviceLists(filtered);
+        setLogMessage(`デバイス ${filtered.length} 件を取得しました`);
+      } else {
+        setLogMessage("デバイス情報の取得に失敗しました（データなし）");
+      }
+    } catch (error) {
+      console.error("API呼び出しエラー:", error);
+      setLogMessage("デバイス情報の取得に失敗しました（APIエラー）");
+    }
+  }
+  fetchDevices();
+}, []);
+
+
   useEffect(() => {
     async function fetchData() {
       const { data: divisionData } = await client.queries.listDivision({ Controller: controller });

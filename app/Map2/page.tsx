@@ -292,6 +292,7 @@ import "@aws-amplify/ui-react/styles.css";
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+import { addGeoJsonLayerToMap } from '../utils/addGeoJsonLayerToMap';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
@@ -299,6 +300,13 @@ import { useController } from "@/app/context/ControllerContext";
 
 Amplify.configure(outputs);
 const client = generateClient<Schema>();
+
+interface Division {
+  Division: string;
+  DivisionName: string;
+  Geojson: string;
+  Controller?: string | null;
+}
 
 interface Device {
   Device: string;
@@ -316,12 +324,25 @@ interface Device {
 
 export default function App(): JSX.Element {
   const { controller } = useController();
+
+  const [divisionLists, setDivisionLists] = useState<Division[]>([]);
   const [deviceLists, setDeviceLists] = useState<Device[]>([]);
 
   useEffect(() => {
     async function fetchData() {
+      const { data: divisionData } = await client.queries.listDivision({ Controller: controller });
       const { data: deviceData } = await client.queries.listDevice({ Controller: controller });
+
+      if (divisionData) {
+        const filteredDivisionData = divisionData.filter(
+          (item): item is Division =>
+            item?.DivisionName !== undefined && item?.Geojson !== undefined
+        );
+        setDivisionLists(filteredDivisionData);
+      }
+
       if (deviceData) {
+
         const filteredDeviceData = deviceData.filter(
           (item): item is Device =>
             item !== null &&
@@ -334,21 +355,29 @@ export default function App(): JSX.Element {
             !isNaN(Number(item.lon)) &&
             !isNaN(Number(item.height))        
         );
+
+
+        console.log('filteredDeviceData====',filteredDeviceData)
+
         setDeviceLists(filteredDeviceData);
       }
     }
+
     fetchData();
   }, [controller]);
 
   useEffect(() => {
-    if (deviceLists.length > 0) {
+    if (divisionLists.length > 0) {
       renderMap();
     }
-  }, [deviceLists]);
+  }, [divisionLists]);
 
   function renderMap(): void {
-    let lon = 140.302994, lat = 35.353503;
-    if (controller === "Koura01") {
+    let lon = 0, lat = 0;
+    if (controller === "Mutsu01") {
+      lon = 140.302994;
+      lat = 35.353503;
+    } else if (controller === "Koura01") {
       lon = 136.275547;
       lat = 35.201848;
     }
@@ -362,6 +391,8 @@ export default function App(): JSX.Element {
             type: 'raster',
             tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
+            minzoom: 0,
+            maxzoom: 19,
           },
         },
         layers: [
@@ -375,75 +406,117 @@ export default function App(): JSX.Element {
       bearing: 30,
     });
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-left');
+    map.dragRotate.enable();
+    map.touchZoomRotate.enableRotation();
 
-    map.on('load', () => {
-      const device = deviceLists[0]; // 1つだけ表示
-      const lon = Number(device.lon);
-      const lat = Number(device.lat);
-      const height = Number(device.height);
+    const nav = new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true });
+    map.addControl(nav, 'top-left');
 
-      const mercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
-      const position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
-      const scale = mercator.meterInMercatorCoordinateUnits();
+    map.on('load', async () => {
+      divisionLists.forEach((division, index) => {
+        addGeoJsonLayerToMap(map, division, index);
+      });
 
-      let engine: BABYLON.Engine;
-      let scene: BABYLON.Scene;
-      let camera: BABYLON.Camera;
+      const gl = (map.getCanvas() as HTMLCanvasElement).getContext('webgl2');
+      if (!gl) return;
 
-      const customLayer: maplibregl.CustomLayerInterface = {
-        id: `babylon-layer-${device.Device}`,
-        type: 'custom',
-        renderingMode: '3d',
-        onAdd(map, gl) {
-          engine = new BABYLON.Engine(gl, true, {
-            preserveDrawingBuffer: true,
-            useHighPrecisionMatrix: true
-          }, true);
+      const engine = new BABYLON.Engine(gl, true, {
+        preserveDrawingBuffer: true,
+        useHighPrecisionMatrix: true
+      }, true);
+      const scene = new BABYLON.Scene(engine);
+      scene.autoClear = false;
+      scene.detachControl();
 
-          scene = new BABYLON.Scene(engine);
-          scene.autoClear = false;
+      const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+      camera.minZ = 0.001;
 
-          camera = new BABYLON.FreeCamera('camera', new BABYLON.Vector3(0, 0, 0), scene);
-          camera.minZ = 0.01;
-          camera.maxZ = 10000;
+      const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+      light.intensity = 0.7;
 
-          const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
-          light.intensity = 0.7;
+      new BABYLON.AxesViewer(scene, 5);
 
-          BABYLON.SceneLoader.ImportMeshAsync(
+      for (const device of deviceLists.slice(0, 4)) {
+        const lon = Number(device.lon);
+        const lat = Number(device.lat);
+        const height = Number(device.height);
+
+        if (
+          device.lon == null || device.lat == null || device.height == null ||
+          isNaN(lon) || isNaN(lat) || isNaN(height)
+        ) {
+          console.warn(`Invalid coordinates or height:`, device);
+          continue;
+        }
+
+        const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], height);
+        const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+        if (!worldScale || isNaN(worldScale)) {
+          console.warn(`Invalid scale value:`, worldScale);
+          continue;
+        }
+
+        const worldRotate = createCombinedQuaternionFromDirection(device.direction);
+
+        const worldPosition = new BABYLON.Vector3(
+          worldOriginMercator.x,
+          worldOriginMercator.y,
+          worldOriginMercator.z
+        );
+
+        const worldMatrix = BABYLON.Matrix.Compose(
+          new BABYLON.Vector3(worldScale, worldScale, worldScale),
+          worldRotate,
+          worldPosition
+        );
+
+        const modelUrl = `${device.DeviceType}Model.glb`;
+
+        try {
+          const result = await BABYLON.SceneLoader.ImportMeshAsync(
             null,
             'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-            `${device.DeviceType}Model.glb`,
+            modelUrl,
             scene
-          ).then(result => {
-            result.meshes.forEach(mesh => {
-              mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
-              mesh.setAbsolutePosition(position);
-            });
-          }).catch(error => {
-            console.error("Model load error:", error);
-          });
-        },
-        render(gl, matrix) {
-          try {
-            camera.freezeProjectionMatrix(BABYLON.Matrix.FromArray(matrix.defaultProjectionData.mainMatrix));
-            scene.render(false);
-            map.triggerRepaint();
-          } catch (error) {
-            console.error("Render error:", error);
-          }
-        }
-      };
+          );
 
-      map.addLayer(customLayer);
+          if (result.meshes.length === 0) {
+            console.warn(`No mesh loaded: ${device.DeviceType}`);
+          }
+
+          result.meshes.forEach(mesh => {
+            mesh.alwaysSelectAsActiveMesh = true;
+            mesh.computeWorldMatrix(true);
+            mesh.freezeWorldMatrix();
+            mesh.setPivotMatrix(BABYLON.Matrix.Identity());
+            mesh.setAbsolutePosition(worldPosition);
+          });
+
+          const customLayer: maplibregl.CustomLayerInterface = {
+            id: `3d-model-${device.Device}`,
+            type: 'custom',
+            renderingMode: '3d',
+            onAdd() {},
+            render(gl: WebGLRenderingContext, args: any) {
+              const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+              const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+              camera.freezeProjectionMatrix(wvpMatrix);
+              scene.render(false);
+              map.triggerRepaint();
+            }
+          };
+
+          map.addLayer(customLayer);
+        } catch (error) {
+          console.error(`Failed to load model: ${device.DeviceType}`, error);
+        }
+      }
     });
   }
 
   return <div id="map" style={{ height: '80vh', width: '80%' }} />;
 }
-
-
 
 function createCombinedQuaternionFromDirection(directionRaw: string): BABYLON.Quaternion {
   let direction: [number, number, number] = [0, 0, 0];
