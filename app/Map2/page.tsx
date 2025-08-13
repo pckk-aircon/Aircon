@@ -431,8 +431,10 @@ export default function App(): JSX.Element {
       const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
       camera.minZ = 0.001;
 
-      const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
-      light.intensity = 0.7;
+      //const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+      //light.intensity = 0.7;
+      const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), scene);
+      light.intensity = 0.5;
 
       new BABYLON.AxesViewer(scene, 5);
 
@@ -476,8 +478,11 @@ export default function App(): JSX.Element {
         try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync(
             null,
-            'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-            '',
+            //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+            //'',
+            'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
+            '34M_17.gltf',
+
             //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
             //modelUrl,
             scene
