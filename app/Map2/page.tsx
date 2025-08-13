@@ -476,8 +476,10 @@ export default function App(): JSX.Element {
         try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync(
             null,
-            'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-            modelUrl,
+            //'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+            //modelUrl,
+            'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+            '',
             scene
           );
 
