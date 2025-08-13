@@ -476,8 +476,10 @@ export default function App(): JSX.Element {
         const modelUrl = `${device.DeviceType}Model.glb`;
 
         try {
-          const result = await BABYLON.SceneLoader.ImportMeshAsync(
-            null,
+
+          const result = await BABYLON.SceneLoader.LoadAssetContainerAsync(
+          //const result = await BABYLON.SceneLoader.ImportMeshAsync(
+            //null,
             //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
             //'',
             'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
@@ -498,7 +500,7 @@ export default function App(): JSX.Element {
           result.meshes.forEach(mesh => {
             mesh.alwaysSelectAsActiveMesh = true;
             mesh.computeWorldMatrix(true);
-            mesh.freezeWorldMatrix();
+            //mesh.freezeWorldMatrix();
             mesh.setPivotMatrix(BABYLON.Matrix.Identity());
             mesh.setAbsolutePosition(worldPosition);
           });
