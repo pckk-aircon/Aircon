@@ -424,6 +424,8 @@ export default function App(): JSX.Element {
         preserveDrawingBuffer: true,
         useHighPrecisionMatrix: true
       }, true);
+
+
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
@@ -431,7 +433,9 @@ export default function App(): JSX.Element {
       const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
       camera.minZ = 0.001;
 
-      const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), scene);
+      // DirectionalLight に変更
+      const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+      light.position = new BABYLON.Vector3(20, 40, 20);
       light.intensity = 0.7;
 
       new BABYLON.AxesViewer(scene, 5);
