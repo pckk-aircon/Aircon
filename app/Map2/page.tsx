@@ -500,7 +500,7 @@ export default function App(): JSX.Element {
           result.meshes.forEach(mesh => {
             mesh.alwaysSelectAsActiveMesh = true;
             mesh.computeWorldMatrix(true);
-            //mesh.freezeWorldMatrix();
+            mesh.freezeWorldMatrix();
             mesh.setPivotMatrix(BABYLON.Matrix.Identity());
             mesh.setAbsolutePosition(worldPosition);
           });
