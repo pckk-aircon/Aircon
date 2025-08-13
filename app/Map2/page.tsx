@@ -425,12 +425,27 @@ export default function App(): JSX.Element {
         useHighPrecisionMatrix: true
       }, true);
 
-
       const scene = new BABYLON.Scene(engine);
       scene.autoClear = false;
       scene.detachControl();
 
-      const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+      // 環境光の反射とトーンマッピングの設定
+      scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+        'https://assets.babylonjs.com/environments/environment.env',
+        scene
+      );
+      scene.environmentIntensity = 0.6;
+
+      scene.imageProcessingConfiguration.toneMappingEnabled = true;
+      scene.imageProcessingConfiguration.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+      scene.imageProcessingConfiguration.exposure = 0.6;
+
+      //const camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), scene);
+      //camera.minZ = 0.001;
+
+      //FreeCamera に変更
+      const camera = new BABYLON.FreeCamera('Camera', new BABYLON.Vector3(0, 5, -10), scene);
+      camera.setTarget(BABYLON.Vector3.Zero());
       camera.minZ = 0.001;
 
       // DirectionalLight に変更
