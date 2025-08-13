@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 import maplibregl from 'maplibre-gl';
 import * as BABYLON from 'babylonjs';
