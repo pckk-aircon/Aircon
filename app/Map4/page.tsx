@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
@@ -78,23 +78,38 @@ function BabylonMapLayer({
   return null;
 }
 
-// ページコンポーネントとしてラップ
 export default function MapPage() {
-  // 仮のダミーデータ（実際は props や context から取得）
-  const dummyMap = {} as maplibregl.Map;
-  const dummyPosition = new BABYLON.Vector3(0, 0, 0);
-  const dummyRotate = BABYLON.Quaternion.Identity();
-  const dummyScale = 1;
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
+
+  useEffect(() => {
+    if (mapContainerRef.current && !mapInstance) {
+      const map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: 'https://demotiles.maplibre.org/style.json',
+        center: [139.767, 35.681], // 東京駅
+        zoom: 15
+      });
+      setMapInstance(map);
+    }
+  }, [mapContainerRef, mapInstance]);
 
   return (
-    <BabylonMapLayer
-      map={dummyMap}
-      worldPosition={dummyPosition}
-      worldRotate={dummyRotate}
-      worldScale={dummyScale}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+      {mapInstance && (
+        <BabylonMapLayer
+          map={mapInstance}
+          worldPosition={new BABYLON.Vector3(0, 0, 0)}
+          worldRotate={BABYLON.Quaternion.Identity()}
+          worldScale={1}
+        />
+      )}
+    </div>
   );
 }
+
+
 
 
 
