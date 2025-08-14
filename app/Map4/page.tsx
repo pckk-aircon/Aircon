@@ -61,6 +61,7 @@ export default function BabylonMapLayer({
           rootMesh.rotationQuaternion = worldRotate;
           rootMesh.scaling = new BABYLON.Vector3(worldScale, worldScale, worldScale);
 
+          
           // 必要なら freezeWorldMatrix()
           // rootMesh.freezeWorldMatrix();
         }).catch((error) => {
