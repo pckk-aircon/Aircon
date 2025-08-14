@@ -5,7 +5,7 @@ import maplibregl from 'maplibre-gl';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
-export default function BabylonMapLayer({
+function BabylonMapLayer({
   map,
   worldPosition,
   worldRotate,
@@ -51,18 +51,13 @@ export default function BabylonMapLayer({
 
           const rootMesh = container.createRootMesh();
 
-          // マテリアル設定（任意）
           const material = new BABYLON.StandardMaterial("mat", this.scene);
           material.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
           rootMesh.material = material;
 
-          // 位置・回転・スケール設定
           rootMesh.setAbsolutePosition(worldPosition);
           rootMesh.rotationQuaternion = worldRotate;
           rootMesh.scaling = new BABYLON.Vector3(worldScale, worldScale, worldScale);
-
-          // 必要なら freezeWorldMatrix()
-          // rootMesh.freezeWorldMatrix();
         }).catch((error) => {
           console.error("モデル読み込み失敗:", error);
         });
@@ -82,6 +77,25 @@ export default function BabylonMapLayer({
 
   return null;
 }
+
+// ページコンポーネントとしてラップ
+export default function MapPage() {
+  // 仮のダミーデータ（実際は props や context から取得）
+  const dummyMap = {} as maplibregl.Map;
+  const dummyPosition = new BABYLON.Vector3(0, 0, 0);
+  const dummyRotate = BABYLON.Quaternion.Identity();
+  const dummyScale = 1;
+
+  return (
+    <BabylonMapLayer
+      map={dummyMap}
+      worldPosition={dummyPosition}
+      worldRotate={dummyRotate}
+      worldScale={dummyScale}
+    />
+  );
+}
+
 
 
 
