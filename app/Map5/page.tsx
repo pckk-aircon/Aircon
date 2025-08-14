@@ -6,11 +6,11 @@ import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-// Babylon.js のプロパティを含む型安全なカスタムレイヤー定義
+// 型安全なカスタムレイヤー定義
 interface BabylonCustomLayer extends CustomLayerInterface {
   engine?: BABYLON.Engine;
   scene?: BABYLON.Scene;
-  camera?: BABYLON.Camera;
+  camera?: BABYLON.FreeCamera;
   map?: maplibregl.Map;
 }
 
@@ -26,7 +26,7 @@ const BabylonMap: React.FC = () => {
       zoom: 18,
       center: [148.9819, -35.3981],
       pitch: 60,
-      canvasContextAttributes: { antialias: true }
+      canvasContextAttributes: { antialias: true, preserveDrawingBuffer: true }
     });
 
     const worldOrigin: [number, number] = [148.9819, -35.39847];
@@ -57,13 +57,15 @@ const BabylonMap: React.FC = () => {
       type: 'custom',
       renderingMode: '3d',
       onAdd(map, gl) {
-        this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+        this.engine = new BABYLON.Engine(gl, true, { preserveDrawingBuffer: true }, true);
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.autoClear = false;
         this.scene.detachControl();
         this.scene.beforeRender = () => this.engine?.wipeCaches(true);
 
-        this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+        this.camera = new BABYLON.FreeCamera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+        this.camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
 
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
         light.intensity = 0.7;
@@ -80,6 +82,10 @@ const BabylonMap: React.FC = () => {
           const rootMesh2 = rootMesh.clone();
           rootMesh2.position.x = 25;
           rootMesh2.position.z = 25;
+
+          this.scene?.executeWhenReady(() => {
+            this.scene?.render();
+          });
         });
 
         this.map = map;
@@ -98,10 +104,12 @@ const BabylonMap: React.FC = () => {
     });
   }, []);
 
+  // JSX を返すことで ts(2322) エラーを回避
   return <div ref={mapContainer} style={{ width: '100%', height: '100vh' }} />;
 };
 
 export default BabylonMap;
+
 
 
 
