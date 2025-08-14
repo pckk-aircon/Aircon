@@ -310,13 +310,14 @@ interface BabylonCustomLayer extends maplibregl.CustomLayerInterface {
 
 export default function BabylonMap(): JSX.Element {
   useEffect(() => {
+
     const map = new maplibregl.Map({
       container: "map",
-      style: "https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL",
-      center: [148.9819, -35.3981],
-      zoom: 18,
-      pitch: 60,
-      canvasContextAttributes: { antialias: true },
+      style: "https://demotiles.maplibre.org/style.json",
+      center: [140.302994, 35.353503],
+      zoom: 17,
+      pitch: 30,    
+      bearing: 30,
     });
 
     const worldOrigin: [number, number] = [148.9819, -35.39847];

@@ -20,13 +20,13 @@ const BabylonMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    const map: Map = new maplibregl.Map({
-      container: mapContainer.current,
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
-      zoom: 18,
-      center: [148.9819, -35.3981],
-      pitch: 60,
-      canvasContextAttributes: { antialias: true, preserveDrawingBuffer: true }
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "https://demotiles.maplibre.org/style.json",
+      center: [140.302994, 35.353503],
+      zoom: 17,
+      pitch: 30,    
+      bearing: 30,
     });
 
     const worldOrigin: [number, number] = [148.9819, -35.39847];
