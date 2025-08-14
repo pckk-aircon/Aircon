@@ -31,35 +31,26 @@ export default App;
 
 */
 
-
-
 'use client';
 
 import React from 'react';
-import BabylonMap from '../components/BabylonMap';
 
-// 初期座標（例：キャンベラ）
-const lon = 148.9819;
-const lat = -35.39847;
-
-// コンポーネント外でイベントを発火
-if (typeof window !== 'undefined') {
-  const event = new CustomEvent('updateCoordinates', {
-    detail: { lon, lat }
-  });
-  window.dispatchEvent(event);
-}
-
-function App() {
+const MapPage = () => {
   return (
-    <div>
-      <h1>Babylon.js + Maplibre GL 地図表示</h1>
-      <BabylonMap lon={lon} lat={lat} />
+    <div style={{ width: '100%', height: '100vh' }}>
+      <iframe
+        src="/map.html"
+        title="Babylon.js Map"
+        width="100%"
+        height="100%"
+        style={{ border: 'none' }}
+      />
     </div>
   );
-}
+};
 
-export default App;
+export default MapPage;
+
 
 
 
