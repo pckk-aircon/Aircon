@@ -133,13 +133,30 @@ const BabylonMap: React.FC = () => {
     if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
-      container: mapContainer.current,
-      style: 'https://demotiles.maplibre.org/style.json',
-      center: [140.302994, 35.353503],
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          'raster-tiles': {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            minzoom: 0,
+            maxzoom: 19,
+          },
+        },
+        layers: [
+          { id: 'background', type: 'background', paint: { 'background-color': '#e0dfdf' } },
+          { id: 'simple-tiles', type: 'raster', source: 'raster-tiles' },
+        ],
+      },
+      //center: [lon, lat],
+      center: [140.3043164,35.3526954],
       zoom: 17,
       pitch: 30,
       bearing: 30,
     });
+
 
     const worldOrigin: [number, number] = [148.9819, -35.39847];
     const worldAltitude = 0;
