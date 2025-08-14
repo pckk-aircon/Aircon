@@ -133,7 +133,8 @@ const BabylonMap: React.FC = () => {
     if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
-      container: 'map',
+      //container: 'map',
+      container: mapContainer.current, // ← ここを修正
       style: {
         version: 8,
         sources: {
