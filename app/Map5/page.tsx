@@ -6,7 +6,6 @@ import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-// 型安全なカスタムレイヤー定義
 interface BabylonCustomLayer extends CustomLayerInterface {
   engine?: BABYLON.Engine;
   scene?: BABYLON.Scene;
@@ -21,11 +20,11 @@ const BabylonMap: React.FC = () => {
     if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
-      container: "map",
-      style: "https://demotiles.maplibre.org/style.json",
+      container: mapContainer.current, // ✅ 修正ポイント
+      style: 'https://demotiles.maplibre.org/style.json',
       center: [140.302994, 35.353503],
       zoom: 17,
-      pitch: 30,    
+      pitch: 30,
       bearing: 30,
     });
 
@@ -104,11 +103,11 @@ const BabylonMap: React.FC = () => {
     });
   }, []);
 
-  // JSX を返すことで ts(2322) エラーを回避
   return <div ref={mapContainer} style={{ width: '100%', height: '100vh' }} />;
 };
 
 export default BabylonMap;
+
 
 
 
