@@ -1,3 +1,5 @@
+/*
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -109,6 +111,22 @@ export default function MapPage() {
   );
 }
 
+*/
+
+
+import React from 'react';
+import BabylonMap from '../components/BabylonMap';
+
+function App() {
+  return (
+    <div>
+      <h1>Babylon.js + Maplibre GL 地図表示</h1>
+      <BabylonMap lon={148.9819} lat={-35.3981} />
+    </div>
+  );
+}
+
+export default App;
 
 
 
