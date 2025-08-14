@@ -218,9 +218,7 @@ const BabylonMap: React.FC = () => {
         this.camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
         this.camera.setTarget(BABYLON.Vector3.Zero());
 
-        //const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
-        const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0.5, 1, 0.5), this.scene);
-
+        const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
         light.intensity = 0.7;
 
         new BABYLON.AxesViewer(this.scene, 10);
