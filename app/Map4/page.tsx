@@ -122,7 +122,7 @@ function App() {
   return (
     <div>
       <h1>Babylon.js + Maplibre GL 地図表示</h1>
-      <BabylonMap lon={148.9819} lat={-35.3981} />
+      <BabylonMap lon={148.9819} lat={-35.39847} />
     </div>
   );
 }
