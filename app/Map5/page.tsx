@@ -1,113 +1,112 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import React, { useEffect, useRef } from 'react';
+import maplibregl, { Map, CustomLayerInterface } from 'maplibre-gl';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
-function BabylonMapLayer({
-  map,
-  worldPosition,
-  worldRotate,
-  worldScale
-}: {
-  map: maplibregl.Map;
-  worldPosition: BABYLON.Vector3;
-  worldRotate: BABYLON.Quaternion;
-  worldScale: number;
-}) {
+// Babylon.js のプロパティを含む型安全なカスタムレイヤー定義
+interface BabylonCustomLayer extends CustomLayerInterface {
+  engine?: BABYLON.Engine;
+  scene?: BABYLON.Scene;
+  camera?: BABYLON.Camera;
+  map?: maplibregl.Map;
+}
+
+const BabylonMap: React.FC = () => {
+  const mapContainer = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const customLayer: maplibregl.CustomLayerInterface & {
-      engine?: BABYLON.Engine;
-      scene?: BABYLON.Scene;
-      camera?: BABYLON.Camera;
-    } = {
+    if (!mapContainer.current) return;
+
+    const map: Map = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+      zoom: 18,
+      center: [148.9819, -35.3981],
+      pitch: 60,
+      canvasContextAttributes: { antialias: true }
+    });
+
+    const worldOrigin: [number, number] = [148.9819, -35.39847];
+    const worldAltitude = 0;
+    const worldRotate = [Math.PI / 2, 0, 0];
+
+    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const quaternion = BABYLON.Quaternion.FromEulerAngles(
+      worldRotate[0],
+      worldRotate[1],
+      worldRotate[2]
+    );
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      quaternion,
+      new BABYLON.Vector3(
+        worldOriginMercator.x,
+        worldOriginMercator.y,
+        worldOriginMercator.z
+      )
+    );
+
+    const customLayer: BabylonCustomLayer = {
       id: '3d-model',
       type: 'custom',
       renderingMode: '3d',
       onAdd(map, gl) {
-        this.engine = new BABYLON.Engine(gl, true, {
-          useHighPrecisionMatrix: true
-        }, true);
-
+        this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.autoClear = false;
         this.scene.detachControl();
+        this.scene.beforeRender = () => this.engine?.wipeCaches(true);
 
         this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
-        this.camera.minZ = 0.001;
 
         const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
         light.intensity = 0.7;
 
-        new BABYLON.AxesViewer(this.scene, 5);
+        new BABYLON.AxesViewer(this.scene, 10);
 
         BABYLON.SceneLoader.LoadAssetContainerAsync(
-          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/',
-          '34M_17.gltf',
+          'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
+          '',
           this.scene
-        ).then((container) => {
-          container.addAllToScene();
-
-          const rootMesh = container.createRootMesh();
-
-          const material = new BABYLON.StandardMaterial("mat", this.scene);
-          material.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
-          rootMesh.material = material;
-
-          rootMesh.setAbsolutePosition(worldPosition);
-          rootMesh.rotationQuaternion = worldRotate;
-          rootMesh.scaling = new BABYLON.Vector3(worldScale, worldScale, worldScale);
-        }).catch((error) => {
-          console.error("モデル読み込み失敗:", error);
+        ).then((modelContainer) => {
+          modelContainer.addAllToScene();
+          const rootMesh = modelContainer.createRootMesh();
+          const rootMesh2 = rootMesh.clone();
+          rootMesh2.position.x = 25;
+          rootMesh2.position.z = 25;
         });
+
+        this.map = map;
       },
       render(gl, args) {
         const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-        this.camera?.freezeProjectionMatrix(cameraMatrix);
+        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+        this.camera?.freezeProjectionMatrix(wvpMatrix);
         this.scene?.render(false);
-        map.triggerRepaint();
+        this.map?.triggerRepaint();
       }
     };
 
     map.on('style.load', () => {
       map.addLayer(customLayer);
     });
-  }, [map, worldPosition, worldRotate, worldScale]);
+  }, []);
 
-  return null;
-}
+  return <div ref={mapContainer} style={{ width: '100%', height: '100vh' }} />;
+};
 
-export default function MapPage() {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
+export default BabylonMap;
 
-  useEffect(() => {
-    if (mapContainerRef.current && !mapInstance) {
-      const map = new maplibregl.Map({
-        container: mapContainerRef.current,
-        style: 'https://demotiles.maplibre.org/style.json',
-        center: [139.767, 35.681], // 東京駅
-        zoom: 15
-      });
-      setMapInstance(map);
-    }
-  }, [mapContainerRef, mapInstance]);
 
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
-      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
-      {mapInstance && (
-        <BabylonMapLayer
-          map={mapInstance}
-          worldPosition={new BABYLON.Vector3(0, 0, 0)}
-          worldRotate={BABYLON.Quaternion.Identity()}
-          worldScale={1}
-        />
-      )}
-    </div>
-  );
-}
+
+
+
 
 
 
