@@ -158,7 +158,7 @@ const BabylonMap: React.FC = () => {
     });
 
 
-    const worldOrigin: [number, number] = [148.9819, -35.39847];
+    const worldOrigin: [number, number] = [140.3043164, 35.3526954];
     const worldAltitude = 0;
     const worldRotate = [Math.PI / 2, 0, 0];
 
