@@ -164,8 +164,11 @@ const BabylonMap = ({ lon, lat }) => {
 
           this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
 
-          const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
-          light.intensity = 0.7;
+          //const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
+          //light.intensity = 0.7;
+          const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), this.scene);
+          light.intensity = 0.6;
+
 
           new BABYLON.AxesViewer(this.scene, 10);
 
