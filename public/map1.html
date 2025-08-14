@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Add a 3D model with babylon.js</title>
+    <meta property="og:description" content="Use a custom style layer with babylon.js to add a 3D model to the map." />
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css' />
+    <script src='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js'></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+<body>
+https://unpkg.com/babylonjs@5.42.2/babylon.js
+https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js
+<div id="map"></div>
+<script>
+    const BABYLON = window.BABYLON;
+
+    const map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
+        zoom: 18,
+        center: [148.9819, -35.3981],
+        pitch: 60,
+        canvasContextAttributes: { antialias: true }
+    });
+
+    const worldOrigin = [148.9819, -35.39847];
+    const worldAltitude = 0;
+    const worldRotate = [Math.PI / 2, 0, 0];
+
+    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+        new BABYLON.Vector3(worldScale, worldScale, worldScale),
+        BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+        new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+    );
+
+    const customLayer = {
+        id: '3d-model',
+        type: 'custom',
+        renderingMode: '3d',
+        onAdd(map, gl) {
+            this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+            this.scene = new BABYLON.Scene(this.engine);
+            this.scene.autoClear = false;
+            this.scene.detachControl();
+            this.scene.beforeRender = () => {
+                this.engine.wipeCaches(true);
+            };
+
+            this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+
+            const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
+            light.intensity = 0.7;
+
+            new BABYLON.AxesViewer(this.scene, 10);
+
+            const modelUrl = "AirconModel.glb";
+            BABYLON.SceneLoader.LoadAssetContainerAsync(
+                'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+                modelUrl,
+                this.scene
+            ).then((modelContainer) => {
+                modelContainer.addAllToScene();
+                const rootMesh = modelContainer.createRootMesh();
+                const rootMesh2 = rootMesh.clone();
+
+                // 初期位置
+                rootMesh2.position.x = 25;
+                rootMesh2.position.z = 25;
+
+                // Reactから座標を受け取るために公開
+                window.rootMesh2 = rootMesh2;
+            });
+
+            this.map = map;
+
+            // Reactから座標を受け取るイベントリスナー
+            window.addEventListener('updateCoordinates', (e) => {
+                const { lon, lat } = e.detail;
+                const mercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], 0);
+                if (window.rootMesh2) {
+                    window.rootMesh2.position.x = mercator.x;
+                    window.rootMesh2.position.y = mercator.y;
+                    window.rootMesh2.position.z = mercator.z;
+                }
+            });
+        },
+        render(gl, args) {
+            const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+            const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+            this.camera.freezeProjectionMatrix(wvpMatrix);
+            this.scene.render(false);
+            this.map.triggerRepaint();
+        }
+    };
+
+    map.on('style.load', () => {
+        map.addLayer(customLayer);
+    });
+</script>
+</body>
+</html>

@@ -32,7 +32,6 @@ export default App;
 */
 
 'use client';
-
 import React from 'react';
 
 const MapPage = () => {
