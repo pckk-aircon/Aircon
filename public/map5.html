@@ -154,6 +154,11 @@
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
                     clone.position.z = mercator.z;
+
+                    // ★ ここでシーンに追加
+                    this.scene.addMesh(clone);
+
+
                 }
             });
 
