@@ -122,46 +122,35 @@
             // Add debug axes viewer, positioned at origin, 10 meter axis lengths
             new BABYLON.AxesViewer(this.scene, 10);
 
+
+
             const modelUrl = "AirconModel.glb";
-            //const n = 10; // 表示したいモデルの数
-            //const spacing = 25; // 各モデル間の距離（メートル）
+            const n = 10; // 表示したいモデルの数
+            const intervalDeg = 0.0002; // 緯度経度の間隔
 
-            const coordinates = [
-                { lng: 140.303475, lat: 35.35359 },
-                { lng: 140.303500, lat: 35.35360 },
-                { lng: 140.303525, lat: 35.35361 },
-                { lng: 140.303550, lat: 35.35362 },
-                { lng: 140.303575, lat: 35.35363 },
-                { lng: 140.303600, lat: 35.35364 },
-                { lng: 140.303625, lat: 35.35365 },
-                { lng: 140.303650, lat: 35.35366 },
-                { lng: 140.303675, lat: 35.35367 },
-                { lng: 140.303700, lat: 35.35368 }
-            ];
-
-            // load GLTF model in to the scene
             BABYLON.SceneLoader.LoadAssetContainerAsync(
-                //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-                //'',
-                'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-                modelUrl,
-                this.scene
-
-            ).then((modelContainer) => {
+    'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+    modelUrl,
+    this.scene
+).then((modelContainer) => {
                 modelContainer.addAllToScene();
                 const rootMesh = modelContainer.createRootMesh();
 
-                coordinates.forEach((coord, index) => {
-                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(
-                    { lng: coord[0], lat: coord[1] },
-                    0
-                    );
-                    const clone = rootMesh.clone(`clone_${index}`);
+                for (let i = 0; i < n; i++) {
+                    const clone = rootMesh.clone(`clone_${i}`);
+
+                    // 緯度経度をずらす
+                    const offsetLon = lon + intervalDeg * i;
+                    const offsetLat = lat + intervalDeg * i;
+
+                    // Mercator座標に変換
+                    const mercator = maplibregl.MercatorCoordinate.fromLngLat([offsetLon, offsetLat], worldAltitude);
+
+                    // モデルの位置を設定
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
                     clone.position.z = mercator.z;
-                });
-
+                }
             });
 
 
