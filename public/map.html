@@ -1,83 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-    <title>Babylon.js Multiple Clones</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css' />
-    <script src='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js'></script>
-    <style>
-        html, body, #map { height: 100%; margin: 0; padding: 0; }
-    </style>
+  <meta charset="utf-8" />
+  <title>Babylon.js × MapLibre 複数モデル描画</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css' />
+  <script src='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js'></script>
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+  </style>
 </head>
 <body>
 <div id="map"></div>
 <script>
-    const BABYLON = window.BABYLON;
+  const BABYLON = window.BABYLON;
 
-    // モデル配置情報を取得（React側から渡されたJSON配列）
-    const params = new URLSearchParams(window.location.search);
-    const modelsParam = params.get('models');
-    const modelPositions = modelsParam ? JSON.parse(decodeURIComponent(modelsParam)) : [];
+  // React側から渡されたモデル情報を取得
+  const params = new URLSearchParams(window.location.search);
+  const modelsParam = params.get('models');
+  const modelPositions = modelsParam ? JSON.parse(decodeURIComponent(modelsParam)) : [];
 
-    const map = new maplibregl.Map({
-        container: 'map',
-        style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
-        zoom: 18,
-        center: [modelPositions[0]?.lon || 140.303475, modelPositions[0]?.lat || 35.35359],
-        pitch: 60,
-        canvasContextAttributes: { antialias: true }
-    });
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
+    zoom: 18,
+    center: [modelPositions[0]?.lon || 140.3032, modelPositions[0]?.lat || 35.3537],
+    pitch: 60,
+    canvasContextAttributes: { antialias: true }
+  });
 
-    const customLayer = {
-        id: '3d-models',
-        type: 'custom',
-        renderingMode: '3d',
-        onAdd(map, gl) {
-            this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
-            this.scene = new BABYLON.Scene(this.engine);
-            this.scene.autoClear = false;
-            this.scene.detachControl();
+  const customLayer = {
+    id: '3d-models',
+    type: 'custom',
+    renderingMode: '3d',
+    onAdd(map, gl) {
+      this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+      this.scene = new BABYLON.Scene(this.engine);
+      this.scene.autoClear = false;
+      this.scene.detachControl();
 
-            this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
-            new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
+      this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+      new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
 
-            // モデルを1回だけロード
-            BABYLON.SceneLoader.LoadAssetContainerAsync(
-                'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-                'AirconModel.glb',
-                this.scene
-            ).then(container => {
-                container.addAllToScene();
-                const originalMesh = container.createRootMesh();
+      // モデルを1回だけ読み込み
+      BABYLON.SceneLoader.LoadAssetContainerAsync(
+        'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
+        'AirconModel.glb',
+        this.scene
+      ).then(container => {
+        container.addAllToScene();
+        const originalMesh = container.createRootMesh();
 
-                // 各地点にクローンを配置
-                modelPositions.forEach(({ lon, lat, scale = 1, rx = Math.PI / 2, ry = 0, rz = 0 }) => {
-                    const origin = [lon, lat - 0.00037];
-                    const altitude = 0;
-                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(origin, altitude);
-                    const mercatorScale = mercator.meterInMercatorCoordinateUnits() * scale;
+        // 各地点にクローンを配置
+        modelPositions.forEach(({ lon, lat, scale = 1, rx = Math.PI / 2, ry = 0, rz = 0 }) => {
+          const origin = [lon, lat - 0.00037];
+          const altitude = 0;
+          const mercator = maplibregl.MercatorCoordinate.fromLngLat(origin, altitude);
+          const mercatorScale = mercator.meterInMercatorCoordinateUnits() * scale;
 
-                    const clone = originalMesh.clone("clone_" + lon + "_" + lat);
-                    clone.scaling = new BABYLON.Vector3(mercatorScale, mercatorScale, mercatorScale);
-                    clone.rotation = new BABYLON.Vector3(rx, ry, rz);
-                    clone.position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
-                });
-            });
+          const clone = originalMesh.clone("clone_" + lon + "_" + lat);
+          clone.scaling = new BABYLON.Vector3(mercatorScale, mercatorScale, mercatorScale);
+          clone.rotation = new BABYLON.Vector3(rx, ry, rz);
+          clone.position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
+        });
+      });
 
-            this.map = map;
-        },
-        render(gl, args) {
-            const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-            this.camera.freezeProjectionMatrix(cameraMatrix);
-            this.scene.render(false);
-            this.map.triggerRepaint();
-        }
-    };
+      this.map = map;
+    },
+    render(gl, args) {
+      const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+      this.camera.freezeProjectionMatrix(cameraMatrix);
+      this.scene.render(false);
+      this.map.triggerRepaint();
+    }
+  };
 
-    map.on('style.load', () => {
-        map.addLayer(customLayer);
-    });
+  map.on('style.load', () => {
+    map.addLayer(customLayer);
+  });
 </script>
 </body>
 </html>
