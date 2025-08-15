@@ -21,7 +21,7 @@ const MapPage = () => {
   }).toString();
 
   // iframeのsrcにクエリを付加
-  const iframeSrc = `/map1.html?${query}`;
+  const iframeSrc = `/map4.html?${query}`;
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
