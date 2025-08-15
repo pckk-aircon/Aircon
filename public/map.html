@@ -1,161 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Add a 3D model with babylon.js</title>
-    <meta property="og:description" content="Use a custom style layer with babylon.js to add a 3D model to the map." />
-    <meta charset='utf-8'>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Babylon.js Multiple Clones</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css' />
     <script src='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js'></script>
     <style>
-        body { margin: 0; padding: 0; }
-        html, body, #map { height: 100%; }
+        html, body, #map { height: 100%; margin: 0; padding: 0; }
     </style>
 </head>
 <body>
-<script src="https://unpkg.com/babylonjs@5.42.2/babylon.js"></script>
-<script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
 <div id="map"></div>
 <script>
-
-    // URLパラメータを取得
-    const params = new URLSearchParams(window.location.search);
-    const lon = parseFloat(params.get('lon')) || 148.9819;
-    const lat = parseFloat(params.get('lat')) || -35.3981;
-    const modelUrl = params.get('modelUrl') || 'AirconModel.glb';
-    const scale = parseFloat(params.get('scale')) || 1;
-    const rx = parseFloat(params.get('rx')) || Math.PI / 2;
-    const ry = parseFloat(params.get('ry')) || 0;
-    const rz = parseFloat(params.get('rz')) || 0;
-
     const BABYLON = window.BABYLON;
 
-    const map = (window.map = new maplibregl.Map({
+    // モデル配置情報を取得（React側から渡されたJSON配列）
+    const params = new URLSearchParams(window.location.search);
+    const modelsParam = params.get('models');
+    const modelPositions = modelsParam ? JSON.parse(decodeURIComponent(modelsParam)) : [];
+
+    const map = new maplibregl.Map({
         container: 'map',
         style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
         zoom: 18,
-        center: [148.9819, -35.3981],
+        center: [modelPositions[0]?.lon || 140.303475, modelPositions[0]?.lat || 35.35359],
         pitch: 60,
-        canvasContextAttributes: {antialias: true} // create the gl context with MSAA antialiasing, so custom layers are antialiased
-    }));
+        canvasContextAttributes: { antialias: true }
+    });
 
-    // World matrix parameters   
-    const worldOrigin = [lon, lat - 0.00037]; //MapLibreとBabylon.jsは、座標系の定義や原点の扱いが異なるため微調整。
-    const worldAltitude = 0;
-
-
-    // Maplibre.js default coordinate system (no rotations)
-    // +x east, -y north, +z up
-    //var worldRotate = [0, 0, 0];
-
-    // Babylon.js default coordinate system
-    // +x east, +y up, +z north
-    const worldRotate = [Math.PI / 2, 0, 0];
-
-    // Calculate mercator coordinates and scale   
-    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(
-        worldOrigin,
-        worldAltitude);
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits() * scale;
-
-
-    // Calculate world matrix
-    const worldMatrix = BABYLON.Matrix.Compose(
-        new BABYLON.Vector3(worldScale, worldScale, worldScale),
-        BABYLON.Quaternion.FromEulerAngles(rx, ry, rz),
-        new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
-    );
-
-
-    // configuration of the custom layer for a 3D model per the CustomLayerInterface
     const customLayer = {
-        id: '3d-model',
+        id: '3d-models',
         type: 'custom',
         renderingMode: '3d',
-        onAdd (map, gl) {
-            this.engine = new BABYLON.Engine(
-                gl,
-                true,
-                {
-                    useHighPrecisionMatrix: true // Important to prevent jitter at mercator scale
-                },
-                true
-            );
+        onAdd(map, gl) {
+            this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
             this.scene = new BABYLON.Scene(this.engine);
-            /**
-            * optionally add
-            * this.scene.autoClearDepthAndStencil = false
-            * and for renderingGroupIds set this individually via
-            * this.scene.setRenderingAutoClearDepthStencil(1,false)
-            * to allow blending with maplibre scene
-            * as documented in https://doc.babylonjs.com/features/featuresDeepDive/scene/optimize_your_scene#reducing-calls-to-glclear
-            */
             this.scene.autoClear = false;
-            /**
-            * use detachControl if you only want to interact with maplibre-gl and do not need pointer events of babylonjs.
-            * alternatively exchange this.scene.detachControl() with the following two lines, they will allow bubbling up events to maplibre-gl.
-            * this.scene.preventDefaultOnPointerDown = false
-            * this.scene.preventDefaultOnPointerUp = false
-            * https://doc.babylonjs.com/typedoc/classes/BABYLON.Scene#preventDefaultOnPointerDown
-            */
             this.scene.detachControl();
 
-            this.scene.beforeRender = () => {
-                this.engine.wipeCaches(true);
-            };
+            this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+            new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
 
-            // create simple camera (will have its project matrix manually calculated)
-            this.camera = new BABYLON.Camera(
-                'Camera',
-                new BABYLON.Vector3(0, 0, 0),
-                this.scene
-            );
-
-            // create simple light
-            const light = new BABYLON.HemisphericLight(
-                'light1',
-                new BABYLON.Vector3(0, 0, 100),
-                this.scene
-            );
-            light.intensity = 0.7;
-
-            // Add debug axes viewer, positioned at origin, 10 meter axis lengths
-            new BABYLON.AxesViewer(this.scene, 10);
-
-            const modelUrl = "AirconModel.glb";
-            // load GLTF model in to the scene
+            // モデルを1回だけロード
             BABYLON.SceneLoader.LoadAssetContainerAsync(
-                //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-                //'',
                 'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
-                modelUrl,
+                'AirconModel.glb',
                 this.scene
-            ).then((modelContainer) => {
-                modelContainer.addAllToScene();
+            ).then(container => {
+                container.addAllToScene();
+                const originalMesh = container.createRootMesh();
 
-                const rootMesh = modelContainer.createRootMesh();
+                // 各地点にクローンを配置
+                modelPositions.forEach(({ lon, lat, scale = 1, rx = Math.PI / 2, ry = 0, rz = 0 }) => {
+                    const origin = [lon, lat - 0.00037];
+                    const altitude = 0;
+                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(origin, altitude);
+                    const mercatorScale = mercator.meterInMercatorCoordinateUnits() * scale;
 
-                // If using maplibre.js coordinate system (+z up)
-                //rootMesh.rotation.x = Math.PI/2
-
-                // Create a second mesh
-                const rootMesh2 = rootMesh.clone();
-
-                // Position in babylon.js coordinate system
-                rootMesh2.position.x = 25; // +east, meters
-                rootMesh2.position.z = 25; // +north, meters
+                    const clone = originalMesh.clone("clone_" + lon + "_" + lat);
+                    clone.scaling = new BABYLON.Vector3(mercatorScale, mercatorScale, mercatorScale);
+                    clone.rotation = new BABYLON.Vector3(rx, ry, rz);
+                    clone.position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
+                });
             });
 
             this.map = map;
         },
-        render (gl, args) {
+        render(gl, args) {
             const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
-
-            // world-view-projection matrix
-            const wvpMatrix = worldMatrix.multiply(cameraMatrix);
-
-            this.camera.freezeProjectionMatrix(wvpMatrix);
-
+            this.camera.freezeProjectionMatrix(cameraMatrix);
             this.scene.render(false);
             this.map.triggerRepaint();
         }
