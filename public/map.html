@@ -34,7 +34,7 @@
         container: 'map',
         style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
         zoom: 18,
-        center: [148.9819, -35.3981],
+        center: [140.303475, 35.35359],
         pitch: 60,
         canvasContextAttributes: {antialias: true} // create the gl context with MSAA antialiasing, so custom layers are antialiased
     }));
@@ -123,27 +123,29 @@
             new BABYLON.AxesViewer(this.scene, 10);
 
             const modelUrl = "AirconModel.glb";
-            // load GLTF model in to the scene
-            BABYLON.SceneLoader.LoadAssetContainerAsync(
-                //'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-                //'',
+
+            // モデルを1つずつ読み込み
+            models.forEach((model, index) => {
+              const {
+                lon, lat, modelUrl, scale = 1,
+                rx = Math.PI / 2, ry = 0, rz = 0
+              } = model;
+
+              const mercator = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], 0);
+              const position = new BABYLON.Vector3(mercator.x, mercator.y, mercator.z);
+              const quaternion = BABYLON.Quaternion.FromEulerAngles(rx, ry, rz);
+              const scaling = new BABYLON.Vector3(scale, scale, scale);
+
+              BABYLON.SceneLoader.ImportMeshAsync(null,
                 'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
                 modelUrl,
                 this.scene
-            ).then((modelContainer) => {
-                modelContainer.addAllToScene();
-
-                const rootMesh = modelContainer.createRootMesh();
-
-                // If using maplibre.js coordinate system (+z up)
-                //rootMesh.rotation.x = Math.PI/2
-
-                // Create a second mesh
-                const rootMesh2 = rootMesh.clone();
-
-                // Position in babylon.js coordinate system
-                rootMesh2.position.x = 25; // +east, meters
-                rootMesh2.position.z = 25; // +north, meters
+              ).then(result => {
+                const root = result.meshes[0];
+                root.scaling = scaling;
+                root.rotationQuaternion = quaternion;
+                root.position = position;
+              });
             });
 
             this.map = map;

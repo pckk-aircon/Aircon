@@ -46,25 +46,31 @@ export default MapPage;
 import React from 'react';
 
 const MapPage = () => {
-  // 渡したいパラメータを定義
-  const lon = 140.3032013;
-  const lat = 35.3537465;
-  const modelUrl = 'TempModel.glb';
-  const scale = 1.5;
-  const rotation = [Math.PI / 2, 0, 0];
+  const models = [
+    {
+      lon: 140.3032013,
+      lat: 35.3537465,
+      modelUrl: 'TempModel.glb',
+      scale: 1.5,
+      rx: Math.PI / 2,
+      ry: 0,
+      rz: 0
+    },
+    {
+      lon: 140.304,
+      lat: 35.354,
+      modelUrl: 'AirconModel.glb',
+      scale: 1.2,
+      rx: Math.PI / 2,
+      ry: 0,
+      rz: Math.PI / 4
+    }
+  ];
 
-  // クエリ文字列を構築
   const query = new URLSearchParams({
-    lon: lon.toString(),
-    lat: lat.toString(),
-    modelUrl,
-    scale: scale.toString(),
-    rx: rotation[0].toString(),
-    ry: rotation[1].toString(),
-    rz: rotation[2].toString()
+    models: JSON.stringify(models)
   }).toString();
 
-  // iframeのsrcにクエリを付加
   const iframeSrc = `/map.html?${query}`;
 
   return (
@@ -81,6 +87,7 @@ const MapPage = () => {
 };
 
 export default MapPage;
+
 
 
 
