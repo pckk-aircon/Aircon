@@ -1,0 +1,12 @@
+
+            ).then((modelContainer) => {
+                modelContainer.addAllToScene();
+
+                const rootMesh = modelContainer.createRootMesh();
+
+                for (let i = 0; i < n; i++) {
+                    const clone = rootMesh.clone(`clone_${i}`);
+                    clone.position.x = spacing * i; // 東方向にずらす
+                    clone.position.z = spacing * i; // 北方向にずらす（必要に応じて調整）
+                }
+            });
