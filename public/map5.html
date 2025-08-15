@@ -152,8 +152,8 @@
                     // モデルの位置を設定
                     console.log("i,mercator.x,mercator.y,mercator.z", i,mercator.x,mercator.y,mercator.z);
                     clone.position.x = mercator.x;
-                    clone.position.y = mercator.y;
-                    clone.position.z = mercator.z;
+                    clone.position.z = mercator.y;
+                    clone.position.y = mercator.z;
 
                     // ★ ここでシーンに追加
                     this.scene.addMesh(clone);
