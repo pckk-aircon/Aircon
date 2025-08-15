@@ -125,26 +125,19 @@
             const modelUrl = "AirconModel.glb";
             const n = 10; // 表示したいモデルの数
             const spacing = 25; // 各モデル間の距離（メートル）
-            const coordinates = [
-                (140.303475, 35.35359),
-                (140.3035, 35.3536),
-                (140.303525, 35.35361),
-                (140.30355, 35.35362),
-                (140.303575, 35.35363),
-                (140.3036, 35.35364),
-                (140.303625, 35.35365),
-                (140.30365, 35.35366),
-                (140.303675, 35.35367),
-                (140.3037, 35.35368)
-            ];
-            const locations = [
-                { lon: 140.303475, lat: 35.35359 },//道の駅
-                { lon: 140.3048039, lat: 35.3528343 },//ホームセンタ
-                { lon: 140.3028528, lat: 35.3553693 }, //セブン
-                // 必要な数だけ追加
-            ];
-            const defaultAltitude = 0; // 地面レベル（必要に応じて調整）
 
+            const coordinates = [
+                { lng: 140.303475, lat: 35.35359 },
+                { lng: 140.303500, lat: 35.35360 },
+                { lng: 140.303525, lat: 35.35361 },
+                { lng: 140.303550, lat: 35.35362 },
+                { lng: 140.303575, lat: 35.35363 },
+                { lng: 140.303600, lat: 35.35364 },
+                { lng: 140.303625, lat: 35.35365 },
+                { lng: 140.303650, lat: 35.35366 },
+                { lng: 140.303675, lat: 35.35367 },
+                { lng: 140.303700, lat: 35.35368 }
+            ];
 
             // load GLTF model in to the scene
             BABYLON.SceneLoader.LoadAssetContainerAsync(
@@ -153,8 +146,6 @@
                 'https://pckk-device.s3.ap-southeast-2.amazonaws.com/',
                 modelUrl,
                 this.scene
-
-
 
             ).then((modelContainer) => {
                 modelContainer.addAllToScene();
