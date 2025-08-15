@@ -155,6 +155,9 @@
                     );
 
                     const clone = rootMesh.clone(`clone_${index}`);
+                    
+                    clone.scaling.set(worldScale, worldScale, worldScale); // スケールを適用
+
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
                     clone.position.z = mercator.z;
