@@ -26,9 +26,9 @@ import React from 'react';
 
 const MapPage = () => {
   // 渡したいパラメータを定義
-  const lon = 148.9819;
-  const lat = -35.3981;
-  const modelUrl = 'AirconModel.glb';
+  const lon = 140.3032013;
+  const lat = 35.3537465;
+  const modelUrl = 'TempModel.glb';
   const scale = 1.5;
   const rotation = [Math.PI / 2, 0, 0];
 
