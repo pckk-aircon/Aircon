@@ -137,11 +137,14 @@
                 const rootMesh = modelContainer.createRootMesh();
 
                 for (let i = 0; i < n; i++) {
+
                     const clone = rootMesh.clone(`clone_${i}`);
 
                     // 緯度経度をずらす
                     const offsetLon = lon + intervalDeg * i;
                     const offsetLat = lat + intervalDeg * i;
+
+                    console.log("i,offsetLon,offsetLat,intervalDeg * i", i,offsetLon,offsetLat,intervalDeg * i);
 
                     // Mercator座標に変換
                     const mercator = maplibregl.MercatorCoordinate.fromLngLat([offsetLon, offsetLat], worldAltitude);
