@@ -125,7 +125,18 @@
             const modelUrl = "AirconModel.glb";
             const n = 10; // 表示したいモデルの数
             const spacing = 25; // 各モデル間の距離（メートル）
-
+            const coordinates = [
+                (140.303475, 35.35359),
+                (140.3035, 35.3536),
+                (140.303525, 35.35361),
+                (140.30355, 35.35362),
+                (140.303575, 35.35363),
+                (140.3036, 35.35364),
+                (140.303625, 35.35365),
+                (140.30365, 35.35366),
+                (140.303675, 35.35367),
+                (140.3037, 35.35368)
+            ];
             const locations = [
                 { lon: 140.303475, lat: 35.35359 },//道の駅
                 { lon: 140.3048039, lat: 35.3528343 },//ホームセンタ
@@ -143,19 +154,15 @@
                 modelUrl,
                 this.scene
 
+
+
             ).then((modelContainer) => {
                 modelContainer.addAllToScene();
-
                 const rootMesh = modelContainer.createRootMesh();
 
-                locations.forEach((loc, index) => {
-                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(
-                        [loc.lon, loc.lat],
-                        defaultAltitude
-                    );
-
+                coordinates.forEach((coord, index) => {
+                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(coord, 0);
                     const clone = rootMesh.clone(`clone_${index}`);
-
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
                     clone.position.z = mercator.z;
