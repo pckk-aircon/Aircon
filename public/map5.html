@@ -161,7 +161,10 @@
                 const rootMesh = modelContainer.createRootMesh();
 
                 coordinates.forEach((coord, index) => {
-                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(coord, 0);
+                    const mercator = maplibregl.MercatorCoordinate.fromLngLat(
+                    { lng: coord[0], lat: coord[1] },
+                    0
+                    );
                     const clone = rootMesh.clone(`clone_${index}`);
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
