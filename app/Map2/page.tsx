@@ -27,7 +27,7 @@ const MapPage = () => {
     models: JSON.stringify(models)
   }).toString();
 
-  const iframeSrc = `/map_2.html?${query}`;
+  const iframeSrc = `/map2.html?${query}`;
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
