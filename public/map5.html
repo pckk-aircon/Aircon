@@ -127,9 +127,9 @@
             const spacing = 25; // 各モデル間の距離（メートル）
 
             const locations = [
-                { lon: 140.303475, lat: 35.35359 },
-                { lon: 140.319276, lat: 35.36109 },
-                { lon: 140.316408, lat: 35.357468 },
+                { lon: 140.303475, lat: 35.35359 },//道の駅
+                { lon: 140.3048039, lat: 35.3528343 },//ホームセンタ
+                { lon: 140.3028528, lat: 35.3553693 }, //セブン
                 // 必要な数だけ追加
             ];
             const defaultAltitude = 0; // 地面レベル（必要に応じて調整）
@@ -155,8 +155,6 @@
                     );
 
                     const clone = rootMesh.clone(`clone_${index}`);
-                    
-                    clone.scaling.set(worldScale, worldScale, worldScale); // スケールを適用
 
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
