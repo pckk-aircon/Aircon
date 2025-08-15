@@ -17,6 +17,17 @@
 <script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
 <div id="map"></div>
 <script>
+
+    // URLパラメータを取得
+    const params = new URLSearchParams(window.location.search);
+    const lon = parseFloat(params.get('lon')) || 148.9819;
+    const lat = parseFloat(params.get('lat')) || -35.3981;
+    const modelUrl = params.get('modelUrl') || 'AirconModel.glb';
+    const scale = parseFloat(params.get('scale')) || 1;
+    const rx = parseFloat(params.get('rx')) || Math.PI / 2;
+    const ry = parseFloat(params.get('ry')) || 0;
+    const rz = parseFloat(params.get('rz')) || 0;
+
     const BABYLON = window.BABYLON;
 
     const map = (window.map = new maplibregl.Map({
@@ -28,9 +39,10 @@
         canvasContextAttributes: {antialias: true} // create the gl context with MSAA antialiasing, so custom layers are antialiased
     }));
 
-    // World matrix parameters
-    const worldOrigin = [148.9819, -35.39847];
+    // World matrix parameters   
+    const worldOrigin = [lon, lat - 0.00037]; //MapLibreとBabylon.jsは、座標系の定義や原点の扱いが異なるため微調整。
     const worldAltitude = 0;
+
 
     // Maplibre.js default coordinate system (no rotations)
     // +x east, -y north, +z up
@@ -40,27 +52,20 @@
     // +x east, +y up, +z north
     const worldRotate = [Math.PI / 2, 0, 0];
 
-    // Calculate mercator coordinates and scale
+    // Calculate mercator coordinates and scale   
     const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(
         worldOrigin,
-        worldAltitude
-    );
-    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+        worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits() * scale;
+
 
     // Calculate world matrix
     const worldMatrix = BABYLON.Matrix.Compose(
         new BABYLON.Vector3(worldScale, worldScale, worldScale),
-        BABYLON.Quaternion.FromEulerAngles(
-            worldRotate[0],
-            worldRotate[1],
-            worldRotate[2]
-        ),
-        new BABYLON.Vector3(
-            worldOriginMercator.x,
-            worldOriginMercator.y,
-            worldOriginMercator.z
-        )
+        BABYLON.Quaternion.FromEulerAngles(rx, ry, rz),
+        new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
     );
+
 
     // configuration of the custom layer for a 3D model per the CustomLayerInterface
     const customLayer = {
