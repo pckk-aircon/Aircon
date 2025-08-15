@@ -150,6 +150,7 @@
                     const mercator = maplibregl.MercatorCoordinate.fromLngLat([offsetLon, offsetLat], worldAltitude);
 
                     // モデルの位置を設定
+                    console.log("i,mercator.x,mercator.y,mercator.z", i,mercator.x,mercator.y,mercator.z);
                     clone.position.x = mercator.x;
                     clone.position.y = mercator.y;
                     clone.position.z = mercator.z;
