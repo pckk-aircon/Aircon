@@ -20,8 +20,8 @@
 
     // URLパラメータを取得
     const params = new URLSearchParams(window.location.search);
-    const lon = parseFloat(params.get('lon')) || 148.9819;
-    const lat = parseFloat(params.get('lat')) || -35.3981;
+    const lon = parseFloat(params.get('lon')) || 140.303475;
+    const lat = parseFloat(params.get('lat')) || 35.35359;
     const modelUrl = params.get('modelUrl') || 'AirconModel.glb';
     const scale = parseFloat(params.get('scale')) || 1;
     const rx = parseFloat(params.get('rx')) || Math.PI / 2;
@@ -34,7 +34,7 @@
         container: 'map',
         style: 'https://api.maptiler.com/maps/basic/style.json?key=rtAeicf6fB2vbuvHChpL',
         zoom: 18,
-        center: [148.9819, -35.3981],
+        center: [140.303475, 35.35359],
         pitch: 60,
         canvasContextAttributes: {antialias: true} // create the gl context with MSAA antialiasing, so custom layers are antialiased
     }));
