@@ -44,13 +44,6 @@ export default function Sidebar() {
       <ul>
         <li><Link href="/">トップ画面</Link></li>
         <li><Link href="/ListIot">ListIot</Link></li>
-        <li><Link href="/TableDivision">TableDivision</Link></li>
-        <li><Link href="/TableDevice">TableDevice</Link></li>
-        <li><Link href="/Map">Map</Link></li>
-        <li><Link href="/Map2">Map2</Link></li>
-        <li><Link href="/Map3">Map3</Link></li>
-        <li><Link href="/Map4">Map4</Link></li>
-        <li><Link href="/Map5">Map5</Link></li>
       </ul>
     </div>
   );
