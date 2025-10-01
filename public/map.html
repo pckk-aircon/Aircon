@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Babylon.js Multiple Models on MapLibre</title>
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css' />
+  <script src='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js'></script>
+  <style>
+    html, body, #map { margin: 0; padding: 0; height: 100%; }
+  </style>
+</head>
+<body>
+<script src="https://unpkg.com/babylonjs@5.42.2/babylon.js"></script>
+<script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
+<div id="map"></div>
+<script>
+const BABYLON = window.BABYLON;
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN',
+  //style: 'https://maps.gsi.go.jp/styles/gsivectortile/style.json',
+  //style: 'style.json', // ローカルまたはホストしたスタイルJSON
+  zoom: 18,
+  center: [148.9819, -35.3981],
+  pitch: 60,
+  canvasContextAttributes: { antialias: true }
+});
+
+map.addControl(
+    new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showZoom: true,
+        showCompass: true
+    })
+);
+
+const worldOrigin = [148.9819, -35.39847];
+const worldAltitude = 0;
+const worldRotate = [Math.PI / 2, 0, 0];
+
+const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+const worldMatrix = BABYLON.Matrix.Compose(
+  new BABYLON.Vector3(worldScale, worldScale, worldScale),
+  BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+  new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+);
+
+// ✅ モデル定義：URLと配置情報
+// ✅ 入力データ：[DeviceType, lon, lat, height, rot]
+const rawDeviceData = [
+  ["Aircon", 148.9819, -35.39847, 0, 0],
+  ["Aircon", 148.9820, -35.39830, 0, Math.PI / 6],
+  ["Temp",   148.9821, -35.39810, 0, Math.PI / 4],
+  ["Temp",   148.9822, -35.39790, 0, Math.PI / 3]
+];
+
+// ✅ DeviceType → モデルファイル名の対応表
+const deviceTypeToModel = {
+  "Aircon": "AirconModel.glb",
+  "Temp": "TempModel.glb"
+};
+
+// ✅ modelConfigs 形式に変換
+const modelConfigs = Object.values(
+  rawDeviceData.reduce((acc, [type, lon, lat, height, rot]) => {
+    const url = deviceTypeToModel[type];
+    if (!acc[url]) acc[url] = { url, positions: [] };
+    acc[url].positions.push([lon, lat, height, rot]);
+    return acc;
+  }, {})
+);
+
+const customLayer = {
+  id: '3d-mixed-models',
+  type: 'custom',
+  renderingMode: '3d',
+  onAdd(map, gl) {
+    this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+    this.scene = new BABYLON.Scene(this.engine);
+    this.scene.autoClear = false;
+    this.scene.detachControl();
+
+    this.scene.beforeRender = () => {
+      this.engine.wipeCaches(true);
+    };
+
+    this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+
+    const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
+    light.intensity = 0.7;
+
+    new BABYLON.AxesViewer(this.scene, 10);
+
+    // ✅ 各モデルを個別にロードして配置
+    modelConfigs.forEach(({ url, positions }, modelIndex) => {
+      BABYLON.SceneLoader.LoadAssetContainerAsync(
+        'https://pckk-device.s3.ap-southeast-2.amazonaws.com/', url, this.scene
+      ).then((container) => {
+        container.addAllToScene();
+        const rootMesh = container.createRootMesh();
+
+        positions.forEach(([lon, lat, height, rot], i) => {
+          const offset = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], worldAltitude);
+          const dx = (offset.x - worldOriginMercator.x) / worldScale;
+          const dz = (offset.y - worldOriginMercator.y) / worldScale;
+
+          const mesh = rootMesh.clone(`model-${modelIndex}-instance-${i}`);
+          mesh.position.set(dx, height, dz);
+          mesh.rotation.y = rot;
+        });
+      });
+    });
+
+    this.map = map;
+  },
+  render(gl, args) {
+    const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+    const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+    this.camera.freezeProjectionMatrix(wvpMatrix);
+    this.scene.render(false);
+    this.map.triggerRepaint();
+  }
+};
+
+//map.on('style.load', () => {
+  //map.addLayer(customLayer);
+//});
+
+map.on('load', () => {
+  // ✅ インドアモデル（fill-extrusion）
+  map.addSource('floorplan', {
+    type: 'geojson',
+    data: 'https://maplibre.org/maplibre-gl-js/docs/assets/indoor-3d-map.geojson'
+  });
+
+  map.addLayer({
+    id: 'room-extrusion',
+    type: 'fill-extrusion',
+    source: 'floorplan',
+    paint: {
+      'fill-extrusion-color': ['get', 'color'],
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'base_height'],
+      'fill-extrusion-opacity': 0.5
+    }
+  });
+
+  // ✅ Babylon.jsモデル（custom layer）
+  map.addLayer(customLayer);
+});
+
+</script>
+</body>
+</html>
