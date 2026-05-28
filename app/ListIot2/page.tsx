@@ -498,7 +498,12 @@ export default function Page() {
         表示: {selectedDivisionName} / {format(startDate, "yyyy-MM-dd")} ～ {format(endDate, "yyyy-MM-dd")}
       </div>
 
-      {`/plotly-view/index.html?mode=embed`}
+      <iframe
+        ref={iframeRef}
+        src="/plotly-view/index.html?mode=embed"
+        style={{ width: "100%", height: "900px" }}
+      />
+
     </main>
   );
 }
