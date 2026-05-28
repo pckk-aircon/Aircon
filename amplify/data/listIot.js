@@ -53,8 +53,11 @@ export function request(ctx) {
       })
     },
     index: 'Controller-DeviceDatetime-index',
-    limit: 10000 // ← 1回で返す最大件数を増やす。AppSyncのデフォルトは約1000件。
+    limit: 10000, // ← 1回で返す最大件数を増やす。AppSyncのデフォルトは約1000件。
+    scanIndexForward: false   // ← ★これが重要
   };
 }
 
 export const response = (ctx) => ctx.result.items;
+
+
