@@ -52,7 +52,8 @@ export function request(ctx) {
         ':endDatetime': ctx.args.EndDatetime
       })
     },
-    index: 'Controller-DeviceDatetime-index'
+    index: 'Controller-DeviceDatetime-index',
+    limit: 10000 // ← 1回で返す最大件数を増やす。AppSyncのデフォルトは約1000件。
   };
 }
 
