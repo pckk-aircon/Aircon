@@ -44,6 +44,7 @@ export default function Sidebar() {
       <ul>
         <li><Link href="/">トップ画面</Link></li>
         <li><Link href="/ListIot">ListIot</Link></li>
+        <li><Link href="/ListIot2">ListIot2</Link></li>
       </ul>
     </div>
   );

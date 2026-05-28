@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Line Only（4軸 / 00–23重ね / 粒度切替 / 散布図→折れ線ハイライト）</title>
+
+  <!-- CDN（スタンドアロンでもembedでも使う） -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { font-family: sans-serif; margin: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; }
+    .plot { height: 560px; }
+    .toolbar { margin-bottom: 8px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .note { color:#666; font-size:12px; white-space:pre-wrap; margin-top:8px; }
+    button { padding: 8px 12px; cursor:pointer; }
+    select, input[type="file"] { padding: 6px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
+    .badge b { font-weight:700; }
+    .colbox { min-width: 260px; }
+
+    /* embedモードでCSV UIを隠す用（JSで付与） */
+    body.embed .csv-ui { display: none !important; }
+  </style>
+</head>
+
+<body>
+  <h2>Line Only（CSV/Embed両対応：4軸 / 00–23重ね / 粒度切替 / 散布図→折れ線ハイライト）</h2>
+
+  <div class="card">
+    <div class="toolbar">
+      <span class="badge">
+        Division:
+        <select id="divisionSel" disabled>
+          <option value="">（データ読込後に自動生成）</option>
+        </select>
+      </span>
+
+      <span class="badge">
+        日付:
+        Start <select id="startDaySel" disabled></select>
+        End <select id="endDaySel" disabled></select>
+      </span>
+
+      <span class="badge">時系列列: <b id="badgeColTs">-</b></span>
+      <span class="badge">Division列: <b id="badgeColDiv">-</b></span>
+      <span class="badge">Device列: <b id="badgeColDevice">-</b></span>
+
+      <span class="badge">
+        表示モード:
+        <select id="xModeSel" disabled>
+          <option value="A" selected>パターンA（連続日時）</option>
+          <option value="B">パターンB（00–23重ね）</option>
+        </select>
+      </span>
+
+      <span class="badge">
+        粒度:
+        <select id="grainSel" disabled>
+          <option value="0" selected>集約なし（0分）</option>
+          <option value="30">30分</option>
+          <option value="60">1時間</option>
+          <option value="120">2時間</option>
+        </select>
+      </span>
+    </div>
+
+    <!-- CSV UI（standaloneのみ表示。embedでは隠す） -->
+    <div class="toolbar csv-ui">
+      <div style="flex:1 1 520px;">
+        <b>① CSVファイル（1行目ヘッダ）</b><br/>
+        <input id="fileInput" type="file" accept=".csv,text/csv" />
+        <span class="note">※ローカルCSVを選択すると読み込みます（FileReader方式）</span>
+      </div>
+      <div>
+        <button id="replotBtn" disabled>② 再描画</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <span class="badge">
+        X(時系列)列:
+        <select id="tsSel" class="colbox" disabled>
+          <option value="">（データ読込後に選択）</option>
+        </select>
+      </span>
+
+      <span class="badge">
+        左1（複数OK）:
+        <select id="yLeft1Sel" class="colbox" multiple size="5" disabled></select>
+      </span>
+
+      <span class="badge">
+        左2（複数OK）:
+        <select id="yLeft2Sel" class="colbox" multiple size="5" disabled></select>
+      </span>
+
+      <span class="badge">
+        右1（複数OK）:
+        <select id="yRight1Sel" class="colbox" multiple size="5" disabled></select>
+      </span>
+
+      <span class="badge">
+        右2（複数OK）:
+        <select id="yRight2Sel" class="colbox" multiple size="5" disabled></select>
+      </span>
+
+      <span class="note">※Ctrl/Shiftで複数選択。未選択の軸は描画されません。</span>
+    </div>
+
+    <div id="debug" class="note"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <h3>折れ線グラフ（Device別 / 4軸）</h3>
+    <div id="line" class="plot"></div>
+    <div class="note">※散布図にマウスオーバーすると、折れ線側に赤丸で対応点を表示します（Left1先頭＆Right1先頭）。</div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <h3>散布図（Right1先頭 × Left1先頭）</h3>
+
+    <div class="toolbar">
+      <span class="badge">
+        Aircon設定温度（TpSetTempAvgOn）:
+        <select id="tpSetTempSel" disabled>
+          <option value="ALL" selected>すべてを表示</option>
+        </select>
+      </span>
+
+      <span class="badge">
+        散布図の色分け:
+        <select id="colorModeSel" disabled>
+          <option value="day" selected>日付別</option>
+          <option value="temp">設定温度別</option>
+        </select>
+      </span>
+
+      <span class="badge">条件（現在）: <b id="badgeTpSetTemp">ALL（フィルタなし）</b></span>
+    </div>
+
+    <div id="scatter" class="plot" style="height:360px;"></div>
+    <div class="note">※色分けは「日付別」または「設定温度別」に切替できます。設定温度が ALL の場合はフィルタせず全点表示します。</div>
+  </div>
+
+  <!-- あなたの長いJSは app.js に分離（非エンジニア保守を想定） -->
+  <script src="./app.js"></script>
+</body>
+</html>
