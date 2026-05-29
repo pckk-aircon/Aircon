@@ -266,7 +266,7 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addDays, startOfDay, isAfter, isSameDay } from "date-fns";
+import { format, addDays, startOfDay, isAfter } from "date-fns";
 
 Amplify.configure(outputs);
 const client = generateClient<Schema>();
@@ -285,16 +285,15 @@ export default function Page() {
   const [rows, setRows] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ★追加：再取得トリガ（ポーリング用）
-  const [refreshTick, setRefreshTick] = useState(0);
-
   const controller = "Mutsu01";
 
   // ✅ iframe READY
   useEffect(() => {
     const onMsg = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
-      if (event.data?.type === "PLOTLY_READY") setIframeReady(true);
+      if (event.data?.type === "PLOTLY_READY") {
+        setIframeReady(true);
+      }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
@@ -310,7 +309,7 @@ export default function Page() {
     })();
   }, []);
 
-  // ✅ 日別で取得（DB形式：スペース +09:00）
+  // ✅ IoT取得
   async function fetchIotByDayRange(start: Date, end: Date) {
     const result: any[] = [];
 
@@ -340,51 +339,53 @@ export default function Page() {
     return result;
   }
 
-  // ★追加：ポーリング（endDateが今日を含むときだけ 30秒ごと更新）
-  useEffect(() => {
-    const today = new Date();
-    const includesToday = isSameDay(endDate, today) || isAfter(endDate, today) || isSameDay(startDate, today);
-
-    if (!includesToday) return;
-
-    const id = window.setInterval(() => {
-      setRefreshTick(t => t + 1);
-    }, 30_000); // 30秒
-
-    return () => window.clearInterval(id);
-  }, [startDate, endDate]);
-
-  // ✅ IoT取得（refreshTick を依存に追加）
+  // ✅ メイン処理
   useEffect(() => {
     if (!selectedDivision) return;
 
     (async () => {
       setLoading(true);
+
       try {
         const raw = await fetchIotByDayRange(startDate, endDate);
 
-        // Divisionで絞る
-        const filtered = raw.filter(r => r.Division === selectedDivision);
+        // ==============================
+        // ✅ デバッグログ（ここが核心）
+        // ==============================
 
-        const finalRows = filtered.map((r: any) => {
+        const rawSorted = raw.map(r => r.DeviceDatetime).sort();
+        const rawMax = rawSorted.slice(-1)[0];
+
+        const filteredTmp = raw.filter(r => r.Division === selectedDivision);
+        const filteredSorted = filteredTmp.map(r => r.DeviceDatetime).sort();
+        const filteredMax = filteredSorted.slice(-1)[0];
+
+        console.log("=== データ確認 ===");
+        console.log("raw件数:", raw.length);
+        console.log("raw max DeviceDatetime:", rawMax);
+
+        console.log("filtered件数:", filteredTmp.length);
+        console.log("filtered max DeviceDatetime:", filteredMax);
+
+        // ==============================
+
+        const finalRows = filteredTmp.map((r: any) => {
           const out = { ...r };
-          if (!out.DivisionAgg && out.Division) out.DivisionAgg = out.Division;
+          if (!out.DivisionAgg && out.Division) {
+            out.DivisionAgg = out.Division;
+          }
           return out;
         });
 
-        console.log("取得件数(raw):", raw.length);
-        console.log("取得件数(finalRows):", finalRows.length);
-
-        // ★切り分け用：最大時刻を出す（14時以降が取れているか確認）
-        const maxDt = finalRows.map(r => r.DeviceDatetime).sort().slice(-1)[0];
-        console.log("finalRows max DeviceDatetime:", maxDt);
+        console.log("最終 rows件数:", finalRows.length);
 
         setRows(finalRows);
+
       } finally {
         setLoading(false);
       }
     })();
-  }, [startDate, endDate, selectedDivision, refreshTick]);
+  }, [startDate, endDate, selectedDivision]);
 
   // ✅ viewState
   const viewState = useMemo(() => ({
@@ -406,27 +407,27 @@ export default function Page() {
       { type: "SET_DATA", rows },
       "*"
     );
+
   }, [iframeReady, viewState, rows]);
 
   return (
     <main style={{ padding: 12 }}>
       <h2>ListIot2</h2>
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 12 }}>
         <DatePicker selected={startDate} onChange={(d) => setStartDate(d!)} />
         <DatePicker selected={endDate} onChange={(d) => setEndDate(d!)} />
 
-        <select value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
+        <select
+          value={selectedDivision}
+          onChange={(e) => setSelectedDivision(e.target.value)}
+        >
           {divisions.map(d => (
             <option key={d.Division} value={d.Division}>
               {d.DivisionName}
             </option>
           ))}
         </select>
-
-        <button onClick={() => setRefreshTick(t => t + 1)} disabled={loading}>
-          手動更新
-        </button>
 
         <span>
           rows={rows.length} / iframeReady={String(iframeReady)} / loading={String(loading)}
