@@ -1727,22 +1727,32 @@
     return `${y}-${fmt2(mo)}-${fmt2(d)}T${fmt2(hh)}:${fmt2(mm)}:00+09:00`;
   }
 
-  function floorToBucket(dtStr, grainMin) {
-    const p = parseYMDHM(dtStr);
-    if (!p) return null;
 
-    const totalMin = p.hh * 60 + p.mm;
+  function floorToBucket(dtStr, grainMin) {
+    const d = new Date(dtStr);
+    if (!Number.isFinite(d.getTime())) return null;
+
+    // ローカル時間（JST）で取得
+    const hh = d.getHours();
+    const mm = d.getMinutes();
+
+    const totalMin = hh * 60 + mm;
     const floored = Math.floor(totalMin / grainMin) * grainMin;
 
     const hh2 = Math.floor(floored / 60);
     const mm2 = floored % 60;
 
+    const y = d.getFullYear();
+    const mo = d.getMonth() + 1;
+    const da = d.getDate();
+
     return {
-      day: `${p.y}-${fmt2(p.mo)}-${fmt2(p.d)}`,
-      dtBucket: fmtBucketISO(p.y, p.mo, p.d, hh2, mm2),
-      bucketOrderKey: floored
+      day: `${y}-${fmt2(mo)}-${fmt2(da)}`,
+      dtBucket: `${y}-${fmt2(mo)}-${fmt2(da)}T${fmt2(hh2)}:${fmt2(mm2)}:00+09:00`
     };
-  }
+  }  
+
+
 
   function aggregateRows(rows, grainMin) {
     if (!grainMin || grainMin <= 0) return rows || [];
