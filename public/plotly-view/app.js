@@ -1159,6 +1159,7 @@
 
 */
 
+
 (() => {
   const dbgEl = document.getElementById("debug");
   const dbg = (m) => { dbgEl.textContent += m + "\n"; console.log(m); };
@@ -1299,7 +1300,6 @@
 
   function applyEmbedUiLock() {
     if (MODE !== "embed") return;
-    // React側でDivision/日付を管理する前提：HTML側は操作不可
     divisionSel.disabled = true;
     startDaySel.disabled = true;
     endDaySel.disabled = true;
@@ -1326,15 +1326,33 @@
     return null;
   }
 
-  function parseDateParts(ts) {
-    const m = String(ts).match(/(\d{4}-\d{2}-\d{2}).*?(\d{2}):(\d{2})/);
-    if (!m) return null;
-    return { day: m[1], hh: m[2], mm: m[3] };
+  // ★重要：日時表現を統一（" "→"T"）＋TZが無い場合は +09:00 を付与
+  function normalizeDt(ts) {
+    let s = String(ts ?? "").trim();
+    if (!s) return "";
+    s = s.includes("T") ? s : s.replace(" ", "T");
+
+    // 末尾にZ or +hh:mm or -hh:mm が無ければ JST を補完（環境依存を避ける）
+    if (!/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)) {
+      s += "+09:00";
+    }
+    return s;
   }
 
+  // ★重要：日付キーは必ず JST(Asia/Tokyo) の YYYY-MM-DD で作る
+  const JST_DAY_FMT = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+
   function getDayFromTs(ts) {
-    const p = parseDateParts(ts);
-    return p ? p.day : null;
+    const s = normalizeDt(ts);
+    const d = new Date(s);
+    if (!Number.isFinite(d.getTime())) return null;
+    // sv-SE は "YYYY-MM-DD" を返す
+    return JST_DAY_FMT.format(d);
   }
 
   function buildDaySelectors(days) {
@@ -1414,7 +1432,7 @@
     return { x: pairs.map(p => p.x), y: pairs.map(p => p.y) };
   }
 
-  // ★FIX: Date / number で確実に時系列ソートする
+  // Date / number で確実に時系列ソートする
   function sortXYByTime(xArr, yArr) {
     const pairs = xArr.map((x, i) => {
       let t = NaN;
@@ -1447,19 +1465,6 @@
     const t = normalizeType(raw);
     const tokens = ["aircon","ac","hvac","空調","エアコン","冷暖房"];
     return tokens.some(tok => t.includes(tok));
-  }
-
-  // ★FIX: 日時表現を統一（" "→"T"）＋TZが無い場合は +09:00 を付与
-  function normalizeDt(ts) {
-    let s = String(ts ?? "").trim();
-    if (!s) return "";
-    s = s.includes("T") ? s : s.replace(" ", "T");
-
-    // 末尾にZ or +hh:mm or -hh:mm が無ければ JST を補完（環境依存を避ける）
-    if (!/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)) {
-      s += "+09:00";
-    }
-    return s;
   }
 
   // =========================================================
@@ -1562,13 +1567,13 @@
   }
 
   // =========================================================
-  // Aircon側：DatetimeAggごとの TpSetTempAvgOn（最頻値）を作る
+  // Aircon側：Datetime(TS列)ごとの TpSetTempAvgOn（最頻値）を作る
+  // ※ここも「tsSelの選択列」で統一（DatetimeAgg固定にしない）
   // =========================================================
   function buildAirconTempMap(data) {
-    const hasDatetimeAgg = (appState.fields || []).includes("DatetimeAgg");
-    const tsAggCol = hasDatetimeAgg ? "DatetimeAgg" : (tsSel.value || "");
+    const tsCol = tsSel.value || "";
     const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
-    if (!tsAggCol || !hasSetTemp) return new Map();
+    if (!tsCol || !hasSetTemp) return new Map();
 
     const divCol = appState.colDivision;
     const dtCounts = new Map();
@@ -1577,7 +1582,7 @@
       if (r[divCol] !== divisionSel.value) continue;
       if (!isAirconType(r[CONFIG.colDeviceType])) continue;
 
-      const tsRaw = r[tsAggCol];
+      const tsRaw = r[tsCol];
       if (!tsRaw) continue;
 
       const day = getDayFromTs(tsRaw);
@@ -1607,7 +1612,8 @@
   }
 
   // =========================================================
-  // Aircon条件（選択値）を満たす DatetimeAgg 集合を作る
+  // Aircon条件（選択値）を満たす TS(dt) 集合を作る（ALLなら null）
+  // ※ここも「tsSelの選択列」で統一
   // =========================================================
   function buildAllowedDatetimeAggSet(data) {
     const selected = String(tpSetTempSel.value || "ALL");
@@ -1626,13 +1632,11 @@
     }
 
     const divCol = appState.colDivision;
-
-    const hasDatetimeAgg = (appState.fields || []).includes("DatetimeAgg");
-    const tsAggCol = hasDatetimeAgg ? "DatetimeAgg" : (tsSel.value || "");
+    const tsCol = tsSel.value || "";
     const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
 
-    if (!tsAggCol || !hasSetTemp) {
-      dbg("WARNING: DatetimeAgg または TpSetTempAvgOn 列がありません。フィルタ無効化します。");
+    if (!tsCol || !hasSetTemp) {
+      dbg("WARNING: TS列 または TpSetTempAvgOn 列がありません。フィルタ無効化します。");
       return null;
     }
 
@@ -1641,7 +1645,7 @@
       if (r[divCol] !== divisionSel.value) continue;
       if (!isAirconType(r[CONFIG.colDeviceType])) continue;
 
-      const tsRaw = r[tsAggCol];
+      const tsRaw = r[tsCol];
       if (!tsRaw) continue;
 
       const day = getDayFromTs(tsRaw);
@@ -1652,14 +1656,15 @@
         out.add(normalizeDt(tsRaw));
       }
     }
-    dbg(`Aircon条件: TpSetTempAvgOn=${target} の DatetimeAgg が ${out.size} 個`);
+    dbg(`Aircon条件: TpSetTempAvgOn=${target} のTS(dt)が ${out.size} 個`);
     return out;
   }
 
   // =========================================================
-  // 生データ → rows 正規化（allowedDtAggSet があれば時刻で絞る）
+  // 生データ → rows 正規化（allowedSet があれば時刻で絞る）
+  // ★最重要：DatetimeAggを勝手に優先しない（tsSelで選んだ列だけ）
   // =========================================================
-  function buildRowsRaw(data, allowedDtAggSet, airconTempMap) {
+  function buildRowsRaw(data, allowedSet, airconTempMap) {
     const out = [];
     const divCol = appState.colDivision;
     const devCol = appState.colDevice;
@@ -1676,16 +1681,14 @@
       return { rows: [], left1, left2, right1, right2, colTs };
     }
 
-    const hasDatetimeAgg = (appState.fields || []).includes("DatetimeAgg");
-
     for (const r of (data || [])) {
       const div = r[divCol];
       if (div !== divisionSel.value) continue;
 
       const dev = r[devCol];
 
-      const dtAggRaw = hasDatetimeAgg ? r["DatetimeAgg"] : null;
-      const tsRawForPlot = dtAggRaw ?? r[colTs];
+      // ★ここが重要：ユーザが選んだTS列のみ使う（DatetimeAggの自動優先をしない）
+      const tsRawForPlot = r[colTs];
       if (!dev || !tsRawForPlot) continue;
 
       const day = getDayFromTs(tsRawForPlot);
@@ -1694,7 +1697,7 @@
       const dt = normalizeDt(tsRawForPlot);
       const dtypeRaw = r[CONFIG.colDeviceType];
 
-      if (allowedDtAggSet && !allowedDtAggSet.has(dt)) continue;
+      if (allowedSet && !allowedSet.has(dt)) continue;
 
       const tp = airconTempMap?.has(dt) ? airconTempMap.get(dt) : NaN;
 
@@ -1708,31 +1711,25 @@
         }
       }
     }
+
     return { rows: out, left1, left2, right1, right2, colTs };
   }
 
   // =========================================================
   // 粒度集計（tp も引き継ぐ：バケット内の最後に見えたtp）
   // =========================================================
-  function parseYMDHM(dtStr) {
-    const m = String(dtStr).match(/(\d{4})-(\d{2})-(\d{2}).*?(\d{2}):(\d{2})/);
-    if (!m) return null;
-    const y = +m[1], mo = +m[2], d = +m[3], hh = +m[4], mm = +m[5];
-    return { y, mo, d, hh, mm };
-  }
   function fmt2(n) { return String(n).padStart(2, "0"); }
 
-  // ★FIX: バケット文字列にも +09:00 を付与（TZ落ち対策）
+  // バケット文字列にも +09:00 を付与（TZ落ち対策）
   function fmtBucketISO(y, mo, d, hh, mm) {
     return `${y}-${fmt2(mo)}-${fmt2(d)}T${fmt2(hh)}:${fmt2(mm)}:00+09:00`;
   }
-
 
   function floorToBucket(dtStr, grainMin) {
     const d = new Date(dtStr);
     if (!Number.isFinite(d.getTime())) return null;
 
-    // ローカル時間（JST）で取得
+    // JSTとして扱う（Asia/Tokyoで解釈済の dtStr を想定）
     const hh = d.getHours();
     const mm = d.getMinutes();
 
@@ -1742,17 +1739,16 @@
     const hh2 = Math.floor(floored / 60);
     const mm2 = floored % 60;
 
-    const y = d.getFullYear();
-    const mo = d.getMonth() + 1;
-    const da = d.getDate();
+    // dayキーは JSTで統一
+    const day = JST_DAY_FMT.format(d);
+    const [y, mo, da] = day.split("-").map(Number);
 
     return {
-      day: `${y}-${fmt2(mo)}-${fmt2(da)}`,
-      dtBucket: `${y}-${fmt2(mo)}-${fmt2(da)}T${fmt2(hh2)}:${fmt2(mm2)}:00+09:00`
+      day: day,
+      dtBucket: fmtBucketISO(y, mo, da, hh2, mm2),
+      bucketOrderKey: floored
     };
-  }  
-
-
+  }
 
   function aggregateRows(rows, grainMin) {
     if (!grainMin || grainMin <= 0) return rows || [];
@@ -1847,7 +1843,6 @@
       const t = byKey.get(key);
 
       if (xMode === "A") {
-        // ★FIX: Dateオブジェクトに統一（TZ混在でも安定）
         const d = new Date(r.dt);
         if (!Number.isFinite(d.getTime())) continue;
         t.x.push(d);
@@ -1866,7 +1861,6 @@
       if (right1.includes(t.metric)) yaxis = "y2";
       if (right2.includes(t.metric)) yaxis = "y4";
 
-      // ★FIX: xMode=Aは時刻ソートをepochで確実に
       const sorted = (xMode === "A") ? sortXYByTime(t.x, t.y) : sortXY(t.x, t.y);
 
       const name = `${t.day} ${t.dev}-${disp(t.metric)}`;
@@ -1925,7 +1919,6 @@
     };
 
     if (xMode === "A") {
-      // ★FIX: 12時間刻みに見えるのを避ける（1時間刻み＋24h表示へ固定）
       layout.xaxis = {
         type: "date",
         title: disp(colTs),
@@ -2011,7 +2004,6 @@
 
       if (!byGroup.has(groupKey)) byGroup.set(groupKey, { x: [], y: [], customdata: [] });
 
-      // ★FIX: line側が Date を使うので、ハイライトの xPlot も合わせる
       const xPlot = (xMode === "A")
         ? new Date(obj.dt)
         : (getTodHM(obj.tsRaw ?? obj.dt) ?? obj.dt);
@@ -2182,9 +2174,7 @@
   }
 
   // =========================================================
-  // ★追加：CSVでもReactでも共通の初期化入口
-  //   - rows: [{...}] 形式（ヘッダ付きオブジェクト配列）
-  //   - viewState(optional): {division,startDay,endDay}
+  // CSVでもReactでも共通の初期化入口
   // =========================================================
   function loadRowsAndInit(rows, label = "rows", viewState = null) {
     if (!rows || rows.length === 0) {
@@ -2196,11 +2186,9 @@
     clearDbg();
     dbg(`LOAD: ${label} count=${rows.length}`);
 
-    // fields
     appState.fields = Object.keys(rows[0] || {});
     appState.sourceData = rows;
 
-    // col pick
     appState.colDivision = pickColumn(appState.fields, CONFIG.colDivisionPreferred, CONFIG.colDivisionFallback);
     appState.colDevice   = pickColumn(appState.fields, CONFIG.colDevicePreferred, CONFIG.colDeviceFallback);
 
@@ -2210,24 +2198,19 @@
     document.getElementById("badgeColDiv").textContent = appState.colDivision;
     document.getElementById("badgeColDevice").textContent = appState.colDevice;
 
-    // selectors
     buildColumnSelectors(appState.fields, appState.sourceData);
 
-    // div list
     const divs = [...new Set(appState.sourceData.map(r => r[appState.colDivision]).filter(Boolean))].sort();
     divisionSel.innerHTML = divs.map(d => `<option value="${d}">${d}</option>`).join("");
 
-    // days from tsSel
     const tsCol = tsSel.value;
     const days = [...new Set(appState.sourceData.map(r => getDayFromTs(r[tsCol])).filter(Boolean))].sort();
     appState.days = days;
     if (days.length) buildDaySelectors(days);
 
-    // view params
     appState.xMode = xModeSel.value || "A";
     appState.grainMin = Number(grainSel.value || 0);
 
-    // TpSetTemp options if exists
     const tpOptions = buildTpSetTempOptionsFromCsv(appState.sourceData);
     if (tpOptions) applyTpSetTempOptions(tpOptions);
     else {
@@ -2236,10 +2219,8 @@
       syncTpBadge();
     }
 
-    // color mode
     appState.colorMode = colorModeSel.value || "day";
 
-    // events (embedではDivision/日付はReact側なのでonchangeを付けない)
     if (MODE !== "embed") {
       divisionSel.onchange = updatePlot;
       startDaySel.onchange = updatePlot;
@@ -2254,7 +2235,6 @@
       const tsCol2 = tsSel.value;
       const days2 = [...new Set(appState.sourceData.map(r => getDayFromTs(r[tsCol2])).filter(Boolean))].sort();
       if (days2.length) buildDaySelectors(days2);
-      // embed時にReact側が渡した日付を優先反映したい場合
       if (MODE === "embed" && pendingViewState) {
         if (pendingViewState.startDay) startDaySel.value = pendingViewState.startDay;
         if (pendingViewState.endDay) endDaySel.value = pendingViewState.endDay;
@@ -2275,10 +2255,8 @@
 
     replotBtn.onclick = updatePlot;
 
-    // initial selection
     divisionSel.value = divs[0] || "";
 
-    // viewState（React側の選択を反映）
     const vs = viewState || pendingViewState;
     if (vs) {
       if (vs.division && divs.includes(vs.division)) divisionSel.value = vs.division;
@@ -2299,7 +2277,6 @@
     const file = fileInput.files && fileInput.files[0];
     if (!file) return;
 
-    // embedではCSV UIは隠れているが、念のため抑止
     if (MODE === "embed") {
       dbg("INFO: embedモードのためCSV読込は無効です");
       return;
@@ -2329,11 +2306,9 @@
   // embed（React連携）：postMessage 受信
   // =========================================================
   if (MODE === "embed") {
-    // 子（iframe）→親へ準備完了通知
     window.parent.postMessage({ type: "PLOTLY_READY", version: "1" }, window.location.origin);
 
     window.addEventListener("message", (event) => {
-      // 同一オリジン前提
       if (event.origin !== window.location.origin) return;
       const msg = event.data;
       if (!msg || !msg.type) return;
@@ -2345,7 +2320,6 @@
           endDay: msg.endDay ?? null
         };
 
-        // すでに選択肢が出来ている場合は即時反映
         if (appState.sourceData && appState.days?.length) {
           if (pendingViewState.division) divisionSel.value = pendingViewState.division;
           if (pendingViewState.startDay) startDaySel.value = pendingViewState.startDay;
