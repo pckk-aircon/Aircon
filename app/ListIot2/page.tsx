@@ -280,6 +280,10 @@ export default function Page() {
     })();
   }, []);
 
+
+
+
+  
   // ✅ ★本質：日別で全期間取得（nextTokenなし）
   async function fetchIotByDayRange(start: Date, end: Date) {
     const result: any[] = [];

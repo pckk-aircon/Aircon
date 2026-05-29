@@ -57,4 +57,3 @@ export const response = (ctx) => {
     nextToken: ctx.result.nextToken
   };
 };
-``
