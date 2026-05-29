@@ -37,9 +37,24 @@ export function request(ctx) {
       })
     },
     index: 'Controller-DeviceDatetime-index',
+
+    // ✅ 最大件数
     limit: 10000,
+
+    // ✅ Pagination対応（これが超重要）
+    nextToken: ctx.args.nextToken,
+
+    // ✅ 並び順（用途に応じて）
+    // false = 新しい順（現状維持）
+    // true  = 古い順（データ全取得向き）
     scanIndexForward: false
   };
 }
 
-export const response = (ctx) => ctx.result.items;
+export const response = (ctx) => {
+  return {
+    items: ctx.result.items,
+    nextToken: ctx.result.nextToken
+  };
+};
+``
