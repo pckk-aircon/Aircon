@@ -186,6 +186,7 @@ export default function Page() {
 }
 */
 
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -218,6 +219,7 @@ export default function Page() {
 
   const controller = "Mutsu01";
 
+  // ✅ iframe READY
   useEffect(() => {
     const onMsg = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
@@ -229,18 +231,19 @@ export default function Page() {
     return () => window.removeEventListener("message", onMsg);
   }, []);
 
+  // ✅ Division取得
   useEffect(() => {
     (async () => {
       const { data } = await client.queries.listDivision({ Controller: controller });
       const list = (data || []) as DivisionRow[];
       setDivisions(list);
-
       if (list.length > 0) {
         setSelectedDivision(list[0].Division);
       }
     })();
   }, []);
 
+  // ✅ IoT取得（★修正済）
   async function fetchIotByDayRange(start: Date, end: Date) {
     const result: any[] = [];
 
@@ -248,8 +251,13 @@ export default function Page() {
     const last = startOfDay(end);
 
     while (!isAfter(cur, last)) {
+
+      // ✅ ★DB形式と完全一致させる（最重要）
       const startDatetime = `${format(cur, "yyyy-MM-dd")} 00:00:00+09:00`;
       const endDatetime   = `${format(cur, "yyyy-MM-dd")} 23:59:59+09:00`;
+
+      // ✅ デバッグログ（確認必須）
+      console.log("QUERY:", startDatetime, "→", endDatetime);
 
       const { data, errors } = await client.queries.listIot({
         Controller: controller,
@@ -280,16 +288,6 @@ export default function Page() {
 
         const filtered = raw.filter(r => r.Division === selectedDivision);
 
-        // ✅ ★ここが最重要修正
-        const fixTZ = (s: string) => {
-          if (!s) return s;
-          let out = s.replace(" ", "T");
-          if (!/[zZ]$|[+\-]\d{2}:\d{2}$/.test(out)) {
-            out += "+09:00";   // ← これが核心
-          }
-          return out;
-        };
-
         const toRow = (r: any) => {
           const out = { ...r };
 
@@ -297,12 +295,13 @@ export default function Page() {
             out.DivisionAgg = out.Division;
           }
 
+          // ★ここ重要：DB形式をそのまま維持する（変換しない）
           if (typeof out.DeviceDatetime === "string") {
-            out.DeviceDatetime = fixTZ(out.DeviceDatetime);
+            out.DeviceDatetime = out.DeviceDatetime;
           }
 
           if (typeof out.DatetimeAgg === "string") {
-            out.DatetimeAgg = fixTZ(out.DatetimeAgg);
+            out.DatetimeAgg = out.DatetimeAgg;
           }
 
           return out;
@@ -312,13 +311,8 @@ export default function Page() {
 
         console.log("取得件数:", finalRows.length);
 
-        // ★確認ログ（必ず一度出す）
-        console.log("サンプル時刻:",
-          finalRows.slice(0,5).map(r => ({
-            raw: r.DeviceDatetime,
-            local: new Date(r.DeviceDatetime).toString()
-          }))
-        );
+        // ✅ データ確認ログ
+        console.log("サンプル:", finalRows.slice(0, 5).map(r => r.DeviceDatetime));
 
         setRows(finalRows);
 
@@ -328,12 +322,14 @@ export default function Page() {
     })();
   }, [startDate, endDate, selectedDivision]);
 
+  // ✅ viewState
   const viewState = useMemo(() => ({
     division: selectedDivision,
     startDay: format(startDate, "yyyy-MM-dd"),
     endDay: format(endDate, "yyyy-MM-dd"),
   }), [selectedDivision, startDate, endDate]);
 
+  // ✅ iframe送信
   useEffect(() => {
     if (!iframeReady) return;
 
@@ -381,4 +377,3 @@ export default function Page() {
     </main>
   );
 }
-
