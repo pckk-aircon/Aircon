@@ -26,29 +26,27 @@ import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
 
-  // ✅ ★ここが最重要修正：T形式に統一
-  const start = String(ctx.args.StartDatetime).replace(" ", "T");
-  const end   = String(ctx.args.EndDatetime).replace(" ", "T");
+  // ✅ 入力をそのまま使う（page.tsxでT形式に統一）
+  const start = ctx.args.StartDatetime;
+  const end   = ctx.args.EndDatetime;
 
   return {
     operation: 'Query',
     query: {
-      expression: 'Controller = :controller AND DeviceDatetime BETWEEN :startDatetime AND :endDatetime',
+      expression: 'Controller = :controller AND DeviceDatetime BETWEEN :start AND :end',
       expressionValues: util.dynamodb.toMapValues({ 
         ':controller': ctx.args.Controller,
-        ':startDatetime': start,
-        ':endDatetime': end
+        ':start': start,
+        ':end': end
       })
     },
     index: 'Controller-DeviceDatetime-index',
     limit: 10000,
-    scanIndexForward: false
+    scanIndexForward: true   // ✅ 昇順に戻す（重要）
   };
 }
 
-// ✅ デバッグ（原因確認用：一度だけ有効化推奨）
-export const response = (ctx) => {
-  console.log("QUERY RESULT SAMPLE:", ctx.result.items?.slice(0, 5));
-  return ctx.result.items;
-};
-
+// ✅ 必ず nullチェックを入れる（AppSyncでは重要）
+export function response(ctx) {
+  return ctx.result?.items ?? [];
+}
