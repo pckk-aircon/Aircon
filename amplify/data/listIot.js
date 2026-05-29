@@ -1,26 +1,4 @@
-
 /*
-import { util } from '@aws-appsync/utils';
-
-export function request(ctx) {
-  return {
-    operation: 'Query',
-    query: {
-      expression: 'Controller = :controller AND DeviceDatetime BETWEEN :startDatetime AND :endDatetime',
-      expressionValues: util.dynamodb.toMapValues({ 
-        ':controller': ctx.args.Controller,
-        ':startDatetime': ctx.args.StartDatetime,
-        ':endDatetime': ctx.args.EndDatetime
-      })
-    },
-    index: 'Controller-DeviceDatetime-index',
-    limit: 10000, // ← 1回で返す最大件数を増やす。AppSyncのデフォルトは約1000件。
-    scanIndexForward: false   // ← ★これが重要
-  };
-}
-
-export const response = (ctx) => ctx.result.items;
-*/
 
 import { util } from '@aws-appsync/utils';
 
@@ -47,5 +25,39 @@ export function request(ctx) {
 }
 
 export function response(ctx) {
+  return ctx.result?.items ?? [];
+}
+
+*/
+
+import { util } from '@aws-appsync/utils';
+
+export function request(ctx) {
+
+  const start = ctx.args.StartDatetime;
+  const end   = ctx.args.EndDatetime;
+
+  return {
+    operation: 'Query',
+    query: {
+      expression: 'Controller = :controller AND DeviceDatetime BETWEEN :start AND :end',
+      expressionValues: util.dynamodb.toMapValues({ 
+        ':controller': ctx.args.Controller,
+        ':start': start,
+        ':end': end
+      })
+    },
+    index: 'Controller-DeviceDatetime-index',
+    limit: 10000,
+    scanIndexForward: true
+  };
+}
+
+export function response(ctx) {
+
+  // デバッグ（重要）
+  console.log("count:", ctx.result?.items?.length);
+  console.log("nextToken:", ctx.result?.nextToken);
+
   return ctx.result?.items ?? [];
 }
