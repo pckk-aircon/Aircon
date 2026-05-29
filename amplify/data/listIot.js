@@ -26,7 +26,7 @@ import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
 
-  // ✅ 入力をそのまま使う（page.tsxでT形式に統一）
+  // ✅ 文字列そのまま使う（絶対に Date変換しない）
   const start = ctx.args.StartDatetime;
   const end   = ctx.args.EndDatetime;
 
@@ -42,11 +42,10 @@ export function request(ctx) {
     },
     index: 'Controller-DeviceDatetime-index',
     limit: 10000,
-    scanIndexForward: true   // ✅ 昇順に戻す（重要）
+    scanIndexForward: true  // ← 昇順（推奨）
   };
 }
 
-// ✅ 必ず nullチェックを入れる（AppSyncでは重要）
 export function response(ctx) {
   return ctx.result?.items ?? [];
 }
