@@ -310,34 +310,53 @@ export default function Page() {
   }, []);
 
   // ✅ IoT取得
-  async function fetchIotByDayRange(start: Date, end: Date) {
-    const result: any[] = [];
+async function fetchIotByDayRange(start: Date, end: Date) {
+  const result: any[] = [];
 
-    let cur = startOfDay(start);
-    const last = startOfDay(end);
+  let cur = startOfDay(start);
+  const last = startOfDay(end);
 
-    while (!isAfter(cur, last)) {
-      const startDatetime = `${format(cur, "yyyy-MM-dd")} 00:00:00+09:00`;
-      const endDatetime   = `${format(cur, "yyyy-MM-dd")} 23:59:59+09:00`;
+  while (!isAfter(cur, last)) {
+    const startDatetime = `${format(cur, "yyyy-MM-dd")} 00:00:00+09:00`;
+    const endDatetime   = `${format(cur, "yyyy-MM-dd")} 23:59:59+09:00`;
 
-      console.log("QUERY:", startDatetime, "→", endDatetime);
+    console.log("QUERY:", startDatetime, "→", endDatetime);
 
-      const { data, errors } = await client.queries.listIot({
+    let nextToken: string | null | undefined = null;
+    let page = 0;
+
+    do {
+      const res = await client.queries.listIot({
         Controller: controller,
         StartDatetime: startDatetime,
         EndDatetime: endDatetime,
+        nextToken: nextToken ?? undefined,
       });
+
+      const data = res.data;
+      const errors = res.errors;
 
       if (errors?.length) {
         throw new Error(errors.map(e => e.message).join("\n"));
       }
 
-      result.push(...(data || []));
-      cur = addDays(cur, 1);
-    }
+      const items = (data?.items || []) as any[];
+      nextToken = data?.nextToken ?? null;
 
-    return result;
+      page += 1;
+      console.log(
+        `[${format(cur, "yyyy-MM-dd")}] page=${page} items=${items.length} nextToken=${nextToken ? "あり" : "なし"}`
+      );
+
+      result.push(...items);
+
+    } while (nextToken);
+
+    cur = addDays(cur, 1);
   }
+
+  return result;
+}
 
   // ✅ メイン処理
   useEffect(() => {

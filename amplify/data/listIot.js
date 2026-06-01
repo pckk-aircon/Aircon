@@ -33,15 +33,15 @@ export function response(ctx) {
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-
   const start = ctx.args.StartDatetime;
-  const end   = ctx.args.EndDatetime;
+  const end = ctx.args.EndDatetime;
+  const nextToken = ctx.args.nextToken ?? null;
 
   return {
     operation: 'Query',
     query: {
       expression: 'Controller = :controller AND DeviceDatetime BETWEEN :start AND :end',
-      expressionValues: util.dynamodb.toMapValues({ 
+      expressionValues: util.dynamodb.toMapValues({
         ':controller': ctx.args.Controller,
         ':start': start,
         ':end': end
@@ -49,15 +49,17 @@ export function request(ctx) {
     },
     index: 'Controller-DeviceDatetime-index',
     limit: 10000,
-    scanIndexForward: true
+    scanIndexForward: true,
+    nextToken, // ★追加
   };
 }
 
 export function response(ctx) {
-
-  // デバッグ（重要）
   console.log("count:", ctx.result?.items?.length);
   console.log("nextToken:", ctx.result?.nextToken);
 
-  return ctx.result?.items ?? [];
+  return {
+    items: ctx.result?.items ?? [],
+    nextToken: ctx.result?.nextToken ?? null,
+  };
 }
