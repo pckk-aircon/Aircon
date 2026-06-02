@@ -61,7 +61,7 @@ export function request(ctx) {
         ':end': ctx.args.EndDatetime,
       }),
     },
-    limit: 10000,
+    limit: 1000,
     scanIndexForward: true,
     nextToken,
   };
