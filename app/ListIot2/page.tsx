@@ -11,254 +11,6 @@ import "@aws-amplify/ui-react/styles.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addDays, startOfDay, isAfter } from "date-fns";
-
-Amplify.configure(outputs);
-const client = generateClient<Schema>();
-
-type DivisionRow = {
-  Division: string;
-  DivisionName: string;
-};
-
-type IotRow = Record<string, any>;
-
-export default function Page() {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [divisions, setDivisions] = useState<DivisionRow[]>([]);
-  const [selectedDivision, setSelectedDivision] = useState("");
-
-  const [iframeReady, setIframeReady] = useState(false);
-  const [rows, setRows] = useState<IotRow[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const controller = "Mutsu01";
-
-  // ✅ iframe READY
-  useEffect(() => {
-    const onMsg = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
-      if (event.data?.type === "PLOTLY_READY") {
-        setIframeReady(true);
-      }
-    };
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, []);
-
-  // ✅ Division取得
-  useEffect(() => {
-    (async () => {
-      const { data, errors } = await client.queries.listDivision({
-        Controller: controller,
-      });
-
-      if (errors?.length) {
-        console.error("listDivision errors:", errors);
-        return;
-      }
-
-      const list = (data || []) as DivisionRow[];
-      setDivisions(list);
-
-      if (list.length > 0) {
-        setSelectedDivision(list[0].Division);
-      }
-    })();
-  }, []);
-
-  // ✅ IoT取得（nextToken対応版）
-  async function fetchIotByDayRange(start: Date, end: Date) {
-    const result: IotRow[] = [];
-
-    let cur = startOfDay(start);
-    const last = startOfDay(end);
-
-    while (!isAfter(cur, last)) {
-      const startDatetime = `${format(cur, "yyyy-MM-dd")} 00:00:00+09:00`;
-      const endDatetime = `${format(cur, "yyyy-MM-dd")} 23:59:59+09:00`;
-
-      console.log("QUERY:", startDatetime, "→", endDatetime);
-
-      let nextToken: string | null | undefined = null;
-      let page = 0;
-
-      do {
-        const res = await client.queries.listIot({
-          Controller: controller,
-          StartDatetime: startDatetime,
-          EndDatetime: endDatetime,
-          nextToken: nextToken ?? undefined,
-        });
-
-        const data = res.data;
-        const errors = res.errors;
-
-        if (errors?.length) {
-          throw new Error(errors.map((e) => e.message).join("\n"));
-        }
-
-        const items = ((data?.items ?? []).filter(Boolean) as IotRow[]);
-        nextToken = data?.nextToken ?? null;
-
-        page += 1;
-        console.log(
-          `[${format(cur, "yyyy-MM-dd")}] page=${page} items=${items.length} nextToken=${nextToken ? "あり" : "なし"}`
-        );
-
-        result.push(...items);
-      } while (nextToken);
-
-      cur = addDays(cur, 1);
-    }
-
-    return result;
-  }
-
-  // ✅ メイン処理
-  useEffect(() => {
-    if (!selectedDivision) return;
-
-    (async () => {
-      setLoading(true);
-
-      try {
-        const raw = await fetchIotByDayRange(startDate, endDate);
-
-        // ==============================
-        // ✅ デバッグログ（ここが核心）
-        // ==============================
-
-        const rawSorted = raw
-          .map((r) => r?.DeviceDatetime)
-          .filter(Boolean)
-          .sort();
-        const rawMax = rawSorted.slice(-1)[0];
-
-        const filteredTmp = raw.filter((r) => r?.Division === selectedDivision);
-        const filteredSorted = filteredTmp
-          .map((r) => r?.DeviceDatetime)
-          .filter(Boolean)
-          .sort();
-        const filteredMax = filteredSorted.slice(-1)[0];
-
-        console.log("=== データ確認 ===");
-        console.log("raw件数:", raw.length);
-        console.log("raw max DeviceDatetime:", rawMax);
-
-        console.log("filtered件数:", filteredTmp.length);
-        console.log("filtered max DeviceDatetime:", filteredMax);
-
-        // ==============================
-
-        const finalRows = filteredTmp.map((r) => {
-          const out = { ...r };
-          if (!out.DivisionAgg && out.Division) {
-            out.DivisionAgg = out.Division;
-          }
-          return out;
-        });
-
-        console.log("最終 rows件数:", finalRows.length);
-
-        setRows(finalRows);
-      } catch (err) {
-        console.error("fetchIotByDayRange error:", err);
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [startDate, endDate, selectedDivision]);
-
-  // ✅ viewState
-  const viewState = useMemo(
-    () => ({
-      division: selectedDivision,
-      startDay: format(startDate, "yyyy-MM-dd"),
-      endDay: format(endDate, "yyyy-MM-dd"),
-    }),
-    [selectedDivision, startDate, endDate]
-  );
-
-  // ✅ iframe送信
-  useEffect(() => {
-    if (!iframeReady) return;
-
-    iframeRef.current?.contentWindow?.postMessage(
-      { type: "SET_VIEWSTATE", ...viewState },
-      "*"
-    );
-
-    iframeRef.current?.contentWindow?.postMessage(
-      { type: "SET_DATA", rows },
-      "*"
-    );
-  }, [iframeReady, viewState, rows]);
-
-  return (
-    <main style={{ padding: 12 }}>
-      <h2>ListIot2</h2>
-
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <DatePicker
-          selected={startDate}
-          onChange={(d) => {
-            if (d) setStartDate(d);
-          }}
-          dateFormat="yyyy-MM-dd"
-        />
-
-        <DatePicker
-          selected={endDate}
-          onChange={(d) => {
-            if (d) setEndDate(d);
-          }}
-          dateFormat="yyyy-MM-dd"
-        />
-
-        <select
-          value={selectedDivision}
-          onChange={(e) => setSelectedDivision(e.target.value)}
-        >
-          {divisions.map((d) => (
-            <option key={d.Division} value={d.Division}>
-              {d.DivisionName}
-            </option>
-          ))}
-        </select>
-
-        <span>
-          rows={rows.length} / iframeReady={String(iframeReady)} / loading={String(loading)}
-        </span>
-      </div>
-
-      <iframe
-        ref={iframeRef}
-        src="/plotly-view/index.html?mode=embed"
-        style={{ width: "100%", height: "900px", border: "none" }}
-        title="plotly-view"
-      />
-    </main>
-  );
-}
-
-*/
-
-"use client";
-
-import { useEffect, useMemo, useRef, useState } from "react";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-import { Amplify } from "aws-amplify";
-import outputs from "@/amplify_outputs.json";
-import "@aws-amplify/ui-react/styles.css";
-
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { format, startOfDay } from "date-fns";
 
 Amplify.configure(outputs);
@@ -500,6 +252,244 @@ export default function Page() {
           onChange={(d) => {
             if (d) setEndDate(d);
           }}
+          dateFormat="yyyy-MM-dd"
+        />
+
+        <select
+          value={selectedDivision}
+          onChange={(e) => setSelectedDivision(e.target.value)}
+        >
+          {divisions.map((d) => (
+            <option key={d.Division} value={d.Division}>
+              {d.DivisionName}
+            </option>
+          ))}
+        </select>
+
+        <span>
+          rows={rows.length} / iframeReady={String(iframeReady)} / loading={String(loading)}
+        </span>
+      </div>
+
+      <iframe
+        ref={iframeRef}
+        src="/plotly-view/index.html?mode=embed"
+        style={{ width: "100%", height: "900px", border: "none" }}
+        title="plotly-view"
+      />
+    </main>
+  );
+}
+
+*/
+
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
+import { Amplify } from "aws-amplify";
+import outputs from "@/amplify_outputs.json";
+import "@aws-amplify/ui-react/styles.css";
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, startOfDay } from "date-fns";
+
+Amplify.configure(outputs);
+const client = generateClient<Schema>();
+
+type DivisionRow = {
+  Division: string;
+  DivisionName: string;
+};
+
+type IotRow = Record<string, any>;
+
+export default function Page() {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [divisions, setDivisions] = useState<DivisionRow[]>([]);
+  const [selectedDivision, setSelectedDivision] = useState("");
+
+  const [iframeReady, setIframeReady] = useState(false);
+  const [rows, setRows] = useState<IotRow[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const controller = "Mutsu01";
+
+  // ✅ Dateキー（無駄fetch防止）
+  const startKey = useMemo(() => format(startDate, "yyyy-MM-dd"), [startDate]);
+  const endKey   = useMemo(() => format(endDate, "yyyy-MM-dd"), [endDate]);
+
+  // ✅ iframe READY
+  useEffect(() => {
+    const onMsg = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.data?.type === "PLOTLY_READY") {
+        setIframeReady(true);
+      }
+    };
+
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
+  // ✅ Division取得
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data, errors } = await client.queries.listDivision({
+          Controller: controller,
+        });
+
+        if (errors?.length) {
+          console.error("listDivision errors:", errors);
+          return;
+        }
+
+        if (cancelled) return;
+
+        const list = (data || []) as DivisionRow[];
+        setDivisions(list);
+
+        if (list.length > 0) {
+          setSelectedDivision((prev) => prev || list[0].Division);
+        }
+      } catch (err) {
+        console.error("listDivision error:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ✅ IoT取得
+  async function fetchIotByRange(
+    start: Date,
+    end: Date,
+    division: string
+  ): Promise<IotRow[]> {
+    const result: IotRow[] = [];
+
+    const startDatetime = `${format(startOfDay(start), "yyyy-MM-dd")} 00:00:00+09:00`;
+    const endDatetime   = `${format(startOfDay(end),   "yyyy-MM-dd")} 23:59:59+09:00`;
+
+    let nextToken: string | null | undefined = null;
+
+    do {
+      const res = await client.queries.listIot({
+        Controller: controller,
+        Division: division,
+        StartDatetime: startDatetime,
+        EndDatetime: endDatetime,
+        nextToken: nextToken ?? undefined,
+      });
+
+      if (res.errors?.length) {
+        throw new Error(res.errors.map(e => e.message).join("\n"));
+      }
+
+      const items = (res.data?.items ?? []).filter(Boolean) as IotRow[];
+      nextToken = res.data?.nextToken ?? null;
+
+      // ✅ push展開より軽量
+      for (const it of items) result.push(it);
+
+    } while (nextToken);
+
+    return result;
+  }
+
+  // ✅ データ取得メイン
+  useEffect(() => {
+    if (!selectedDivision) return;
+
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+
+      try {
+        const raw = await fetchIotByRange(startDate, endDate, selectedDivision);
+        if (cancelled) return;
+
+        // ✅ コピー削減（ここ重要）
+        for (const r of raw) {
+          if (!r.DivisionAgg && r.Division) {
+            r.DivisionAgg = r.Division;
+          }
+        }
+
+        setRows(raw);
+      } catch (err) {
+        console.error("fetchIotByRange error:", err);
+        if (!cancelled) setRows([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [startKey, endKey, selectedDivision]); // ← 修正
+
+  // ✅ viewState
+  const viewState = useMemo(
+    () => ({
+      division: selectedDivision,
+      startDay: startKey,
+      endDay: endKey,
+    }),
+    [selectedDivision, startKey, endKey]
+  );
+
+  // ✅ ✅ ✅ 転送最適化（ここ最重要）
+  const packedRows = useMemo(() => {
+    return rows.length ? JSON.stringify(rows) : "[]";
+  }, [rows]);
+
+  // ✅ iframe送信（1箇所に統合）
+  useEffect(() => {
+    if (!iframeReady) return;
+
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        type: "INIT",
+        viewState,
+        rows: packedRows,
+      },
+      "*"
+    );
+  }, [iframeReady, viewState, packedRows]);
+
+  return (
+    <main style={{ padding: 12 }}>
+      <h2>ListIot2</h2>
+
+      <div style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}>
+        <DatePicker
+          selected={startDate}
+          onChange={(d) => d && setStartDate(d)}
+          dateFormat="yyyy-MM-dd"
+        />
+
+        <DatePicker
+          selected={endDate}
+          onChange={(d) => d && setEndDate(d)}
           dateFormat="yyyy-MM-dd"
         />
 
