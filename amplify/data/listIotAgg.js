@@ -5,10 +5,10 @@ export function request(ctx) {
 
   return {
     operation: 'Query',
-    index: 'Controller-Division-DeviceDatetime-index', // 例
+    index: 'Controller-Division-DatetimeAgg-index', // ← ここも確認
     query: {
       expression:
-        'Controller = :controller AND Division = :division AND DeviceDatetime BETWEEN :start AND :end',
+        'Controller = :controller AND Division = :division AND DatetimeAgg BETWEEN :start AND :end',
       expressionValues: util.dynamodb.toMapValues({
         ':controller': ctx.args.Controller,
         ':division': ctx.args.Division,
@@ -28,3 +28,4 @@ export function response(ctx) {
     nextToken: ctx.result?.nextToken ?? null,
   };
 }
+
