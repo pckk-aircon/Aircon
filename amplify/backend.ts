@@ -66,7 +66,7 @@ const IotTableDS = createDynamoDbDataSource(
   externalDataSourcesStack,
   "IotData",//DynamoDbtableName
   "MyIotTable",//tableName
-  "IotSource",//dataSourceName
+  "IotDataSource",//dataSourceName
   "IotIamPolicy",//
 );
 
@@ -140,4 +140,13 @@ const IotTableDS = createDynamoDbDataSource(
   "MyIotTable",//tableName
   "IotDataSource",//dataSourceName
   "IotIamPolicy",//
+);
+
+// ★追加: IotDataAgg
+const IotAggTableDS = createDynamoDbDataSource(
+  externalDataSourcesStack,
+  "IotDataAgg",             // 実際のDynamoDBテーブル名
+  "MyIotAggTable",          // CDK上のID（任意）
+  "IotDataAggSource",       // resource.ts から参照するDataSource名
+  "IotAggIamPolicy"
 );
