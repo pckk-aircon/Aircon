@@ -19,18 +19,35 @@ type DivisionRow = {
   DivisionName: string;
 };
 
-type IotRow = Record<string, any>;
+type IotRow = Record<string, unknown>;
+
+type DataKind = "iot" | "agg";
 
 type ViewState = {
   division: string;
   startDay: string;
   endDay: string;
+  dataKind: DataKind;
 };
 
 type FullPayload = {
   viewState: ViewState;
   rows: IotRow[];
 };
+
+/**
+ * listIot / listIotAgg 共通で扱うページ型
+ * （Amplifyの厳密型をそのまま使わず、画面側で必要な形に寄せる）
+ */
+type QueryPageData =
+  | {
+      items?: IotRow[] | null;
+      nextToken?: string | null;
+    }
+  | null
+  | undefined;
+
+type QueryErrors = readonly { message: string }[] | undefined;
 
 export default function Page() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -40,6 +57,9 @@ export default function Page() {
 
   const [divisions, setDivisions] = useState<DivisionRow[]>([]);
   const [selectedDivision, setSelectedDivision] = useState("");
+
+  // IotData / IotDataAgg の切替
+  const [dataKind, setDataKind] = useState<DataKind>("iot");
 
   const [iframeReady, setIframeReady] = useState(false);
   const [allRows, setAllRows] = useState<IotRow[]>([]);
@@ -60,7 +80,7 @@ export default function Page() {
 
   /**
    * 日付範囲単位のキャッシュ
-   * key = controller|yyyy-MM-dd|yyyy-MM-dd
+   * key = controller|dataKind|yyyy-MM-dd|yyyy-MM-dd
    * Divisionは含めない
    */
   const rangeCacheRef = useRef<Map<string, IotRow[]>>(new Map());
@@ -87,18 +107,20 @@ export default function Page() {
   const prevViewStateRef = useRef<ViewState | null>(null);
 
   const buildViewState = useCallback(
-    (division: string, start: Date, end: Date): ViewState => ({
+    (division: string, start: Date, end: Date, kind: DataKind): ViewState => ({
       division,
       startDay: format(start, "yyyy-MM-dd"),
       endDay: format(end, "yyyy-MM-dd"),
+      dataKind: kind,
     }),
     []
   );
 
   const makeRangeCacheKey = useCallback(
-    (start: Date, end: Date) =>
+    (start: Date, end: Date, kind: DataKind) =>
       [
         controller,
+        kind,
         format(startOfDay(start), "yyyy-MM-dd"),
         format(startOfDay(end), "yyyy-MM-dd"),
       ].join("|"),
@@ -122,7 +144,8 @@ export default function Page() {
     if (!selectedDivision || allRows.length === 0) return 0;
 
     return allRows.filter((r) => {
-      const div = r?.DivisionAgg ?? r?.Division;
+      const row = r as Record<string, unknown>;
+      const div = row.DivisionAgg ?? row.Division;
       return div === selectedDivision;
     }).length;
   }, [allRows, selectedDivision]);
@@ -146,7 +169,7 @@ export default function Page() {
 
   /**
    * iframeへ viewState + rows を送る
-   * 日付変更時に使用
+   * 日付変更時 / dataKind変更時に使用
    */
   const sendFullPayloadToIframe = useCallback(
     (payload: FullPayload, dataKey: string) => {
@@ -157,7 +180,6 @@ export default function Page() {
       const win = iframeRef.current?.contentWindow;
       if (!win) return;
 
-      // app.js未変更前提
       // 先に viewState、その後 rows
       win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, "*");
       win.postMessage({ type: "SET_DATA", rows: payload.rows }, "*");
@@ -188,7 +210,7 @@ export default function Page() {
   useEffect(() => {
     if (!iframeReady) return;
 
-    const rangeKey = makeRangeCacheKey(startDate, endDate);
+    const rangeKey = makeRangeCacheKey(startDate, endDate, dataKind);
 
     if (
       latestFullPayloadRef.current &&
@@ -205,6 +227,7 @@ export default function Page() {
     iframeReady,
     startDate,
     endDate,
+    dataKind,
     makeRangeCacheKey,
     sendFullPayloadToIframe,
     sendViewStateToIframe,
@@ -246,16 +269,48 @@ export default function Page() {
   }, [controller]);
 
   /**
-   * 1 Division 分の IoT取得（ページングあり）
+   * IotDataAgg の行名が IotData と異なる場合に、ここで必要なら揃える
+   */
+  const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
+    if (kind === "iot") {
+      return rows;
+    }
+
+    return rows.map((row) => {
+      const out = { ...row } as Record<string, unknown>;
+
+      // 必要になったらここで項目名を揃える
+      // 例:
+      // if (out.ActualTemp == null && out.AvgActualTemp != null) {
+      //   out.ActualTemp = out.AvgActualTemp;
+      // }
+      // if (out.ActivePower == null && out.AvgActivePower != null) {
+      //   out.ActivePower = out.AvgActivePower;
+      // }
+
+      return out;
+    });
+  }, []);
+
+  /**
+   * 1 Division 分の取得（ページングあり）
+   * kind = "iot" なら listIot
+   * kind = "agg" なら listIotAgg
    */
   const fetchIotByRangeForDivision = useCallback(
-    async (start: Date, end: Date, division: string): Promise<IotRow[]> => {
+    async (
+      start: Date,
+      end: Date,
+      division: string,
+      kind: DataKind
+    ): Promise<IotRow[]> => {
       const result: IotRow[] = [];
 
       const startDatetime = `${format(startOfDay(start), "yyyy-MM-dd")} 00:00:00+09:00`;
       const endDatetime = `${format(startOfDay(end), "yyyy-MM-dd")} 23:59:59+09:00`;
 
       console.log("=== Query Start ===");
+      console.log("dataKind:", kind);
       console.log("Controller:", controller);
       console.log("Division:", division);
       console.log("StartDatetime:", startDatetime);
@@ -265,38 +320,56 @@ export default function Page() {
       let page = 0;
 
       do {
-        const res = await client.queries.listIot({
-          Controller: controller,
-          Division: division,
-          StartDatetime: startDatetime,
-          EndDatetime: endDatetime,
-          nextToken: nextToken ?? undefined,
-        });
+        // ★ここを明示型にして、implicit any を防ぐ
+        let data: QueryPageData;
+        let errors: QueryErrors;
 
-        const data = res.data;
-        const errors = res.errors;
+        if (kind === "iot") {
+          const res = await client.queries.listIot({
+            Controller: controller,
+            Division: division,
+            StartDatetime: startDatetime,
+            EndDatetime: endDatetime,
+            nextToken: nextToken ?? undefined,
+          });
+
+          data = res.data as QueryPageData;
+          errors = res.errors as QueryErrors;
+        } else {
+          const res = await client.queries.listIotAgg({
+            Controller: controller,
+            Division: division,
+            StartDatetime: startDatetime,
+            EndDatetime: endDatetime,
+            nextToken: nextToken ?? undefined,
+          });
+
+          data = res.data as QueryPageData;
+          errors = res.errors as QueryErrors;
+        }
 
         if (errors?.length) {
           throw new Error(errors.map((e) => e.message).join("\n"));
         }
 
         const items = ((data?.items ?? []).filter(Boolean) as IotRow[]);
+        const normalizedItems = normalizeRows(items, kind);
         nextToken = data?.nextToken ?? null;
 
         page += 1;
 
         console.log(
-          `[${division}] page=${page} items=${items.length} nextToken=${nextToken ? "あり" : "なし"}`
+          `[${kind}][${division}] page=${page} items=${normalizedItems.length} nextToken=${nextToken ? "あり" : "なし"}`
         );
 
-        result.push(...items);
+        result.push(...normalizedItems);
       } while (nextToken);
 
-      console.log(`[${division}] 取得総件数:`, result.length);
+      console.log(`[${kind}][${division}] 取得総件数:`, result.length);
 
       return result;
     },
-    [controller]
+    [controller, normalizeRows]
   );
 
   /**
@@ -306,7 +379,8 @@ export default function Page() {
     async (
       start: Date,
       end: Date,
-      divisionList: DivisionRow[]
+      divisionList: DivisionRow[],
+      kind: DataKind
     ): Promise<IotRow[]> => {
       if (divisionList.length === 0) {
         setProgress(100);
@@ -316,6 +390,7 @@ export default function Page() {
       }
 
       console.log("=== All Division Fetch Start (parallel) ===");
+      console.log("dataKind:", kind);
       console.log("Division count:", divisionList.length);
       console.log("MAX_CONCURRENT_FETCHES:", MAX_CONCURRENT_FETCHES);
 
@@ -339,9 +414,7 @@ export default function Page() {
         setProgressCompleted(completed);
         setProgressTotal(total);
 
-        console.log(
-          `[progress] ${completed}/${total} (${percent}%)`
-        );
+        console.log(`[progress][${kind}] ${completed}/${total} (${percent}%)`);
       };
 
       const worker = async (workerId: number) => {
@@ -353,13 +426,13 @@ export default function Page() {
           const division = target.Division;
 
           try {
-            console.time(`[worker:${workerId}] ${division}`);
-            const rows = await fetchIotByRangeForDivision(start, end, division);
-            console.timeEnd(`[worker:${workerId}] ${division}`);
+            console.time(`[worker:${workerId}][${kind}] ${division}`);
+            const rows = await fetchIotByRangeForDivision(start, end, division, kind);
+            console.timeEnd(`[worker:${workerId}][${kind}] ${division}`);
 
             resultsByIndex[currentIndex] = rows;
           } catch (err) {
-            console.error(`[worker:${workerId}] ${division} error:`, err);
+            console.error(`[worker:${workerId}][${kind}] ${division} error:`, err);
             errors.push(
               `[${division}] ${
                 err instanceof Error ? err.message : String(err)
@@ -384,10 +457,10 @@ export default function Page() {
 
       const merged = resultsByIndex.flat();
 
-      console.log("All divisions merged rows:", merged.length);
+      console.log(`[${kind}] All divisions merged rows:`, merged.length);
 
       const finalRows = merged.map((r) => {
-        const out = { ...r };
+        const out = { ...r } as Record<string, unknown>;
         if (!out.DivisionAgg && out.Division) {
           out.DivisionAgg = out.Division;
         }
@@ -397,11 +470,11 @@ export default function Page() {
       const sortedDatetimes = finalRows
         .map((r) => r?.DeviceDatetime)
         .filter(Boolean)
-        .sort();
+        .sort() as unknown[];
 
-      console.log("all min DeviceDatetime:", sortedDatetimes[0] ?? null);
+      console.log(`[${kind}] all min DeviceDatetime:`, sortedDatetimes[0] ?? null);
       console.log(
-        "all max DeviceDatetime:",
+        `[${kind}] all max DeviceDatetime:`,
         sortedDatetimes.length
           ? sortedDatetimes[sortedDatetimes.length - 1]
           : null
@@ -418,7 +491,7 @@ export default function Page() {
   );
 
   /**
-   * 日付範囲変更時:
+   * 日付範囲変更時 / dataKind変更時:
    * 全Division分を取得（キャッシュあり）
    */
   useEffect(() => {
@@ -429,8 +502,13 @@ export default function Page() {
     const seq = ++requestSeqRef.current;
 
     (async () => {
-      const rangeKey = makeRangeCacheKey(startDate, endDate);
-      const currentViewState = buildViewState(selectedDivision, startDate, endDate);
+      const rangeKey = makeRangeCacheKey(startDate, endDate, dataKind);
+      const currentViewState = buildViewState(
+        selectedDivision,
+        startDate,
+        endDate,
+        dataKind
+      );
 
       latestViewStateRef.current = currentViewState;
 
@@ -464,9 +542,14 @@ export default function Page() {
       setProgressTotal(divisions.length);
 
       try {
-        console.time("fetchIotByRangeAllDivisions(parallel)");
-        const rows = await fetchIotByRangeAllDivisions(startDate, endDate, divisions);
-        console.timeEnd("fetchIotByRangeAllDivisions(parallel)");
+        console.time(`fetchIotByRangeAllDivisions(parallel)[${dataKind}]`);
+        const rows = await fetchIotByRangeAllDivisions(
+          startDate,
+          endDate,
+          divisions,
+          dataKind
+        );
+        console.timeEnd(`fetchIotByRangeAllDivisions(parallel)[${dataKind}]`);
 
         if (cancelled || seq !== requestSeqRef.current) return;
 
@@ -481,7 +564,7 @@ export default function Page() {
 
         sendFullPayloadToIframe(payload, rangeKey);
       } catch (err) {
-        console.error("fetchIotByRangeAllDivisions(parallel) error:", err);
+        console.error(`fetchIotByRangeAllDivisions(parallel)[${dataKind}] error:`, err);
 
         if (!cancelled && seq === requestSeqRef.current) {
           setAllRows([]);
@@ -512,6 +595,7 @@ export default function Page() {
     endDate,
     divisions,
     selectedDivision,
+    dataKind,
     makeRangeCacheKey,
     buildViewState,
     fetchIotByRangeAllDivisions,
@@ -521,11 +605,19 @@ export default function Page() {
   /**
    * Division変更時:
    * 再取得せず viewState だけ送る
+   *
+   * ※ dataKind変更時は別データ取得が必要なので、このuseEffectではなく
+   *    上の「日付範囲変更時 / dataKind変更時」のuseEffectで full fetch させる
    */
   useEffect(() => {
     if (!selectedDivision) return;
 
-    const nextViewState = buildViewState(selectedDivision, startDate, endDate);
+    const nextViewState = buildViewState(
+      selectedDivision,
+      startDate,
+      endDate,
+      dataKind
+    );
     const prevViewState = prevViewStateRef.current;
 
     prevViewStateRef.current = nextViewState;
@@ -540,18 +632,29 @@ export default function Page() {
     const divisionChanged =
       prevViewState.division !== nextViewState.division;
 
-    if (divisionChanged && !dateChanged) {
+    const kindChanged =
+      prevViewState.dataKind !== nextViewState.dataKind;
+
+    if (divisionChanged && !dateChanged && !kindChanged) {
       sendViewStateToIframe(nextViewState);
     }
-  }, [selectedDivision, startDate, endDate, buildViewState, sendViewStateToIframe]);
+  }, [
+    selectedDivision,
+    startDate,
+    endDate,
+    dataKind,
+    buildViewState,
+    sendViewStateToIframe,
+  ]);
 
   const viewState = useMemo(
     () => ({
       division: selectedDivision,
       startDay: format(startDate, "yyyy-MM-dd"),
       endDay: format(endDate, "yyyy-MM-dd"),
+      dataKind,
     }),
-    [selectedDivision, startDate, endDate]
+    [selectedDivision, startDate, endDate, dataKind]
   );
 
   return (
@@ -584,6 +687,14 @@ export default function Page() {
         />
 
         <select
+          value={dataKind}
+          onChange={(e) => setDataKind(e.target.value as DataKind)}
+        >
+          <option value="iot">IotData</option>
+          <option value="agg">IotDataAgg</option>
+        </select>
+
+        <select
           value={selectedDivision}
           onChange={(e) => setSelectedDivision(e.target.value)}
         >
@@ -595,9 +706,9 @@ export default function Page() {
         </select>
 
         <span>
-          selectedRows={selectedRowsCount} / totalRows={allRows.length} / iframeReady=
-          {String(iframeReady)} / loading={String(loading)} / division=
-          {viewState.division}
+          dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} / totalRows=
+          {allRows.length} / iframeReady={String(iframeReady)} / loading=
+          {String(loading)} / division={viewState.division}
         </span>
       </div>
 
@@ -618,8 +729,7 @@ export default function Page() {
               marginBottom: 8,
             }}
           >
-            データ取得中... {displayProgress}%
-            {"  "}
+            データ取得中... {displayProgress}%{" "}
             ({progressCompleted}/{progressTotal} divisions)
           </div>
 
@@ -653,13 +763,3 @@ export default function Page() {
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-

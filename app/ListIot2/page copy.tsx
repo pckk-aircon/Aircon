@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
@@ -46,6 +45,11 @@ export default function Page() {
   const [iframeReady, setIframeReady] = useState(false);
   const [allRows, setAllRows] = useState<IotRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // 進捗表示用
+  const [progress, setProgress] = useState(0); // 0-100
+  const [progressCompleted, setProgressCompleted] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
 
   const controller = "Mutsu01";
 
@@ -101,6 +105,15 @@ export default function Page() {
       ].join("|"),
     [controller]
   );
+
+  /**
+   * 表示用 progress（10%刻みに丸める）
+   * 例: 14 -> 10, 29 -> 20, 100 -> 100
+   */
+  const displayProgress = useMemo(() => {
+    if (progress >= 100) return 100;
+    return Math.floor(progress / 10) * 10;
+  }, [progress]);
 
   /**
    * UI表示用
@@ -296,7 +309,12 @@ export default function Page() {
       end: Date,
       divisionList: DivisionRow[]
     ): Promise<IotRow[]> => {
-      if (divisionList.length === 0) return [];
+      if (divisionList.length === 0) {
+        setProgress(100);
+        setProgressCompleted(0);
+        setProgressTotal(0);
+        return [];
+      }
 
       console.log("=== All Division Fetch Start (parallel) ===");
       console.log("Division count:", divisionList.length);
@@ -308,6 +326,24 @@ export default function Page() {
 
       const errors: string[] = [];
       let cursor = 0;
+      let completed = 0;
+      const total = divisionList.length;
+
+      setProgress(0);
+      setProgressCompleted(0);
+      setProgressTotal(total);
+
+      const updateProgress = () => {
+        completed += 1;
+        const percent = Math.round((completed / total) * 100);
+        setProgress(percent);
+        setProgressCompleted(completed);
+        setProgressTotal(total);
+
+        console.log(
+          `[progress] ${completed}/${total} (${percent}%)`
+        );
+      };
 
       const worker = async (workerId: number) => {
         while (true) {
@@ -331,6 +367,8 @@ export default function Page() {
               }`
             );
             resultsByIndex[currentIndex] = [];
+          } finally {
+            updateProgress();
           }
         }
       };
@@ -357,17 +395,23 @@ export default function Page() {
         return out;
       });
 
-      const sorted = finalRows
+      const sortedDatetimes = finalRows
         .map((r) => r?.DeviceDatetime)
         .filter(Boolean)
         .sort();
 
-      console.log("all min DeviceDatetime:", sorted[0] ?? null);
+      console.log("all min DeviceDatetime:", sortedDatetimes[0] ?? null);
       console.log(
         "all max DeviceDatetime:",
-        sorted.length ? finalRows[finalRows.length - 1]?.DeviceDatetime ?? null : null
+        sortedDatetimes.length
+          ? sortedDatetimes[sortedDatetimes.length - 1]
+          : null
       );
       console.log("=== All Division Fetch End (parallel) ===");
+
+      setProgress(100);
+      setProgressCompleted(total);
+      setProgressTotal(total);
 
       return finalRows;
     },
@@ -398,6 +442,12 @@ export default function Page() {
         if (cancelled || seq !== requestSeqRef.current) return;
 
         setAllRows(cached);
+        setLoading(false);
+
+        // キャッシュヒット時は即完了扱い
+        setProgress(100);
+        setProgressCompleted(divisions.length);
+        setProgressTotal(divisions.length);
 
         const payload: FullPayload = {
           viewState: currentViewState,
@@ -410,6 +460,9 @@ export default function Page() {
       }
 
       setLoading(true);
+      setProgress(0);
+      setProgressCompleted(0);
+      setProgressTotal(divisions.length);
 
       try {
         console.time("fetchIotByRangeAllDivisions(parallel)");
@@ -441,6 +494,9 @@ export default function Page() {
           latestFullPayloadRef.current = payload;
 
           sendFullPayloadToIframe(payload, rangeKey);
+
+          // エラーでも処理終了として progress 表示は閉じやすくする
+          setProgress(100);
         }
       } finally {
         if (!cancelled && seq === requestSeqRef.current) {
@@ -509,6 +565,7 @@ export default function Page() {
           gap: 12,
           alignItems: "center",
           flexWrap: "wrap",
+          marginBottom: 12,
         }}
       >
         <DatePicker
@@ -545,6 +602,49 @@ export default function Page() {
         </span>
       </div>
 
+      {loading && (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: 12,
+            border: "1px solid #ddd",
+            borderRadius: 8,
+            background: "#fafafa",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
+          >
+            データ取得中... {displayProgress}%
+            {"  "}
+            ({progressCompleted}/{progressTotal} divisions)
+          </div>
+
+          <div
+            style={{
+              width: "100%",
+              height: 14,
+              background: "#e5e7eb",
+              borderRadius: 9999,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${displayProgress}%`,
+                height: "100%",
+                background: "#2563eb",
+                transition: "width 0.25s ease",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <iframe
         ref={iframeRef}
         src="/plotly-view/index.html?mode=embed"
@@ -554,15 +654,3 @@ export default function Page() {
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
