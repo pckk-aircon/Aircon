@@ -37,13 +37,13 @@ type FullPayload = {
 
 /**
  * listIot / listIotAgg 共通で扱うページ型
- * （Amplifyの厳密型をそのまま使わず、画面側で必要な形に寄せる）
  */
 type QueryPageData =
   | {
       items?: IotRow[] | null;
       nextToken?: string | null;
     }
+  | IotRow[]
   | null
   | undefined;
 
@@ -74,7 +74,6 @@ export default function Page() {
 
   /**
    * 同時取得数の上限
-   * まずは 3 がおすすめ
    */
   const MAX_CONCURRENT_FETCHES = 3;
 
@@ -151,6 +150,80 @@ export default function Page() {
   }, [allRows, selectedDivision]);
 
   /**
+   * app.js は rows[0] の keys をヘッダ相当として扱うので、
+   * page.tsx 側では「別にヘッダを渡す必要はない」。
+   * ただし列名ゆれはここで必ず吸収しておく。
+   */
+  const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
+    return rows.map((row) => {
+      const out = { ...row } as Record<string, unknown>;
+
+      // --------------------------------------------------
+      // Division 揃え
+      // --------------------------------------------------
+      if (out.DivisionAgg == null && out.Division != null) {
+        out.DivisionAgg = out.Division;
+      }
+      if (out.Division == null && out.DivisionAgg != null) {
+        out.Division = out.DivisionAgg;
+      }
+
+      // --------------------------------------------------
+      // Device 揃え
+      // --------------------------------------------------
+      if (out.Device == null && out.DeviceName != null) {
+        out.Device = out.DeviceName;
+      }
+      if (out.DeviceName == null && out.Device != null) {
+        out.DeviceName = out.Device;
+      }
+
+      // --------------------------------------------------
+      // Datetime 揃え（最重要）
+      // app.js は DeviceDatetime / DatetimeAgg / DeviceTimestamp を候補に見る
+      // embed 時に安全に認識させるため、少なくとも DeviceDatetime と DatetimeAgg の
+      // どちらも埋めるようにしておく
+      // --------------------------------------------------
+      if (out.DeviceDatetime == null && out.DatetimeAgg != null) {
+        out.DeviceDatetime = out.DatetimeAgg;
+      }
+      if (out.DatetimeAgg == null && out.DeviceDatetime != null) {
+        out.DatetimeAgg = out.DeviceDatetime;
+      }
+
+      // 参考: もし DeviceTimestamp も必要になればここで補完可能
+      if (out.DeviceTimestamp == null && out.DeviceDatetime != null) {
+        out.DeviceTimestamp = out.DeviceDatetime;
+      }
+
+      // --------------------------------------------------
+      // 集約データ側で列名差がある場合はここで揃える
+      // 必要に応じて追記
+      // --------------------------------------------------
+      if (kind === "agg") {
+        // 例:
+        // if (out.ActualTemp == null && out.AvgActualTemp != null) {
+        //   out.ActualTemp = out.AvgActualTemp;
+        // }
+        // if (out.ActivePower == null && out.AvgActivePower != null) {
+        //   out.ActivePower = out.AvgActivePower;
+        // }
+      }
+
+      return out;
+    });
+  }, []);
+
+  /**
+   * postMessage 送信先 origin
+   * app.js 側が event.origin === window.location.origin を見ているので、
+   * こちらも origin を明示する
+   */
+  const getTargetOrigin = useCallback(() => {
+    return window.location.origin;
+  }, []);
+
+  /**
    * iframeへ viewState だけ送る
    * Division変更時に使用
    */
@@ -162,9 +235,13 @@ export default function Page() {
       const win = iframeRef.current?.contentWindow;
       if (!win) return;
 
-      win.postMessage({ type: "SET_VIEWSTATE", ...viewState }, "*");
+      const origin = getTargetOrigin();
+
+      console.log("[postMessage] SET_VIEWSTATE", viewState);
+
+      win.postMessage({ type: "SET_VIEWSTATE", ...viewState }, origin);
     },
-    [iframeReady]
+    [iframeReady, getTargetOrigin]
   );
 
   /**
@@ -180,13 +257,22 @@ export default function Page() {
       const win = iframeRef.current?.contentWindow;
       if (!win) return;
 
-      // 先に viewState、その後 rows
-      win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, "*");
-      win.postMessage({ type: "SET_DATA", rows: payload.rows }, "*");
+      const origin = getTargetOrigin();
+
+      console.log("[postMessage] SET_VIEWSTATE", payload.viewState);
+      console.log("[postMessage] SET_DATA rows=", payload.rows.length);
+      if (payload.rows.length > 0) {
+        console.log("[postMessage] first row keys=", Object.keys(payload.rows[0]));
+        console.log("[postMessage] first row=", payload.rows[0]);
+      }
+
+      // app.js の想定どおり、先に viewState、そのあと rows
+      win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
+      win.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
 
       lastSentDataKeyRef.current = dataKey;
     },
-    [iframeReady]
+    [iframeReady, getTargetOrigin]
   );
 
   /**
@@ -195,7 +281,14 @@ export default function Page() {
   useEffect(() => {
     const onMsg = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
+
+      // 必要なら origin も見る
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
       if (event.data?.type === "PLOTLY_READY") {
+        console.log("[iframe] PLOTLY_READY");
         setIframeReady(true);
       }
     };
@@ -269,27 +362,23 @@ export default function Page() {
   }, [controller]);
 
   /**
-   * IotDataAgg の行名が IotData と異なる場合に、ここで必要なら揃える
+   * res.data の形を吸収
+   * - { items, nextToken } 型
+   * - 直接配列
    */
-  const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
-    if (kind === "iot") {
-      return rows;
+  const unwrapQueryData = useCallback((raw: QueryPageData) => {
+    let items: IotRow[] = [];
+    let nextToken: string | null | undefined = null;
+
+    if (Array.isArray(raw)) {
+      items = raw.filter(Boolean) as IotRow[];
+      nextToken = null;
+    } else {
+      items = ((raw?.items ?? []).filter(Boolean) as IotRow[]);
+      nextToken = raw?.nextToken ?? null;
     }
 
-    return rows.map((row) => {
-      const out = { ...row } as Record<string, unknown>;
-
-      // 必要になったらここで項目名を揃える
-      // 例:
-      // if (out.ActualTemp == null && out.AvgActualTemp != null) {
-      //   out.ActualTemp = out.AvgActualTemp;
-      // }
-      // if (out.ActivePower == null && out.AvgActivePower != null) {
-      //   out.ActivePower = out.AvgActivePower;
-      // }
-
-      return out;
-    });
+    return { items, nextToken };
   }, []);
 
   /**
@@ -320,7 +409,6 @@ export default function Page() {
       let page = 0;
 
       do {
-        // ★ここを明示型にして、implicit any を防ぐ
         let data: QueryPageData;
         let errors: QueryErrors;
 
@@ -352,15 +440,22 @@ export default function Page() {
           throw new Error(errors.map((e) => e.message).join("\n"));
         }
 
-        const items = ((data?.items ?? []).filter(Boolean) as IotRow[]);
+        const { items, nextToken: newNextToken } = unwrapQueryData(data);
         const normalizedItems = normalizeRows(items, kind);
-        nextToken = data?.nextToken ?? null;
+        nextToken = newNextToken;
 
         page += 1;
 
         console.log(
           `[${kind}][${division}] page=${page} items=${normalizedItems.length} nextToken=${nextToken ? "あり" : "なし"}`
         );
+
+        if (normalizedItems.length > 0) {
+          console.log(
+            `[${kind}][${division}] first keys=`,
+            Object.keys(normalizedItems[0])
+          );
+        }
 
         result.push(...normalizedItems);
       } while (nextToken);
@@ -369,7 +464,7 @@ export default function Page() {
 
       return result;
     },
-    [controller, normalizeRows]
+    [controller, normalizeRows, unwrapQueryData]
   );
 
   /**
@@ -434,9 +529,7 @@ export default function Page() {
           } catch (err) {
             console.error(`[worker:${workerId}][${kind}] ${division} error:`, err);
             errors.push(
-              `[${division}] ${
-                err instanceof Error ? err.message : String(err)
-              }`
+              `[${division}] ${err instanceof Error ? err.message : String(err)}`
             );
             resultsByIndex[currentIndex] = [];
           } finally {
@@ -459,25 +552,23 @@ export default function Page() {
 
       console.log(`[${kind}] All divisions merged rows:`, merged.length);
 
-      const finalRows = merged.map((r) => {
-        const out = { ...r } as Record<string, unknown>;
-        if (!out.DivisionAgg && out.Division) {
-          out.DivisionAgg = out.Division;
-        }
-        return out;
-      });
+      // 最終保険としてもう一度 normalize
+      const finalRows = normalizeRows(merged, kind);
+
+      if (finalRows.length > 0) {
+        console.log(`[${kind}] final first row keys=`, Object.keys(finalRows[0]));
+        console.log(`[${kind}] final first row=`, finalRows[0]);
+      }
 
       const sortedDatetimes = finalRows
-        .map((r) => r?.DeviceDatetime)
+        .map((r) => (r?.DeviceDatetime as string | undefined) ?? (r?.DatetimeAgg as string | undefined))
         .filter(Boolean)
-        .sort() as unknown[];
+        .sort() as string[];
 
-      console.log(`[${kind}] all min DeviceDatetime:`, sortedDatetimes[0] ?? null);
+      console.log(`[${kind}] all min datetime:`, sortedDatetimes[0] ?? null);
       console.log(
-        `[${kind}] all max DeviceDatetime:`,
-        sortedDatetimes.length
-          ? sortedDatetimes[sortedDatetimes.length - 1]
-          : null
+        `[${kind}] all max datetime:`,
+        sortedDatetimes.length ? sortedDatetimes[sortedDatetimes.length - 1] : null
       );
       console.log("=== All Division Fetch End (parallel) ===");
 
@@ -487,7 +578,7 @@ export default function Page() {
 
       return finalRows;
     },
-    [fetchIotByRangeForDivision]
+    [fetchIotByRangeForDivision, normalizeRows]
   );
 
   /**
@@ -729,8 +820,7 @@ export default function Page() {
               marginBottom: 8,
             }}
           >
-            データ取得中... {displayProgress}%{" "}
-            ({progressCompleted}/{progressTotal} divisions)
+            データ取得中... {displayProgress}% ({progressCompleted}/{progressTotal} divisions)
           </div>
 
           <div
