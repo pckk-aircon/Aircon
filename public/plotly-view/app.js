@@ -467,34 +467,87 @@
   // 4軸用の列セレクタ構築
   // =========================================================
   function buildColumnSelectors(fields, data) {
-    const tsCandidates = TS_ALLOW.filter((c) => fields.includes(c));
+
+    const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
+
+    const Y_EXCLUDE = [
+      "DivisionAgg", "Division",
+      "Device", "DeviceName",
+      "DeviceType",
+      "DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"
+    ];
+
+    // ✅ 最重要メトリクス（強制表示）
+    const FORCE_INCLUDE_METRICS = [
+      "ActivePower",
+      "ApparentPower",
+      "CumulativeEnergy",
+      "EnergyDeltaPerEffectiveMinute",
+      "ActualTemp",
+      "ActualHumidity",
+      "WtTemp"
+    ];
+
+    // ----------------------------
+    // TS列
+    // ----------------------------
+    const tsCandidates = TS_ALLOW.filter(c => fields.includes(c));
     const tsFinal = tsCandidates.length ? tsCandidates : fields.slice(0, 1);
 
     if (tsSel) {
-      tsSel.innerHTML = tsFinal.map((c) => `<option value="${c}">${disp(c)}</option>`).join("");
-      tsSel.disabled = false;
+      tsSel.innerHTML = tsFinal
+        .map(c => `<option value="${c}">${disp(c)}</option>`)
+        .join("");
 
-      // ✅ dataKind ベースで TS列固定
-      const preferred = pickTsColumnByDataKind(fields, appState.currentDataKind);
-      tsSel.value = preferred || tsFinal[0] || "";
+      tsSel.disabled = false;
+      tsSel.value = tsFinal[0] || "";
     }
 
+    // ----------------------------
+    // ✅ Y候補抽出（ここが超重要）
+    // ----------------------------
     const yCandidates = fields
-      .filter((f) => !tsFinal.includes(f))
-      .filter((f) => !Y_EXCLUDE.includes(f))
-      .filter((f) => isMostlyNumericColumn(data, f));
+      .filter(f => !tsFinal.includes(f))
+      .filter(f => !Y_EXCLUDE.includes(f))
+      .filter(f =>
+        FORCE_INCLUDE_METRICS.includes(f) || isMostlyNumericColumn(data, f)
+      );
 
+    // ----------------------------
+    // ✅ fallback（全滅防止）
+    // ----------------------------
+    let finalCandidates = yCandidates;
+
+    if (finalCandidates.length === 0) {
+      console.warn("⚠ yCandidates empty → fallback to all fields");
+
+      finalCandidates = fields.filter(f => !tsFinal.includes(f));
+    }
+
+    // ----------------------------
+    // セレクタ生成
+    // ----------------------------
     function fill(sel, defaults) {
       if (!sel) return;
-      sel.innerHTML = yCandidates.map((c) => `<option value="${c}">${disp(c)}</option>`).join("");
+
+      sel.innerHTML = finalCandidates
+        .map(c => `<option value="${c}">${disp(c)}</option>`)
+        .join("");
+
       sel.disabled = false;
-      for (const opt of sel.options) opt.selected = defaults.includes(opt.value);
+
+      // ✅ 初期選択
+      for (const opt of sel.options) {
+        opt.selected = defaults.includes(opt.value);
+      }
     }
 
     fill(yLeft1Sel, DEFAULT_LEFT1);
     fill(yLeft2Sel, DEFAULT_LEFT2);
     fill(yRight1Sel, DEFAULT_RIGHT1);
     fill(yRight2Sel, DEFAULT_RIGHT2);
+
+    console.log("✅ yCandidates:", finalCandidates);
   }
 
   // =========================================================
