@@ -1,5 +1,3 @@
-
-
 (() => {
   const dbgEl = document.getElementById("debug");
   const dbg = (m) => {
@@ -130,6 +128,9 @@
     xMode: "A",
     grainMin: 0,
 
+    // ✅ 追加：iot / agg を保持
+    currentDataKind: "iot",
+
     // Airconフィルタ："ALL" or 数値文字列（例 "26"）
     tpSetTempOn: "ALL",
 
@@ -179,12 +180,52 @@
     return null;
   }
 
-  // ✅ 時刻列の優先順位固定
-  function pickPreferredTs(fields) {
+  // =========================================================
+  // ✅ dataKind ベースの列選択
+  // =========================================================
+  function detectDataKindFromFields(fields) {
+    // standalone 用。CSVヘッダから推定
+    if (fields.includes("DeviceDatetime") && fields.includes("Division")) return "iot";
+    if (fields.includes("DatetimeAgg") && fields.includes("DivisionAgg")) return "agg";
+
+    // fallback
+    if (fields.includes("DeviceDatetime")) return "iot";
+    if (fields.includes("DatetimeAgg")) return "agg";
+    return "iot";
+  }
+
+  function pickDivisionColumn(fields, dataKind) {
+    if (dataKind === "agg") {
+      if (fields.includes("DivisionAgg")) return "DivisionAgg";
+      if (fields.includes("Division")) return "Division";
+      return null;
+    }
+    // iot
+    if (fields.includes("Division")) return "Division";
+    if (fields.includes("DivisionAgg")) return "DivisionAgg";
+    return null;
+  }
+
+  function pickDeviceColumn(fields, dataKind) {
+    // 今回は iot / agg とも Device を優先
+    if (fields.includes("Device")) return "Device";
+    if (fields.includes("DeviceName")) return "DeviceName";
+    return null;
+  }
+
+  function pickTsColumnByDataKind(fields, dataKind) {
+    if (dataKind === "agg") {
+      if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
+      if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
+      if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
+      return "";
+    }
+
+    // iot
     if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
     if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
     if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
-    return fields.find((f) => TS_ALLOW.includes(f)) || "";
+    return "";
   }
 
   // ✅ rows[0]問題対策：全rowsのkeysを先頭行に補完
@@ -417,8 +458,8 @@
       tsSel.innerHTML = tsFinal.map((c) => `<option value="${c}">${disp(c)}</option>`).join("");
       tsSel.disabled = false;
 
-      // ✅ TS列を優先順位で固定
-      const preferred = pickPreferredTs(fields);
+      // ✅ dataKind ベースで TS列固定
+      const preferred = pickTsColumnByDataKind(fields, appState.currentDataKind);
       tsSel.value = preferred || tsFinal[0] || "";
     }
 
@@ -601,7 +642,7 @@
       if (div !== divisionSel?.value) continue;
 
       const dev = r[devCol];
-      const tsRawForPlot = r[colTs]; // ✅ ユーザー選択TSのみ使用
+      const tsRawForPlot = r[colTs];
       if (!dev || !tsRawForPlot) continue;
 
       const day = getDayFromTs(tsRawForPlot);
@@ -1101,7 +1142,10 @@
     for (const r of rows || []) m.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
     appState.valueMap = m;
 
+    dbg(`dataKind=${appState.currentDataKind}`);
     dbg(`TS列=${colTs}`);
+    dbg(`Division列=${appState.colDivision}`);
+    dbg(`Device列=${appState.colDevice}`);
     dbg(`rows(raw)=${rows0.length}, rows(agg)=${rows.length}`);
 
     render(rows, left1, left2, right1, right2, colTs);
@@ -1138,11 +1182,22 @@
     appState.fields = Object.keys(rows[0] || {});
     appState.sourceData = rows;
 
+    // ✅ standalone のときは CSVヘッダから dataKind 推定
+    if (MODE !== "embed") {
+      appState.currentDataKind = detectDataKindFromFields(appState.fields);
+    } else if (viewState?.dataKind) {
+      appState.currentDataKind = viewState.dataKind;
+    } else if (pendingViewState?.dataKind) {
+      appState.currentDataKind = pendingViewState.dataKind;
+    }
+
+    dbg(`dataKind=${appState.currentDataKind}`);
     dbg(`fields=${JSON.stringify(appState.fields)}`);
     dbg(`sample=${JSON.stringify(rows[0])}`);
 
-    appState.colDivision = pickColumn(appState.fields, CONFIG.colDivisionPreferred, CONFIG.colDivisionFallback);
-    appState.colDevice = pickColumn(appState.fields, CONFIG.colDevicePreferred, CONFIG.colDeviceFallback);
+    // ✅ dataKind ベースで Division / Device 列選択
+    appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
+    appState.colDevice = pickDeviceColumn(appState.fields, appState.currentDataKind);
 
     if (!appState.colDivision) throw new Error("Division列がありません（DivisionAgg / Division）");
     if (!appState.colDevice) throw new Error("Device列がありません（Device / DeviceName）");
@@ -1197,7 +1252,6 @@
         if (days2.length) {
           buildDaySelectors(days2);
 
-          // ✅ 既存viewStateをできるだけ保持
           if (MODE === "embed" && pendingViewState) {
             if (pendingViewState.startDay && days2.includes(pendingViewState.startDay)) {
               startDaySel.value = pendingViewState.startDay;
@@ -1318,14 +1372,46 @@
           division: msg.division ?? null,
           startDay: msg.startDay ?? null,
           endDay: msg.endDay ?? null,
+          // ✅ dataKind 受信
+          dataKind: msg.dataKind ?? "iot",
         };
 
+        appState.currentDataKind = pendingViewState.dataKind || "iot";
+
         dbg(`SET_VIEWSTATE: ${JSON.stringify(pendingViewState)}`);
+        dbg(`currentDataKind=${appState.currentDataKind}`);
 
         if (appState.sourceData && appState.days?.length) {
-          if (divisionSel && pendingViewState.division) divisionSel.value = pendingViewState.division;
-          if (startDaySel && pendingViewState.startDay) startDaySel.value = pendingViewState.startDay;
-          if (endDaySel && pendingViewState.endDay) endDaySel.value = pendingViewState.endDay;
+          // dataKind が変わった可能性があるので列セレクタ再構築
+          buildColumnSelectors(appState.fields, appState.sourceData);
+
+          // dataKind に応じて division/device 列も再決定
+          appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
+          appState.colDevice = pickDeviceColumn(appState.fields, appState.currentDataKind);
+
+          if (badgeColDiv) badgeColDiv.textContent = appState.colDivision || "";
+          if (badgeColDevice) badgeColDevice.textContent = appState.colDevice || "";
+
+          const divs = [...new Set(appState.sourceData.map((r) => r[appState.colDivision]).filter(Boolean))].sort();
+          if (divisionSel) {
+            divisionSel.innerHTML = divs.map((d) => `<option value="${d}">${d}</option>`).join("");
+          }
+
+          const tsCol = tsSel?.value;
+          const days = [...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean))].sort();
+          appState.days = days;
+          if (days.length) buildDaySelectors(days);
+
+          if (divisionSel && pendingViewState.division && divs.includes(pendingViewState.division)) {
+            divisionSel.value = pendingViewState.division;
+          }
+          if (startDaySel && pendingViewState.startDay && days.includes(pendingViewState.startDay)) {
+            startDaySel.value = pendingViewState.startDay;
+          }
+          if (endDaySel && pendingViewState.endDay && days.includes(pendingViewState.endDay)) {
+            endDaySel.value = pendingViewState.endDay;
+          }
+
           applyEmbedUiLock();
           updatePlot();
         }
@@ -1342,3 +1428,4 @@
     });
   }
 })();
+

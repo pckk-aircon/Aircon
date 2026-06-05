@@ -1,10 +1,14 @@
 
 
-
 (() => {
   const dbgEl = document.getElementById("debug");
-  const dbg = (m) => { dbgEl.textContent += m + "\n"; console.log(m); };
-  const clearDbg = () => { dbgEl.textContent = ""; };
+  const dbg = (m) => {
+    if (dbgEl) dbgEl.textContent += m + "\n";
+    console.log(m);
+  };
+  const clearDbg = () => {
+    if (dbgEl) dbgEl.textContent = "";
+  };
 
   if (typeof Papa === "undefined") throw new Error("PapaParse が読み込まれていません");
   if (typeof Plotly === "undefined") throw new Error("Plotly が読み込まれていません");
@@ -30,33 +34,37 @@
   const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
 
   // デフォルト選択
-  const DEFAULT_LEFT1  = ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"];
-  const DEFAULT_LEFT2  = ["ActualTemp"];
+  const DEFAULT_LEFT1 = ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"];
+  const DEFAULT_LEFT2 = ["ActualTemp"];
   const DEFAULT_RIGHT1 = ["CumulativeEnergy", "WtTemp"];
   const DEFAULT_RIGHT2 = ["ActualHumidity"];
 
   // 表示名（ラベル）
   const DISPLAY_NAME_MAP = {
-    "ActualTemp": "温度",
-    "ActualHumidity": "湿度",
-    "ActivePower": "有効電力",
-    "ApparentPower": "皮相電力",
-    "CumulativeEnergy": "積算電力量",
-    "DeviceDatetime": "日時",
-    "DatetimeAgg": "日時(集約)",
-    "DeviceTimestamp": "タイムスタンプ",
-    "EnergyDeltaPerEffectiveMinute": "積算電力量（分単位補正）",
-    "WtTemp": "外気温",
-    "TpSetTempAvgOn": "設定温度(On平均)"
+    ActualTemp: "温度",
+    ActualHumidity: "湿度",
+    ActivePower: "有効電力",
+    ApparentPower: "皮相電力",
+    CumulativeEnergy: "積算電力量",
+    DeviceDatetime: "日時",
+    DatetimeAgg: "日時(集約)",
+    DeviceTimestamp: "タイムスタンプ",
+    EnergyDeltaPerEffectiveMinute: "積算電力量（分単位補正）",
+    WtTemp: "外気温",
+    TpSetTempAvgOn: "設定温度(On平均)",
   };
   const disp = (c) => DISPLAY_NAME_MAP[c] ?? c;
 
   // Y候補から除外する列
   const Y_EXCLUDE = [
-    "DivisionAgg","Division",
-    "Device","DeviceName",
+    "DivisionAgg",
+    "Division",
+    "Device",
+    "DeviceName",
     "DeviceType",
-    "DatetimeAgg","DeviceDatetime","DeviceTimestamp"
+    "DatetimeAgg",
+    "DeviceDatetime",
+    "DeviceTimestamp",
   ];
 
   const CONFIG = {
@@ -64,7 +72,7 @@
     colDivisionFallback: "Division",
     colDevicePreferred: "Device",
     colDeviceFallback: "DeviceName",
-    colDeviceType: "DeviceType"
+    colDeviceType: "DeviceType",
   };
 
   // 特定メトリクスは Power系(DeviceType)のみ描画
@@ -91,14 +99,14 @@
 
   const divisionSel = document.getElementById("divisionSel");
   const startDaySel = document.getElementById("startDaySel");
-  const endDaySel   = document.getElementById("endDaySel");
+  const endDaySel = document.getElementById("endDaySel");
 
   const fileInput = document.getElementById("fileInput");
   const replotBtn = document.getElementById("replotBtn");
 
-  const tsSel      = document.getElementById("tsSel");
-  const yLeft1Sel  = document.getElementById("yLeft1Sel");
-  const yLeft2Sel  = document.getElementById("yLeft2Sel");
+  const tsSel = document.getElementById("tsSel");
+  const yLeft1Sel = document.getElementById("yLeft1Sel");
+  const yLeft2Sel = document.getElementById("yLeft2Sel");
   const yRight1Sel = document.getElementById("yRight1Sel");
   const yRight2Sel = document.getElementById("yRight2Sel");
 
@@ -109,6 +117,10 @@
   const colorModeSel = document.getElementById("colorModeSel");
   const badgeTpSetTemp = document.getElementById("badgeTpSetTemp");
 
+  const badgeColDiv = document.getElementById("badgeColDiv");
+  const badgeColDevice = document.getElementById("badgeColDevice");
+  const badgeColTs = document.getElementById("badgeColTs");
+
   const appState = {
     sourceData: null,
     fields: null,
@@ -118,10 +130,10 @@
     xMode: "A",
     grainMin: 0,
 
-    // Airconフィルタ： "ALL" or 数値文字列（例 "26"）
+    // Airconフィルタ："ALL" or 数値文字列（例 "26"）
     tpSetTempOn: "ALL",
 
-    // 散布図色分け： "day" or "temp"
+    // 散布図色分け："day" or "temp"
     colorMode: "day",
 
     // 散布図の色マップ
@@ -136,14 +148,14 @@
     lastLeft1: [],
     lastRight1: [],
     hlLeftIdx: null,
-    hlRightIdx: null
+    hlRightIdx: null,
   };
 
   function applyEmbedUiLock() {
     if (MODE !== "embed") return;
-    divisionSel.disabled = true;
-    startDaySel.disabled = true;
-    endDaySel.disabled = true;
+    if (divisionSel) divisionSel.disabled = true;
+    if (startDaySel) startDaySel.disabled = true;
+    if (endDaySel) endDaySel.disabled = true;
   }
 
   // =========================================================
@@ -167,13 +179,42 @@
     return null;
   }
 
+  // ✅ 時刻列の優先順位固定
+  function pickPreferredTs(fields) {
+    if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
+    if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
+    if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
+    return fields.find((f) => TS_ALLOW.includes(f)) || "";
+  }
+
+  // ✅ rows[0]問題対策：全rowsのkeysを先頭行に補完
+  function normalizeIncomingRowsAllKeys(rows) {
+    if (!rows || rows.length === 0) return rows;
+
+    const allKeys = new Set();
+    rows.forEach((r) => {
+      if (r && typeof r === "object") {
+        Object.keys(r).forEach((k) => allKeys.add(k));
+      }
+    });
+
+    return rows.map((r, i) => {
+      if (i !== 0) return r;
+      const copy = { ...r };
+      allKeys.forEach((k) => {
+        if (!(k in copy)) copy[k] = null;
+      });
+      return copy;
+    });
+  }
+
   // ★重要：日時表現を統一（" "→"T"）＋TZが無い場合は +09:00 を付与
   function normalizeDt(ts) {
     let s = String(ts ?? "").trim();
     if (!s) return "";
     s = s.includes("T") ? s : s.replace(" ", "T");
 
-    // 末尾にZ or +hh:mm or -hh:mm が無ければ JST を補完（環境依存を避ける）
+    // 末尾にZ or +hh:mm or -hh:mm が無ければ JST を補完
     if (!/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)) {
       s += "+09:00";
     }
@@ -185,19 +226,19 @@
     timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
+    day: "2-digit",
   });
 
   function getDayFromTs(ts) {
     const s = normalizeDt(ts);
     const d = new Date(s);
     if (!Number.isFinite(d.getTime())) return null;
-    // sv-SE は "YYYY-MM-DD" を返す
-    return JST_DAY_FMT.format(d);
+    return JST_DAY_FMT.format(d); // "YYYY-MM-DD"
   }
 
   function buildDaySelectors(days) {
-    const opts = days.map(d => `<option value="${d}">${d}</option>`).join("");
+    if (!startDaySel || !endDaySel) return;
+    const opts = days.map((d) => `<option value="${d}">${d}</option>`).join("");
     startDaySel.innerHTML = opts;
     endDaySel.innerHTML = opts;
     startDaySel.disabled = false;
@@ -207,14 +248,17 @@
   }
 
   function inDayRange(day) {
-    if (!day) return false;
+    if (!day || !startDaySel || !endDaySel) return false;
     const s = startDaySel.value;
     const e = endDaySel.value;
-    return (s <= day && day <= e);
+    return s <= day && day <= e;
   }
 
   function getSelectedValues(sel) {
-    return Array.from(sel.selectedOptions).map(o => o.value).filter(v => v !== "");
+    if (!sel) return [];
+    return Array.from(sel.selectedOptions)
+      .map((o) => o.value)
+      .filter((v) => v !== "");
   }
 
   function getTodHM(ts) {
@@ -224,8 +268,9 @@
   }
 
   function isMostlyNumericColumn(data, col, sampleN = 200, ratio = 0.3) {
-    let seen = 0, ok = 0;
-    for (const r of (data || [])) {
+    let seen = 0;
+    let ok = 0;
+    for (const r of data || []) {
       const v = r[col];
       if (v === null || v === undefined || String(v).trim() === "") continue;
       seen++;
@@ -233,7 +278,7 @@
       if (seen >= sampleN) break;
     }
     if (seen === 0) return false;
-    return (ok / seen) >= ratio;
+    return ok / seen >= ratio;
   }
 
   // 粒度に合わせたカテゴリ配列（00–23重ね）
@@ -242,16 +287,16 @@
 
     if (!stepMinOverride) {
       const mins = new Set();
-      for (const r of (rows || [])) {
+      for (const r of rows || []) {
         const hm = getTodHM(r.tsRaw ?? r.dt);
         if (!hm) continue;
-        mins.add(Number(hm.slice(3,5)));
+        mins.add(Number(hm.slice(3, 5)));
       }
-      const ms = [...mins].sort((a,b)=>a-b);
+      const ms = [...mins].sort((a, b) => a - b);
 
-      const is30 = ms.length > 0 && ms.every(m => (m === 0 || m === 30));
-      const is10 = ms.length > 0 && ms.every(m => (m % 10 === 0));
-      const is5  = ms.length > 0 && ms.every(m => (m % 5 === 0));
+      const is30 = ms.length > 0 && ms.every((m) => m === 0 || m === 30);
+      const is10 = ms.length > 0 && ms.every((m) => m % 10 === 0);
+      const is5 = ms.length > 0 && ms.every((m) => m % 5 === 0);
       if (is30) step = 30;
       else if (is10) step = 10;
       else if (is5) step = 5;
@@ -259,9 +304,9 @@
     }
 
     const arr = [];
-    for (let h=0; h<24; h++) {
-      for (let m=0; m<60; m+=step) {
-        arr.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += step) {
+        arr.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
       }
     }
     return arr;
@@ -269,22 +314,23 @@
 
   function sortXY(xArr, yArr) {
     const pairs = xArr.map((x, i) => ({ x, y: yArr[i] }));
-    pairs.sort((a,b) => (a.x > b.x ? 1 : (a.x < b.x ? -1 : 0)));
-    return { x: pairs.map(p => p.x), y: pairs.map(p => p.y) };
+    pairs.sort((a, b) => (a.x > b.x ? 1 : a.x < b.x ? -1 : 0));
+    return { x: pairs.map((p) => p.x), y: pairs.map((p) => p.y) };
   }
 
-  // Date / number で確実に時系列ソートする
   function sortXYByTime(xArr, yArr) {
-    const pairs = xArr.map((x, i) => {
-      let t = NaN;
-      if (x instanceof Date) t = x.getTime();
-      else if (typeof x === "number") t = x;
-      else t = new Date(String(x)).getTime();
-      return { x, y: yArr[i], t };
-    }).filter(p => Number.isFinite(p.t));
+    const pairs = xArr
+      .map((x, i) => {
+        let t = NaN;
+        if (x instanceof Date) t = x.getTime();
+        else if (typeof x === "number") t = x;
+        else t = new Date(String(x)).getTime();
+        return { x, y: yArr[i], t };
+      })
+      .filter((p) => Number.isFinite(p.t));
 
-    pairs.sort((a,b) => a.t - b.t);
-    return { x: pairs.map(p => p.x), y: pairs.map(p => p.y) };
+    pairs.sort((a, b) => a.t - b.t);
+    return { x: pairs.map((p) => p.x), y: pairs.map((p) => p.y) };
   }
 
   // =========================================================
@@ -299,28 +345,44 @@
   }
   function isPowerType(raw) {
     const t = normalizeType(raw);
-    const tokens = ["power","pwr","watt","electric","electricity","電力","消費電力","電力量","電力計"];
-    return tokens.some(tok => t.includes(tok));
+    const tokens = ["power", "pwr", "watt", "electric", "electricity", "電力", "消費電力", "電力量", "電力計"];
+    return tokens.some((tok) => t.includes(tok));
   }
   function isAirconType(raw) {
     const t = normalizeType(raw);
-    const tokens = ["aircon","ac","hvac","空調","エアコン","冷暖房"];
-    return tokens.some(tok => t.includes(tok));
+    const tokens = ["aircon", "ac", "hvac", "空調", "エアコン", "冷暖房"];
+    return tokens.some((tok) => t.includes(tok));
   }
 
   // =========================================================
   // 散布図の色マップ（day/temp）
   // =========================================================
   const PALETTE = [
-    "#1f77b4","#2ca02c","#ff7f0e","#9467bd","#8c564b","#e377c2",
-    "#d62728","#7f7f7f","#bcbd22","#17becf",
-    "#aec7e8","#ffbb78","#98df8a","#ff9896","#c5b0d5",
-    "#c49c94","#f7b6d2","#c7c7c7","#dbdb8d","#9edae5"
+    "#1f77b4",
+    "#2ca02c",
+    "#ff7f0e",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#d62728",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+    "#aec7e8",
+    "#ffbb78",
+    "#98df8a",
+    "#ff9896",
+    "#c5b0d5",
+    "#c49c94",
+    "#f7b6d2",
+    "#c7c7c7",
+    "#dbdb8d",
+    "#9edae5",
   ];
 
   function buildColorMap(keys) {
     const m = {};
-    (keys || []).forEach((k, i) => m[k] = PALETTE[i % PALETTE.length]);
+    (keys || []).forEach((k, i) => (m[k] = PALETTE[i % PALETTE.length]));
     return m;
   }
 
@@ -329,7 +391,7 @@
   }
 
   function buildTempColors(temps) {
-    const labels = (temps || []).map(v => `${v}℃`);
+    const labels = (temps || []).map((v) => `${v}℃`);
     return buildColorMap(labels);
   }
 
@@ -348,25 +410,32 @@
   // 4軸用の列セレクタ構築
   // =========================================================
   function buildColumnSelectors(fields, data) {
-    const tsCandidates = TS_ALLOW.filter(c => fields.includes(c));
+    const tsCandidates = TS_ALLOW.filter((c) => fields.includes(c));
     const tsFinal = tsCandidates.length ? tsCandidates : fields.slice(0, 1);
-    tsSel.innerHTML = tsFinal.map(c => `<option value="${c}">${disp(c)}</option>`).join("");
-    tsSel.disabled = false;
-    tsSel.value = tsFinal[0] || "";
+
+    if (tsSel) {
+      tsSel.innerHTML = tsFinal.map((c) => `<option value="${c}">${disp(c)}</option>`).join("");
+      tsSel.disabled = false;
+
+      // ✅ TS列を優先順位で固定
+      const preferred = pickPreferredTs(fields);
+      tsSel.value = preferred || tsFinal[0] || "";
+    }
 
     const yCandidates = fields
-      .filter(f => !tsFinal.includes(f))
-      .filter(f => !Y_EXCLUDE.includes(f))
-      .filter(f => isMostlyNumericColumn(data, f));
+      .filter((f) => !tsFinal.includes(f))
+      .filter((f) => !Y_EXCLUDE.includes(f))
+      .filter((f) => isMostlyNumericColumn(data, f));
 
     function fill(sel, defaults) {
-      sel.innerHTML = yCandidates.map(c => `<option value="${c}">${disp(c)}</option>`).join("");
+      if (!sel) return;
+      sel.innerHTML = yCandidates.map((c) => `<option value="${c}">${disp(c)}</option>`).join("");
       sel.disabled = false;
       for (const opt of sel.options) opt.selected = defaults.includes(opt.value);
     }
 
-    fill(yLeft1Sel,  DEFAULT_LEFT1);
-    fill(yLeft2Sel,  DEFAULT_LEFT2);
+    fill(yLeft1Sel, DEFAULT_LEFT1);
+    fill(yLeft2Sel, DEFAULT_LEFT2);
     fill(yRight1Sel, DEFAULT_RIGHT1);
     fill(yRight2Sel, DEFAULT_RIGHT2);
   }
@@ -379,22 +448,25 @@
     if (!(appState.fields || []).includes(CONFIG.colDeviceType)) return null;
 
     const set = new Set();
-    for (const r of (data || [])) {
+    for (const r of data || []) {
       if (!isAirconType(r[CONFIG.colDeviceType])) continue;
-      const v = toNum(r["TpSetTempAvgOn"]);
+      const v = toNum(r.TpSetTempAvgOn);
       if (Number.isFinite(v)) set.add(v);
     }
-    const arr = [...set].sort((a,b)=>a-b);
+    const arr = [...set].sort((a, b) => a - b);
     return arr.length ? arr : null;
   }
 
   function applyTpSetTempOptions(values) {
-    const opts = [`<option value="ALL">すべてを表示</option>`]
-      .concat(values.map(v => `<option value="${String(v)}">${String(v)}℃</option>`));
+    if (!tpSetTempSel) return;
+
+    const opts = [`<option value="ALL">すべてを表示</option>`].concat(
+      values.map((v) => `<option value="${String(v)}">${String(v)}℃</option>`)
+    );
     tpSetTempSel.innerHTML = opts.join("");
 
     const cur = String(appState.tpSetTempOn ?? "ALL");
-    const has = (cur === "ALL") || values.some(v => String(v) === cur);
+    const has = cur === "ALL" || values.some((v) => String(v) === cur);
     appState.tpSetTempOn = has ? cur : "ALL";
 
     tpSetTempSel.value = String(appState.tpSetTempOn);
@@ -402,25 +474,24 @@
   }
 
   function syncTpBadge() {
-    badgeTpSetTemp.textContent = (tpSetTempSel.value === "ALL")
-      ? "ALL（フィルタなし）"
-      : `TpSetTempAvgOn=${tpSetTempSel.value}`;
+    if (!badgeTpSetTemp || !tpSetTempSel) return;
+    badgeTpSetTemp.textContent =
+      tpSetTempSel.value === "ALL" ? "ALL（フィルタなし）" : `TpSetTempAvgOn=${tpSetTempSel.value}`;
   }
 
   // =========================================================
   // Aircon側：Datetime(TS列)ごとの TpSetTempAvgOn（最頻値）を作る
-  // ※ここも「tsSelの選択列」で統一（DatetimeAgg固定にしない）
   // =========================================================
   function buildAirconTempMap(data) {
-    const tsCol = tsSel.value || "";
+    const tsCol = tsSel?.value || "";
     const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
     if (!tsCol || !hasSetTemp) return new Map();
 
     const divCol = appState.colDivision;
     const dtCounts = new Map();
 
-    for (const r of (data || [])) {
-      if (r[divCol] !== divisionSel.value) continue;
+    for (const r of data || []) {
+      if (r[divCol] !== divisionSel?.value) continue;
       if (!isAirconType(r[CONFIG.colDeviceType])) continue;
 
       const tsRaw = r[tsCol];
@@ -430,7 +501,7 @@
       if (!inDayRange(day)) continue;
 
       const dt = normalizeDt(tsRaw);
-      const tp = toNum(r["TpSetTempAvgOn"]);
+      const tp = toNum(r.TpSetTempAvgOn);
       if (!Number.isFinite(tp)) continue;
 
       if (!dtCounts.has(dt)) dtCounts.set(dt, new Map());
@@ -442,10 +513,13 @@
     for (const [dt, mp] of dtCounts.entries()) {
       let bestTp = null;
       let bestCnt = -1;
-      const temps = [...mp.keys()].sort((a,b)=>a-b);
+      const temps = [...mp.keys()].sort((a, b) => a - b);
       for (const t of temps) {
         const c = mp.get(t);
-        if (c > bestCnt) { bestCnt = c; bestTp = t; }
+        if (c > bestCnt) {
+          bestCnt = c;
+          bestTp = t;
+        }
       }
       if (bestTp != null) out.set(dt, bestTp);
     }
@@ -453,10 +527,11 @@
   }
 
   // =========================================================
-  // Aircon条件（選択値）を満たす TS(dt) 集合を作る（ALLなら null）
-  // ※ここも「tsSelの選択列」で統一
+  // Aircon条件（選択値）を満たす TS(dt) 集合を作る
   // =========================================================
   function buildAllowedDatetimeAggSet(data) {
+    if (!tpSetTempSel) return null;
+
     const selected = String(tpSetTempSel.value || "ALL");
     appState.tpSetTempOn = selected;
     syncTpBadge();
@@ -473,7 +548,7 @@
     }
 
     const divCol = appState.colDivision;
-    const tsCol = tsSel.value || "";
+    const tsCol = tsSel?.value || "";
     const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
 
     if (!tsCol || !hasSetTemp) {
@@ -482,8 +557,8 @@
     }
 
     const out = new Set();
-    for (const r of (data || [])) {
-      if (r[divCol] !== divisionSel.value) continue;
+    for (const r of data || []) {
+      if (r[divCol] !== divisionSel?.value) continue;
       if (!isAirconType(r[CONFIG.colDeviceType])) continue;
 
       const tsRaw = r[tsCol];
@@ -492,7 +567,7 @@
       const day = getDayFromTs(tsRaw);
       if (!inDayRange(day)) continue;
 
-      const v = toNum(r["TpSetTempAvgOn"]);
+      const v = toNum(r.TpSetTempAvgOn);
       if (Number.isFinite(v) && Math.abs(v - target) < 1e-9) {
         out.add(normalizeDt(tsRaw));
       }
@@ -502,17 +577,16 @@
   }
 
   // =========================================================
-  // 生データ → rows 正規化（allowedSet があれば時刻で絞る）
-  // ★最重要：DatetimeAggを勝手に優先しない（tsSelで選んだ列だけ）
+  // 生データ → rows 正規化
   // =========================================================
   function buildRowsRaw(data, allowedSet, airconTempMap) {
     const out = [];
     const divCol = appState.colDivision;
     const devCol = appState.colDevice;
 
-    const colTs  = tsSel.value;
-    const left1  = getSelectedValues(yLeft1Sel);
-    const left2  = getSelectedValues(yLeft2Sel);
+    const colTs = tsSel?.value;
+    const left1 = getSelectedValues(yLeft1Sel);
+    const left2 = getSelectedValues(yLeft2Sel);
     const right1 = getSelectedValues(yRight1Sel);
     const right2 = getSelectedValues(yRight2Sel);
 
@@ -522,14 +596,12 @@
       return { rows: [], left1, left2, right1, right2, colTs };
     }
 
-    for (const r of (data || [])) {
+    for (const r of data || []) {
       const div = r[divCol];
-      if (div !== divisionSel.value) continue;
+      if (div !== divisionSel?.value) continue;
 
       const dev = r[devCol];
-
-      // ★ここが重要：ユーザが選んだTS列のみ使う（DatetimeAggの自動優先をしない）
-      const tsRawForPlot = r[colTs];
+      const tsRawForPlot = r[colTs]; // ✅ ユーザー選択TSのみ使用
       if (!dev || !tsRawForPlot) continue;
 
       const day = getDayFromTs(tsRawForPlot);
@@ -557,11 +629,12 @@
   }
 
   // =========================================================
-  // 粒度集計（tp も引き継ぐ：バケット内の最後に見えたtp）
+  // 粒度集計
   // =========================================================
-  function fmt2(n) { return String(n).padStart(2, "0"); }
+  function fmt2(n) {
+    return String(n).padStart(2, "0");
+  }
 
-  // バケット文字列にも +09:00 を付与（TZ落ち対策）
   function fmtBucketISO(y, mo, d, hh, mm) {
     return `${y}-${fmt2(mo)}-${fmt2(d)}T${fmt2(hh)}:${fmt2(mm)}:00+09:00`;
   }
@@ -570,7 +643,6 @@
     const d = new Date(dtStr);
     if (!Number.isFinite(d.getTime())) return null;
 
-    // JSTとして扱う（Asia/Tokyoで解釈済の dtStr を想定）
     const hh = d.getHours();
     const mm = d.getMinutes();
 
@@ -580,14 +652,13 @@
     const hh2 = Math.floor(floored / 60);
     const mm2 = floored % 60;
 
-    // dayキーは JSTで統一
     const day = JST_DAY_FMT.format(d);
     const [y, mo, da] = day.split("-").map(Number);
 
     return {
-      day: day,
+      day,
       dtBucket: fmtBucketISO(y, mo, da, hh2, mm2),
-      bucketOrderKey: floored
+      bucketOrderKey: floored,
     };
   }
 
@@ -595,7 +666,7 @@
     if (!grainMin || grainMin <= 0) return rows || [];
 
     const g = new Map();
-    for (const r of (rows || [])) {
+    for (const r of rows || []) {
       const b = floorToBucket(r.dt, grainMin);
       if (!b) continue;
 
@@ -611,7 +682,7 @@
           cnt: 0,
           lastVal: NaN,
           lastDt: "",
-          tpLast: NaN
+          tpLast: NaN,
         });
       }
       const o = g.get(key);
@@ -635,10 +706,20 @@
       const mode = aggMode(o.metric);
       let v = NaN;
       if (mode === "sum") v = o.sum;
-      else if (mode === "mean") v = (o.cnt ? (o.sum / o.cnt) : NaN);
+      else if (mode === "mean") v = o.cnt ? o.sum / o.cnt : NaN;
       else if (mode === "last") v = o.lastVal;
 
-      if (Number.isFinite(v)) out.push({ dev: o.dev, dt: o.dt, day: o.day, metric: o.metric, v, tsRaw: o.tsRaw, tp: o.tpLast });
+      if (Number.isFinite(v)) {
+        out.push({
+          dev: o.dev,
+          dt: o.dt,
+          day: o.day,
+          metric: o.metric,
+          v,
+          tsRaw: o.tsRaw,
+          tp: o.tpLast,
+        });
+      }
     }
     return out;
   }
@@ -650,12 +731,15 @@
     const range = { y: null, y2: null, y3: null, y4: null };
 
     function upd(key, arr) {
-      const nums = arr.filter(v => Number.isFinite(v));
+      const nums = arr.filter((v) => Number.isFinite(v));
       if (!nums.length) return;
       const mn = Math.min(...nums);
       const mx = Math.max(...nums);
       if (!range[key]) range[key] = { mn, mx };
-      else { range[key].mn = Math.min(range[key].mn, mn); range[key].mx = Math.max(range[key].mx, mx); }
+      else {
+        range[key].mn = Math.min(range[key].mn, mn);
+        range[key].mx = Math.max(range[key].mx, mx);
+      }
     }
 
     for (const t of traces) upd(t.yaxis || "y", t.y);
@@ -663,7 +747,7 @@
     function pad(r) {
       if (!r) return null;
       const span = r.mx - r.mn;
-      const p = (span === 0) ? (Math.max(Math.abs(r.mx), 1) * 0.05) : (span * 0.05);
+      const p = span === 0 ? Math.max(Math.abs(r.mx), 1) * 0.05 : span * 0.05;
       return [r.mn - p, r.mx + p];
     }
 
@@ -677,9 +761,11 @@
     const xMode = appState.xMode;
 
     const byKey = new Map();
-    for (const r of (rows || [])) {
+    for (const r of rows || []) {
       const key = `${r.day}__${r.dev}__${r.metric}`;
-      if (!byKey.has(key)) byKey.set(key, { x: [], y: [], dev: r.dev, metric: r.metric, day: r.day });
+      if (!byKey.has(key)) {
+        byKey.set(key, { x: [], y: [], dev: r.dev, metric: r.metric, day: r.day });
+      }
 
       const t = byKey.get(key);
 
@@ -698,14 +784,12 @@
     const traces = [];
     for (const t of byKey.values()) {
       let yaxis = "y";
-      if (left2.includes(t.metric))  yaxis = "y3";
+      if (left2.includes(t.metric)) yaxis = "y3";
       if (right1.includes(t.metric)) yaxis = "y2";
       if (right2.includes(t.metric)) yaxis = "y4";
 
-      const sorted = (xMode === "A") ? sortXYByTime(t.x, t.y) : sortXY(t.x, t.y);
-
+      const sorted = xMode === "A" ? sortXYByTime(t.x, t.y) : sortXY(t.x, t.y);
       const name = `${t.day} ${t.dev}-${disp(t.metric)}`;
-
       const colorKey = `${t.day}__${t.dev}__${t.metric}`;
       const c = getTraceColor(colorKey);
 
@@ -717,7 +801,7 @@
         x: sorted.x,
         y: sorted.y,
         yaxis,
-        line: { color: c }
+        line: { color: c },
       });
     }
 
@@ -732,7 +816,7 @@
       yaxis: "y",
       marker: { size: 14, color: "crimson" },
       showlegend: false,
-      hoverinfo: "skip"
+      hoverinfo: "skip",
     });
 
     appState.hlRightIdx = null;
@@ -747,39 +831,41 @@
         yaxis: "y2",
         marker: { size: 14, color: "crimson" },
         showlegend: false,
-        hoverinfo: "skip"
+        hoverinfo: "skip",
       });
     }
 
     const ranges = calcRanges(traces);
-
     const layout = {
       uirevision: "keep-ui",
       margin: { r: 320, l: 80 },
-      legend: { x: 1.02, y: 1 }
+      legend: { x: 1.02, y: 1 },
     };
 
     if (xMode === "A") {
       layout.xaxis = {
         type: "date",
         title: disp(colTs),
-        dtick: 3600000,               // 1時間
-        tickformat: "%H:%M\n%b %d, %Y"
+        dtick: 3600000,
+        tickformat: "%H:%M\n%b %d, %Y",
       };
     } else {
       const cat = buildTodCategoryArray(rows, appState.grainMin);
-      const stepLabel = (appState.grainMin && appState.grainMin > 0)
-        ? `${appState.grainMin}分刻み`
-        : "データ刻み（自動）";
+      const stepLabel =
+        appState.grainMin && appState.grainMin > 0 ? `${appState.grainMin}分刻み` : "データ刻み（自動）";
       layout.xaxis = {
         type: "category",
         title: `時刻帯（00–23重ね / ${stepLabel}）`,
         categoryorder: "array",
-        categoryarray: cat
+        categoryarray: cat,
       };
     }
 
-    layout.yaxis = { title: `Left1: ${left1.map(disp).join(", ")}`, autorange: false, range: ranges.y };
+    layout.yaxis = {
+      title: `Left1: ${left1.map(disp).join(", ")}`,
+      autorange: false,
+      range: ranges.y,
+    };
 
     if (left2.length) {
       layout.yaxis3 = {
@@ -788,7 +874,7 @@
         side: "left",
         position: 0.05,
         autorange: false,
-        range: ranges.y3
+        range: ranges.y3,
       };
     }
 
@@ -798,7 +884,7 @@
         overlaying: "y",
         side: "right",
         autorange: false,
-        range: ranges.y2
+        range: ranges.y2,
       };
     }
 
@@ -809,7 +895,7 @@
         side: "right",
         position: 0.95,
         autorange: false,
-        range: ranges.y4
+        range: ranges.y4,
       };
     }
 
@@ -821,9 +907,11 @@
   // =========================================================
   function buildScatterTraces(rows, yMetric, xMetric, xMode) {
     const byKey = new Map();
-    for (const r of (rows || [])) {
+    for (const r of rows || []) {
       const key = `${r.dev}__${r.dt}`;
-      if (!byKey.has(key)) byKey.set(key, { dev: r.dev, dt: r.dt, day: r.day, tsRaw: r.tsRaw, tp: r.tp });
+      if (!byKey.has(key)) {
+        byKey.set(key, { dev: r.dev, dt: r.dt, day: r.day, tsRaw: r.tsRaw, tp: r.tp });
+      }
       const obj = byKey.get(key);
       obj[r.metric] = r.v;
       if (Number.isFinite(r.tp)) obj.tp = r.tp;
@@ -845,21 +933,25 @@
 
       if (!byGroup.has(groupKey)) byGroup.set(groupKey, { x: [], y: [], customdata: [] });
 
-      const xPlot = (xMode === "A")
-        ? new Date(obj.dt)
-        : (getTodHM(obj.tsRaw ?? obj.dt) ?? obj.dt);
+      const xPlot = xMode === "A" ? new Date(obj.dt) : getTodHM(obj.tsRaw ?? obj.dt) ?? obj.dt;
 
       byGroup.get(groupKey).x.push(xv);
       byGroup.get(groupKey).y.push(yv);
-      byGroup.get(groupKey).customdata.push({ dev: obj.dev, dt: obj.dt, xPlot, day: obj.day, tp: obj.tp });
+      byGroup.get(groupKey).customdata.push({
+        dev: obj.dev,
+        dt: obj.dt,
+        xPlot,
+        day: obj.day,
+        tp: obj.tp,
+      });
     }
 
     const keys = [...byGroup.keys()].sort();
-    return keys.map(k => {
+    return keys.map((k) => {
       const color =
-        (appState.colorMode === "day")
-          ? (appState.dayColors?.[k] || "#1f77b4")
-          : (appState.tempColors?.[k] || "#1f77b4");
+        appState.colorMode === "day"
+          ? appState.dayColors?.[k] || "#1f77b4"
+          : appState.tempColors?.[k] || "#1f77b4";
 
       return {
         type: "scatter",
@@ -877,7 +969,7 @@
           `dev=%{customdata.dev}<br>` +
           `dt=%{customdata.dt}<br>` +
           `X(${disp(xMetric)})=%{x}<br>` +
-          `Y(${disp(yMetric)})=%{y}<extra></extra>`
+          `Y(${disp(yMetric)})=%{y}<extra></extra>`,
       };
     });
   }
@@ -886,21 +978,31 @@
     if (!scatterDiv) return;
 
     if (!left1.length || !right1.length) {
-      Plotly.react(scatterDiv, [], {
-        margin: { l: 60, r: 20, t: 30, b: 60 },
-        xaxis: { title: "Right1（未選択）" },
-        yaxis: { title: "Left1（未選択）" },
-        annotations: [{
-          text: "散布図は Left1 と Right1 をそれぞれ1つ以上選択すると表示されます",
-          x: 0.5, y: 0.5, xref: "paper", yref: "paper", showarrow: false
-        }]
-      }, { responsive: true });
+      Plotly.react(
+        scatterDiv,
+        [],
+        {
+          margin: { l: 60, r: 20, t: 30, b: 60 },
+          xaxis: { title: "Right1（未選択）" },
+          yaxis: { title: "Left1（未選択）" },
+          annotations: [
+            {
+              text: "散布図は Left1 と Right1 をそれぞれ1つ以上選択すると表示されます",
+              x: 0.5,
+              y: 0.5,
+              xref: "paper",
+              yref: "paper",
+              showarrow: false,
+            },
+          ],
+        },
+        { responsive: true }
+      );
       return;
     }
 
     const yMetric = left1[0];
     const xMetric = right1[0];
-
     const traces = buildScatterTraces(rows, yMetric, xMetric, appState.xMode);
 
     const layout = {
@@ -913,8 +1015,8 @@
         x: 1.02,
         y: 1,
         xanchor: "left",
-        yanchor: "top"
-      }
+        yanchor: "top",
+      },
     };
 
     Plotly.react(scatterDiv, traces, layout, { responsive: true });
@@ -956,7 +1058,7 @@
       const yMetric = left1[0];
       const xMetric = right1[0];
 
-      const yLeft  = appState.valueMap?.get(`${cd.dev}__${cd.dt}__${yMetric}`);
+      const yLeft = appState.valueMap?.get(`${cd.dev}__${cd.dt}__${yMetric}`);
       const yRight = appState.valueMap?.get(`${cd.dev}__${cd.dt}__${xMetric}`);
 
       setLineHighlight(cd.xPlot, yLeft, yRight);
@@ -974,29 +1076,33 @@
     const airconTempMap = buildAirconTempMap(appState.sourceData);
     const allowed = buildAllowedDatetimeAggSet(appState.sourceData);
 
-    const { rows: rows0, left1, left2, right1, right2, colTs } =
-      buildRowsRaw(appState.sourceData, allowed, airconTempMap);
+    const { rows: rows0, left1, left2, right1, right2, colTs } = buildRowsRaw(
+      appState.sourceData,
+      allowed,
+      airconTempMap
+    );
 
-    document.getElementById("badgeColTs").textContent = colTs;
+    if (badgeColTs) badgeColTs.textContent = colTs || "";
 
     const rows = aggregateRows(rows0, appState.grainMin);
 
-    const daysInView = [...new Set((rows || []).map(r => r.day).filter(Boolean))].sort();
+    const daysInView = [...new Set((rows || []).map((r) => r.day).filter(Boolean))].sort();
     appState.dayColors = buildDayColors(daysInView);
 
-    const tempsInView = [...new Set((rows || [])
-      .map(r => r.tp)
-      .filter(v => Number.isFinite(v))
-      .map(v => Number(v))
-    )].sort((a,b)=>a-b);
+    const tempsInView = [...new Set((rows || []).map((r) => r.tp).filter((v) => Number.isFinite(v)).map((v) => Number(v)))].sort(
+      (a, b) => a - b
+    );
     appState.tempColors = buildTempColors(tempsInView);
 
     appState.lastLeft1 = left1;
     appState.lastRight1 = right1;
 
     const m = new Map();
-    for (const r of (rows || [])) m.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
+    for (const r of rows || []) m.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
     appState.valueMap = m;
+
+    dbg(`TS列=${colTs}`);
+    dbg(`rows(raw)=${rows0.length}, rows(agg)=${rows.length}`);
 
     render(rows, left1, left2, right1, right2, colTs);
     renderScatter(rows, left1, right1);
@@ -1004,20 +1110,22 @@
   }
 
   function enableControls() {
-    divisionSel.disabled = false;
-    startDaySel.disabled = false;
-    endDaySel.disabled = false;
-    replotBtn.disabled = false;
-    xModeSel.disabled = false;
-    grainSel.disabled = false;
-    tpSetTempSel.disabled = false;
-    colorModeSel.disabled = false;
+    if (divisionSel) divisionSel.disabled = false;
+    if (startDaySel) startDaySel.disabled = false;
+    if (endDaySel) endDaySel.disabled = false;
+    if (replotBtn) replotBtn.disabled = false;
+    if (xModeSel) xModeSel.disabled = false;
+    if (grainSel) grainSel.disabled = false;
+    if (tpSetTempSel) tpSetTempSel.disabled = false;
+    if (colorModeSel) colorModeSel.disabled = false;
   }
 
   // =========================================================
   // CSVでもReactでも共通の初期化入口
   // =========================================================
   function loadRowsAndInit(rows, label = "rows", viewState = null) {
+    rows = normalizeIncomingRowsAllKeys(rows || []);
+
     if (!rows || rows.length === 0) {
       clearDbg();
       dbg(`WARNING: ${label} が空です`);
@@ -1030,79 +1138,130 @@
     appState.fields = Object.keys(rows[0] || {});
     appState.sourceData = rows;
 
+    dbg(`fields=${JSON.stringify(appState.fields)}`);
+    dbg(`sample=${JSON.stringify(rows[0])}`);
+
     appState.colDivision = pickColumn(appState.fields, CONFIG.colDivisionPreferred, CONFIG.colDivisionFallback);
-    appState.colDevice   = pickColumn(appState.fields, CONFIG.colDevicePreferred, CONFIG.colDeviceFallback);
+    appState.colDevice = pickColumn(appState.fields, CONFIG.colDevicePreferred, CONFIG.colDeviceFallback);
 
     if (!appState.colDivision) throw new Error("Division列がありません（DivisionAgg / Division）");
     if (!appState.colDevice) throw new Error("Device列がありません（Device / DeviceName）");
 
-    document.getElementById("badgeColDiv").textContent = appState.colDivision;
-    document.getElementById("badgeColDevice").textContent = appState.colDevice;
+    if (badgeColDiv) badgeColDiv.textContent = appState.colDivision;
+    if (badgeColDevice) badgeColDevice.textContent = appState.colDevice;
 
     buildColumnSelectors(appState.fields, appState.sourceData);
 
-    const divs = [...new Set(appState.sourceData.map(r => r[appState.colDivision]).filter(Boolean))].sort();
-    divisionSel.innerHTML = divs.map(d => `<option value="${d}">${d}</option>`).join("");
+    const divs = [...new Set(appState.sourceData.map((r) => r[appState.colDivision]).filter(Boolean))].sort();
+    if (divisionSel) {
+      divisionSel.innerHTML = divs.map((d) => `<option value="${d}">${d}</option>`).join("");
+    }
 
-    const tsCol = tsSel.value;
-    const days = [...new Set(appState.sourceData.map(r => getDayFromTs(r[tsCol])).filter(Boolean))].sort();
+    const tsCol = tsSel?.value;
+    const days = [...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean))].sort();
     appState.days = days;
     if (days.length) buildDaySelectors(days);
 
-    appState.xMode = xModeSel.value || "A";
-    appState.grainMin = Number(grainSel.value || 0);
+    appState.xMode = xModeSel?.value || "A";
+    appState.grainMin = Number(grainSel?.value || 0);
 
     const tpOptions = buildTpSetTempOptionsFromCsv(appState.sourceData);
-    if (tpOptions) applyTpSetTempOptions(tpOptions);
-    else {
+    if (tpOptions) {
+      applyTpSetTempOptions(tpOptions);
+    } else if (tpSetTempSel) {
       tpSetTempSel.value = "ALL";
       appState.tpSetTempOn = "ALL";
       syncTpBadge();
     }
 
-    appState.colorMode = colorModeSel.value || "day";
+    appState.colorMode = colorModeSel?.value || "day";
 
     if (MODE !== "embed") {
-      divisionSel.onchange = updatePlot;
-      startDaySel.onchange = updatePlot;
-      endDaySel.onchange   = updatePlot;
+      if (divisionSel) divisionSel.onchange = updatePlot;
+      if (startDaySel) startDaySel.onchange = updatePlot;
+      if (endDaySel) endDaySel.onchange = updatePlot;
     } else {
-      divisionSel.onchange = null;
-      startDaySel.onchange = null;
-      endDaySel.onchange   = null;
+      if (divisionSel) divisionSel.onchange = null;
+      if (startDaySel) startDaySel.onchange = null;
+      if (endDaySel) endDaySel.onchange = null;
     }
 
-    tsSel.onchange = () => {
-      const tsCol2 = tsSel.value;
-      const days2 = [...new Set(appState.sourceData.map(r => getDayFromTs(r[tsCol2])).filter(Boolean))].sort();
-      if (days2.length) buildDaySelectors(days2);
-      if (MODE === "embed" && pendingViewState) {
-        if (pendingViewState.startDay) startDaySel.value = pendingViewState.startDay;
-        if (pendingViewState.endDay) endDaySel.value = pendingViewState.endDay;
-      }
-      updatePlot();
-    };
+    if (tsSel) {
+      tsSel.onchange = () => {
+        const prevStart = startDaySel?.value || null;
+        const prevEnd = endDaySel?.value || null;
 
-    yLeft1Sel.onchange  = updatePlot;
-    yLeft2Sel.onchange  = updatePlot;
-    yRight1Sel.onchange = updatePlot;
-    yRight2Sel.onchange = updatePlot;
+        const tsCol2 = tsSel.value;
+        const days2 = [...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol2])).filter(Boolean))].sort();
 
-    xModeSel.onchange = () => { appState.xMode = xModeSel.value; updatePlot(); };
-    grainSel.onchange = () => { appState.grainMin = Number(grainSel.value || 0); updatePlot(); };
+        if (days2.length) {
+          buildDaySelectors(days2);
 
-    tpSetTempSel.onchange = () => { appState.tpSetTempOn = String(tpSetTempSel.value || "ALL"); syncTpBadge(); updatePlot(); };
-    colorModeSel.onchange = () => { appState.colorMode = colorModeSel.value || "day"; updatePlot(); };
+          // ✅ 既存viewStateをできるだけ保持
+          if (MODE === "embed" && pendingViewState) {
+            if (pendingViewState.startDay && days2.includes(pendingViewState.startDay)) {
+              startDaySel.value = pendingViewState.startDay;
+            } else if (prevStart && days2.includes(prevStart)) {
+              startDaySel.value = prevStart;
+            }
 
-    replotBtn.onclick = updatePlot;
+            if (pendingViewState.endDay && days2.includes(pendingViewState.endDay)) {
+              endDaySel.value = pendingViewState.endDay;
+            } else if (prevEnd && days2.includes(prevEnd)) {
+              endDaySel.value = prevEnd;
+            }
+          } else {
+            if (prevStart && days2.includes(prevStart)) startDaySel.value = prevStart;
+            if (prevEnd && days2.includes(prevEnd)) endDaySel.value = prevEnd;
+          }
+        }
 
-    divisionSel.value = divs[0] || "";
+        updatePlot();
+      };
+    }
+
+    if (yLeft1Sel) yLeft1Sel.onchange = updatePlot;
+    if (yLeft2Sel) yLeft2Sel.onchange = updatePlot;
+    if (yRight1Sel) yRight1Sel.onchange = updatePlot;
+    if (yRight2Sel) yRight2Sel.onchange = updatePlot;
+
+    if (xModeSel) {
+      xModeSel.onchange = () => {
+        appState.xMode = xModeSel.value;
+        updatePlot();
+      };
+    }
+    if (grainSel) {
+      grainSel.onchange = () => {
+        appState.grainMin = Number(grainSel.value || 0);
+        updatePlot();
+      };
+    }
+
+    if (tpSetTempSel) {
+      tpSetTempSel.onchange = () => {
+        appState.tpSetTempOn = String(tpSetTempSel.value || "ALL");
+        syncTpBadge();
+        updatePlot();
+      };
+    }
+
+    if (colorModeSel) {
+      colorModeSel.onchange = () => {
+        appState.colorMode = colorModeSel.value || "day";
+        updatePlot();
+      };
+    }
+
+    if (replotBtn) replotBtn.onclick = updatePlot;
+
+    if (divisionSel) divisionSel.value = divs[0] || "";
 
     const vs = viewState || pendingViewState;
     if (vs) {
-      if (vs.division && divs.includes(vs.division)) divisionSel.value = vs.division;
-      if (vs.startDay && days.includes(vs.startDay)) startDaySel.value = vs.startDay;
-      if (vs.endDay && days.includes(vs.endDay)) endDaySel.value = vs.endDay;
+      if (divisionSel && vs.division && divs.includes(vs.division)) divisionSel.value = vs.division;
+      if (startDaySel && vs.startDay && days.includes(vs.startDay)) startDaySel.value = vs.startDay;
+      if (endDaySel && vs.endDay && days.includes(vs.endDay)) endDaySel.value = vs.endDay;
     }
 
     enableControls();
@@ -1133,7 +1292,7 @@
       const parsed = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: h => String(h).trim()
+        transformHeader: (h) => String(h).trim(),
       });
 
       const data = parsed.data || [];
@@ -1158,24 +1317,29 @@
         pendingViewState = {
           division: msg.division ?? null,
           startDay: msg.startDay ?? null,
-          endDay: msg.endDay ?? null
+          endDay: msg.endDay ?? null,
         };
 
+        dbg(`SET_VIEWSTATE: ${JSON.stringify(pendingViewState)}`);
+
         if (appState.sourceData && appState.days?.length) {
-          if (pendingViewState.division) divisionSel.value = pendingViewState.division;
-          if (pendingViewState.startDay) startDaySel.value = pendingViewState.startDay;
-          if (pendingViewState.endDay) endDaySel.value = pendingViewState.endDay;
+          if (divisionSel && pendingViewState.division) divisionSel.value = pendingViewState.division;
+          if (startDaySel && pendingViewState.startDay) startDaySel.value = pendingViewState.startDay;
+          if (endDaySel && pendingViewState.endDay) endDaySel.value = pendingViewState.endDay;
           applyEmbedUiLock();
           updatePlot();
         }
       }
 
       if (msg.type === "SET_DATA") {
-        const rows = msg.rows || [];
+        const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
+        dbg(`SET_DATA rows=${rows.length}`);
+        if (rows.length > 0) {
+          dbg(`SET_DATA firstKeys=${JSON.stringify(Object.keys(rows[0]))}`);
+        }
         loadRowsAndInit(rows, "EMBED:rows", pendingViewState);
       }
     });
   }
-
 })();
 
