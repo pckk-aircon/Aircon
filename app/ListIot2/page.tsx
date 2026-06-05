@@ -733,6 +733,14 @@ const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => 
         }
 
         const { items, nextToken: newNextToken } = unwrapQueryData(data);
+
+
+        // ✅ ここに追加（最重要）
+        if (kind === "agg") {
+          console.log("RAW AGG DATA", items);
+        }
+
+
         const normalizedItems = normalizeRows(items, kind);
         nextToken = newNextToken;
 
