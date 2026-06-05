@@ -34,7 +34,7 @@ export function response(ctx) {
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-  const nextToken = ctx.args.nextToken ?? null;
+  var nextToken = ctx.args.nextToken ? ctx.args.nextToken : null;
 
   return {
     operation: 'Query',
@@ -51,68 +51,85 @@ export function request(ctx) {
     },
     limit: 1000,
     scanIndexForward: true,
-    nextToken,
+    nextToken: nextToken,
   };
 }
 
 export function response(ctx) {
-  const items = (ctx.result?.items ?? []).map((item) => {
-    const out = { ...item };
+
+  var rawItems = [];
+  if (ctx.result && ctx.result.items) {
+    rawItems = ctx.result.items;
+  }
+
+  var items = [];
+
+  for (var i = 0; i < rawItems.length; i++) {
+    var item = rawItems[i];
+    var out = {};
 
     // =========================
-    // 日時変換（超重要）
+    // コピー
     // =========================
-    const toIso = (v) => {
+    for (var key in item) {
+      out[key] = item[key];
+    }
+
+    // =========================
+    // 日時変換
+    // =========================
+    function toIso(v) {
       if (typeof v !== "string") return null;
 
-      let s = v.trim();
+      var s = v.trim();
       if (!s) return null;
 
-      // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
-      if (s.includes(" ") && !s.includes("T")) {
+      if (s.indexOf(" ") !== -1 && s.indexOf("T") === -1) {
         s = s.replace(" ", "T");
       }
 
-      // タイムゾーン補完
-      if (
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
-        !/[+\-]\d{2}:\d{2}$/.test(s)
-      ) {
-        s += "+09:00";
+      var isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+
+      if (isoRegex.test(s) && !(/[+\-]\d{2}:\d{2}$/.test(s))) {
+        s = s + "+09:00";
       }
 
       return s;
-    };
+    }
 
     // =========================
     // 数値変換
     // =========================
-    const toNumber = (v) => {
-      if (v == null) return null;
+    function toNumber(v) {
+      if (v === null || v === undefined) return null;
+
       if (typeof v === "number") return v;
 
       if (typeof v === "string") {
-        const n = Number(v.replace(/,/g, ""));
-        return Number.isFinite(n) ? n : null;
+        var n = Number(v.replace(/,/g, ""));
+        return isFinite(n) ? n : null;
       }
 
       return null;
-    };
+    }
 
     // =========================
-    // ✅ 時刻生成（最重要）
+    // ✅ 時刻生成（重要）
     // =========================
-    const datetime = toIso(item.DatetimeAgg ?? item.AggKey);
+    var datetime = null;
+
+    if (item.DatetimeAgg) {
+      datetime = toIso(item.DatetimeAgg);
+    } else if (item.AggKey) {
+      datetime = toIso(item.AggKey);
+    }
 
     out.DatetimeAgg = datetime;
-    out.AggKey = toIso(item.AggKey);
-
-    // frontendで使う列も揃える
     out.DeviceDatetime = datetime;
     out.DeviceTimestamp = datetime;
 
     // =========================
-    // ✅ 数値項目
+    // 数値項目
     // =========================
     out.AvgActualTemp = toNumber(item.AvgActualTemp);
     out.AvgActualHumidity = toNumber(item.AvgActualHumidity);
@@ -120,26 +137,7 @@ export function response(ctx) {
     out.SumCumulativeEnergy = toNumber(item.SumCumulativeEnergy);
 
     // =========================
-    // ✅ 正規化（frontend用）
-    // =========================
-    if (out.AvgActualTemp != null && out.ActualTemp == null) {
-      out.ActualTemp = out.AvgActualTemp;
-    }
-
-    if (out.AvgActualHumidity != null && out.ActualHumidity == null) {
-      out.ActualHumidity = out.AvgActualHumidity;
-    }
-
-    if (out.AvgActivePower != null && out.ActivePower == null) {
-      out.ActivePower = out.AvgActivePower;
-    }
-
-    if (out.SumCumulativeEnergy != null && out.CumulativeEnergy == null) {
-      out.CumulativeEnergy = out.SumCumulativeEnergy;
-    }
-
-    // =========================
-    // ✅ alias補完
+    // alias補完
     // =========================
     if (!out.DivisionAgg) out.DivisionAgg = out.Division;
     if (!out.Division) out.Division = out.DivisionAgg;
@@ -147,23 +145,26 @@ export function response(ctx) {
     if (!out.Device) out.Device = out.DeviceName;
     if (!out.DeviceName) out.DeviceName = out.Device;
 
-    // =========================
-    // デバッグ（必要なら）
-    // =========================
+    // デバッグ
     if (!datetime) {
-      console.warn("⚠️ datetime missing in resolver", {
-        AggKey: item.AggKey,
-        DatetimeAgg: item.DatetimeAgg,
-        raw: item,
-      });
+      util.error(
+        "Datetime missing",
+        "DataError",
+        { item: item }
+      );
     }
 
-    return out;
-  });
+    items.push(out);
+  }
+
+  var nextToken = null;
+  if (ctx.result && ctx.result.nextToken) {
+    nextToken = ctx.result.nextToken;
+  }
 
   return {
-    items,
-    nextToken: ctx.result?.nextToken ?? null,
+    items: items,
+    nextToken: nextToken,
   };
 }
 
