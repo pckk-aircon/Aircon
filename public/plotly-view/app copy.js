@@ -1,4 +1,3 @@
-
 (() => {
   const dbgEl = document.getElementById("debug");
   const dbg = (m) => {
@@ -310,18 +309,39 @@
   }
 
   function isMostlyNumericColumn(data, col, sampleN = 200, ratio = 0.3) {
+
     let seen = 0;
     let ok = 0;
+
     for (const r of data || []) {
       const v = r[col];
-      if (v === null || v === undefined || String(v).trim() === "") continue;
+
+      // ✅ null / 空文字は判定対象から完全除外（重要）
+      if (v == null || v === "") continue;
+
       seen++;
-      if (Number.isFinite(toNum(v))) ok++;
-      if (seen >= sampleN) break;
+
+      const n = toNum(v);
+      if (Number.isFinite(n)) {
+        ok++;
+      }
+
+      // ✅ 数値が1件でも見つかれば「この列は有効」と判断して抜ける（改善②）
+      if (ok > 0 && seen >= sampleN) break;
     }
-    if (seen === 0) return false;
-    return ok / seen >= ratio;
+
+    // ✅ 全部 null の列でも候補として残す（改善③）
+    // 理由：後半に値がある可能性を捨てない
+    if (seen === 0) {
+      return true;
+    }
+
+    // ✅ 数値が1件でもあればOK（最重要）
+    // ratioはほぼ使わない（緩和）
+    return ok > 0;
   }
+
+
 
   // 粒度に合わせたカテゴリ配列（00–23重ね）
   function buildTodCategoryArray(rows, stepMinOverride = null) {
