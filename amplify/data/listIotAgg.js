@@ -31,6 +31,7 @@ export function response(ctx) {
 }
 */
 
+
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
@@ -58,31 +59,28 @@ export function request(ctx) {
 export function response(ctx) {
 
   var rawItems = [];
-  if (ctx.result && ctx.result.items) {
+  if (ctx.result != null && ctx.result.items != null) {
     rawItems = ctx.result.items;
   }
 
   var items = [];
 
   for (var i = 0; i < rawItems.length; i++) {
+
     var item = rawItems[i];
     var out = {};
 
-    // =========================
     // コピー
-    // =========================
     for (var key in item) {
       out[key] = item[key];
     }
 
-    // =========================
-    // 日時変換
-    // =========================
+    // ===== 日時変換 =====
     function toIso(v) {
       if (typeof v !== "string") return null;
 
       var s = v.trim();
-      if (!s) return null;
+      if (s === "") return null;
 
       if (s.indexOf(" ") !== -1 && s.indexOf("T") === -1) {
         s = s.replace(" ", "T");
@@ -97,30 +95,26 @@ export function response(ctx) {
       return s;
     }
 
-    // =========================
-    // 数値変換
-    // =========================
+    // ===== 数値 =====
     function toNumber(v) {
       if (v === null || v === undefined) return null;
 
       if (typeof v === "number") return v;
 
       if (typeof v === "string") {
-        var n = Number(v.replace(/,/g, ""));
-        return isFinite(n) ? n : null;
+        var n = Number(v);
+        if (isFinite(n)) return n;
       }
 
       return null;
     }
 
-    // =========================
-    // ✅ 時刻生成（重要）
-    // =========================
+    // ===== 時刻 =====
     var datetime = null;
 
-    if (item.DatetimeAgg) {
+    if (item != null && item.DatetimeAgg != null) {
       datetime = toIso(item.DatetimeAgg);
-    } else if (item.AggKey) {
+    } else if (item != null && item.AggKey != null) {
       datetime = toIso(item.AggKey);
     }
 
@@ -128,37 +122,24 @@ export function response(ctx) {
     out.DeviceDatetime = datetime;
     out.DeviceTimestamp = datetime;
 
-    // =========================
-    // 数値項目
-    // =========================
+    // ===== 数値 =====
     out.AvgActualTemp = toNumber(item.AvgActualTemp);
     out.AvgActualHumidity = toNumber(item.AvgActualHumidity);
     out.AvgActivePower = toNumber(item.AvgActivePower);
     out.SumCumulativeEnergy = toNumber(item.SumCumulativeEnergy);
 
-    // =========================
-    // alias補完
-    // =========================
+    // ===== alias =====
     if (!out.DivisionAgg) out.DivisionAgg = out.Division;
     if (!out.Division) out.Division = out.DivisionAgg;
 
     if (!out.Device) out.Device = out.DeviceName;
     if (!out.DeviceName) out.DeviceName = out.Device;
 
-    // デバッグ
-    if (!datetime) {
-      util.error(
-        "Datetime missing",
-        "DataError",
-        { item: item }
-      );
-    }
-
     items.push(out);
   }
 
   var nextToken = null;
-  if (ctx.result && ctx.result.nextToken) {
+  if (ctx.result != null && ctx.result.nextToken != null) {
     nextToken = ctx.result.nextToken;
   }
 
@@ -167,4 +148,3 @@ export function response(ctx) {
     nextToken: nextToken,
   };
 }
-
