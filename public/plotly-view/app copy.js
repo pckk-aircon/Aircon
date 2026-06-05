@@ -27,7 +27,7 @@
   // =========================================================
   // X列ホワイトリスト
   // =========================================================
-  const TS_ALLOW = ["DeviceDatetime", "DatetimeAgg", "DeviceTimestamp"];
+  const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
 
   // デフォルト選択
   const DEFAULT_LEFT1  = ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"];
