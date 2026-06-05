@@ -155,17 +155,28 @@ export default function Page() {
    */
 
 
-
 const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
+  /**
+   * null / undefined / 空文字 判定
+   */
+  const isNilLike = (v: unknown): boolean => {
+    return v == null || (typeof v === "string" && v.trim() === "");
+  };
 
-  const isNil = (v: unknown) =>
-    v == null || (typeof v === "string" && v.trim() === "");
+  /**
+   * 文字列の前後空白除去
+   */
+  const trimString = (v: unknown): unknown => {
+    return typeof v === "string" ? v.trim() : v;
+  };
 
-  const trim = (v: unknown) =>
-    typeof v === "string" ? v.trim() : v;
-
-  const normalizeDt = (v: unknown) => {
+  /**
+   * "2026-06-01 00:00:00+09:00" → "2026-06-01T00:00:00+09:00"
+   * のように app.js 側で扱いやすい ISO 風にそろえる
+   */
+  const normalizeDateTimeString = (v: unknown): unknown => {
     if (typeof v !== "string") return v;
+
     let s = v.trim();
     if (!s) return s;
 
@@ -183,10 +194,15 @@ const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => 
     return s;
   };
 
-  const toScalar = (v: unknown) => {
+  /**
+   * 数値らしければ number 化
+   * - number は壊さず保持（重要）
+   * - 空文字は null 化
+   * - それ以外の文字列はそのまま残す
+   */
+  const tryNormalizeScalar = (v: unknown): unknown => {
     if (v == null) return null;
 
-    // ✅ 数値はそのまま保持（最重要）
     if (typeof v === "number") {
       return Number.isFinite(v) ? v : null;
     }
@@ -204,152 +220,271 @@ const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => 
 
     if (/^-?\d+(\.\d+)?$/.test(normalized)) {
       const n = Number(normalized);
-      return Number.isFinite(n) ? n : null;
+      if (Number.isFinite(n)) return n;
     }
 
     return s;
   };
 
-  // ===============================
-  // ✅ 自動マッピング（完全版）
-  // ===============================
-  const autoMapMetric = (out: Record<string, any>) => {
+  /**
+   * out[target] が空なら out[source] をコピー
+   */
+  const fillIfEmpty = (
+    out: Record<string, unknown>,
+    target: string,
+    source: string
+  ) => {
+    if (isNilLike(out[target]) && !isNilLike(out[source])) {
+      out[target] = out[source];
+    }
+  };
+
+  /**
+   * 複数候補のうち、最初に値が入っているものを target にコピー
+   */
+  const fillFromCandidates = (
+    out: Record<string, unknown>,
+    target: string,
+    candidates: string[]
+  ) => {
+    if (!isNilLike(out[target])) return;
+
+    for (const c of candidates) {
+      if (!isNilLike(out[c])) {
+        out[target] = out[c];
+        return;
+      }
+    }
+  };
+
+  /**
+   * agg 用の prefix 自動マッピング
+   * 例:
+   *   AvgActivePower -> ActivePower
+   *   AveActualTemp -> ActualTemp
+   *   SumCumulativeEnergy -> CumulativeEnergy
+   *   MaxApparentPower -> ApparentPower
+   */
+  const autoMapByPrefix = (out: Record<string, unknown>) => {
     const keys = Object.keys(out);
 
     for (const key of keys) {
+      const value = out[key];
+      if (isNilLike(value)) continue;
 
-      // AvgXXX → XXX
+      let base: string | null = null;
+
       if (key.startsWith("Avg")) {
-        const base = key.replace(/^Avg/, "");
-        if (base && (out[base] == null || out[base] === "")) {
-          out[base] = out[key];
-        }
+        base = key.replace(/^Avg/, "");
+      } else if (key.startsWith("Ave")) {
+        base = key.replace(/^Ave/, "");
+      } else if (key.startsWith("Sum")) {
+        base = key.replace(/^Sum/, "");
+      } else if (key.startsWith("Min")) {
+        base = key.replace(/^Min/, "");
+      } else if (key.startsWith("Max")) {
+        base = key.replace(/^Max/, "");
       }
 
-      // SumXXX → XXX
-      if (key.startsWith("Sum")) {
-        const base = key.replace(/^Sum/, "");
-        if (base && (out[base] == null || out[base] === "")) {
-          out[base] = out[key];
-        }
-      }
-
-      // Min / Max も吸収（オプション）
-      if (key.startsWith("Min") || key.startsWith("Max")) {
-        const base = key.replace(/^(Min|Max)/, "");
-        if (base && (out[base] == null || out[base] === "")) {
-          out[base] = out[key];
-        }
+      if (base && isNilLike(out[base])) {
+        out[base] = value;
       }
     }
+  };
 
-    return out;
+  /**
+   * 別名マッピング（必要に応じて拡張）
+   * prefix では吸いきれないものをここで補完
+   */
+  const applyAliasMapping = (out: Record<string, unknown>, kind: DataKind) => {
+    // 共通
+    fillIfEmpty(out, "DeviceType", "Type");
+    fillIfEmpty(out, "Device", "DeviceName");
+    fillIfEmpty(out, "DeviceName", "Device");
+    fillIfEmpty(out, "DivisionAgg", "Division");
+    fillIfEmpty(out, "Division", "DivisionAgg");
+
+    // iot / agg 共通のよくある差異
+    fillIfEmpty(out, "ActualTemp", "AvgActualTemp");
+    fillIfEmpty(out, "ActualTemp", "AveActualTemp");
+
+    fillIfEmpty(out, "ActualHumidity", "AvgActualHumidity");
+    fillIfEmpty(out, "ActualHumidity", "AveActualHumidity");
+
+    fillIfEmpty(out, "ActivePower", "AvgActivePower");
+    fillIfEmpty(out, "ActivePower", "AveActivePower");
+
+    fillIfEmpty(out, "ApparentPower", "AvgApparentPower");
+    fillIfEmpty(out, "ApparentPower", "AveApparentPower");
+
+    fillIfEmpty(out, "CumulativeEnergy", "SumCumulativeEnergy");
+
+    // CumulativeEnergy の候補順位（必要に応じて調整）
+    fillFromCandidates(out, "CumulativeEnergy", [
+      "SumCumulativeEnergy",
+      "CumulativeEnergyLast",
+      "CumulativeEnergyEnd",
+      "CumulativeEnergyStart",
+      "CumulativeEnergyMax",
+      "CumulativeEnergyMin",
+    ]);
+
+    // EnergyDeltaPerEffectiveMinute の候補
+    fillFromCandidates(out, "EnergyDeltaPerEffectiveMinute", [
+      "EnergyDeltaPerEffectiveMinute",
+      "EnergyDeltaPerMinute",
+      "EnergyDelta",
+    ]);
+
+    // 外気温（WtTemp）
+    fillFromCandidates(out, "WtTemp", [
+      "WtTemp",
+      "OutsideTemp",
+      "OutdoorTemp",
+      "ExternalTemp",
+      "OAT",
+    ]);
+
+    // agg で特に重要な prefix 自動吸収
+    if (kind === "agg") {
+      autoMapByPrefix(out);
+    }
   };
 
   const normalized = rows
-    .filter((r) => r && typeof r === "object")
+    .filter((row) => row && typeof row === "object")
     .map((row) => {
+      const src = row as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
 
-      const src = row as Record<string, any>;
-      const out: Record<string, any> = {};
-
-      // ----------------------------
-      // ① 基本コピー＆正規化
-      // ----------------------------
-      for (const [rawKey, rawVal] of Object.entries(src)) {
+      // --------------------------------------------------
+      // 1) key / value 基本コピー
+      // --------------------------------------------------
+      for (const [rawKey, rawValue] of Object.entries(src)) {
         const key = String(rawKey).trim();
-        let v = trim(rawVal);
+        let value = trimString(rawValue);
 
         if (
           key === "DatetimeAgg" ||
           key === "DeviceDatetime" ||
           key === "DeviceTimestamp"
         ) {
-          v = normalizeDt(v);
+          value = normalizeDateTimeString(value);
         } else {
-          v = toScalar(v);
+          value = tryNormalizeScalar(value);
         }
 
-        out[key] = v;
+        out[key] = value;
       }
 
-      // ----------------------------
-      // ② Division統一
-      // ----------------------------
-      if (isNil(out.DivisionAgg) && !isNil(out.Division)) {
-        out.DivisionAgg = out.Division;
-      }
-      if (isNil(out.Division) && !isNil(out.DivisionAgg)) {
-        out.Division = out.DivisionAgg;
-      }
+      // --------------------------------------------------
+      // 2) 別名マッピング / prefix 自動マッピング
+      // --------------------------------------------------
+      applyAliasMapping(out, kind);
 
-      // ----------------------------
-      // ③ Device統一
-      // ----------------------------
-      if (isNil(out.Device) && !isNil(out.DeviceName)) {
-        out.Device = out.DeviceName;
-      }
-      if (isNil(out.DeviceName) && !isNil(out.Device)) {
-        out.DeviceName = out.Device;
-      }
+      // --------------------------------------------------
+      // 3) Datetime 系補完（最重要）
+      // dataKind ごとに優先順位を分ける
+      // --------------------------------------------------
+      let primaryTs: unknown = null;
 
-      // ----------------------------
-      // ✅ ④ 自動マッピング（核心）
-      // ----------------------------
       if (kind === "agg") {
-        autoMapMetric(out);
+        primaryTs =
+          !isNilLike(out["DatetimeAgg"])
+            ? out["DatetimeAgg"]
+            : !isNilLike(out["DeviceDatetime"])
+            ? out["DeviceDatetime"]
+            : !isNilLike(out["DeviceTimestamp"])
+            ? out["DeviceTimestamp"]
+            : null;
+      } else {
+        primaryTs =
+          !isNilLike(out["DeviceDatetime"])
+            ? out["DeviceDatetime"]
+            : !isNilLike(out["DatetimeAgg"])
+            ? out["DatetimeAgg"]
+            : !isNilLike(out["DeviceTimestamp"])
+            ? out["DeviceTimestamp"]
+            : null;
       }
 
-      // ----------------------------
-      // ✅ ⑤ 時刻補完（最重要）
-      // ----------------------------
-      let ts =
-        out.DeviceDatetime ??
-        out.DatetimeAgg ??
-        out.DeviceTimestamp;
+      if (!isNilLike(primaryTs)) {
+        const normalizedTs = normalizeDateTimeString(primaryTs);
 
-      if (!isNil(ts)) {
-        ts = normalizeDt(ts);
+        if (isNilLike(out.DeviceDatetime)) {
+          out.DeviceDatetime = normalizedTs;
+        } else {
+          out.DeviceDatetime = normalizeDateTimeString(out.DeviceDatetime);
+        }
 
-        if (isNil(out.DeviceDatetime)) out.DeviceDatetime = ts;
-        if (isNil(out.DatetimeAgg)) out.DatetimeAgg = ts;
-        if (isNil(out.DeviceTimestamp)) out.DeviceTimestamp = ts;
+        if (isNilLike(out.DatetimeAgg)) {
+          out.DatetimeAgg = normalizedTs;
+        } else {
+          out.DatetimeAgg = normalizeDateTimeString(out.DatetimeAgg);
+        }
+
+        if (isNilLike(out.DeviceTimestamp)) {
+          out.DeviceTimestamp = normalizedTs;
+        } else {
+          out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
+        }
       }
 
-      // ----------------------------
-      // ✅ ⑥ 必須キー補完（fields安定）
-      // ----------------------------
-      if (!("DivisionAgg" in out)) out.DivisionAgg = null;
-      if (!("Division" in out)) out.Division = null;
-      if (!("Device" in out)) out.Device = null;
-      if (!("DeviceName" in out)) out.DeviceName = null;
-      if (!("DeviceType" in out)) out.DeviceType = null;
+      // --------------------------------------------------
+      // 4) app.js が fields 判定で見落としにくいように
+      //    主要キーは必ず存在させる
+      // --------------------------------------------------
+      const mustHaveKeys = [
+        "DivisionAgg",
+        "Division",
+        "DivisionName",
+        "Device",
+        "DeviceName",
+        "DeviceType",
+        "DatetimeAgg",
+        "DeviceDatetime",
+        "DeviceTimestamp",
 
-      if (!("DatetimeAgg" in out)) out.DatetimeAgg = null;
-      if (!("DeviceDatetime" in out)) out.DeviceDatetime = null;
-      if (!("DeviceTimestamp" in out)) out.DeviceTimestamp = null;
+        // よく使うメトリクス
+        "ActualTemp",
+        "ActualHumidity",
+        "ActivePower",
+        "ApparentPower",
+        "CumulativeEnergy",
+        "EnergyDeltaPerEffectiveMinute",
+        "WtTemp",
+      ];
+
+      for (const k of mustHaveKeys) {
+        if (!(k in out)) {
+          out[k] = null;
+        }
+      }
 
       return out;
     });
 
-  // ----------------------------
-  // ✅ ⑦ rows[0]キー補完（超重要）
-  // ----------------------------
+  // --------------------------------------------------
+  // 5) 先頭行に全キーをそろえて rows[0] 判定のブレを防ぐ
+  // --------------------------------------------------
   if (normalized.length === 0) return normalized;
 
-  const keys = new Set<string>();
-  normalized.forEach(r => Object.keys(r).forEach(k => keys.add(k)));
+  const allKeys = new Set<string>();
+  for (const row of normalized) {
+    Object.keys(row).forEach((k) => allKeys.add(k));
+  }
 
-  return normalized.map((row, i) => {
-    if (i !== 0) return row;
+  return normalized.map((row, index) => {
+    if (index !== 0) return row;
 
-    const first = { ...row } as Record<string, any>;
-    keys.forEach(k => {
-      if (!(k in first)) first[k] = null;
-    });
+    const first = { ...row } as Record<string, unknown>;
+    for (const key of allKeys) {
+      if (!(key in first)) {
+        first[key] = null;
+      }
+    }
     return first;
   });
-
 }, []);
 
 

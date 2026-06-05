@@ -156,18 +156,15 @@ export default function Page() {
 
 
 
-
-// ======================
-// 変更点は ★印コメント
-// ======================
-
 const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
 
-  const trimString = (v: unknown): unknown => {
-    return typeof v === "string" ? v.trim() : v;
-  };
+  const isNil = (v: unknown) =>
+    v == null || (typeof v === "string" && v.trim() === "");
 
-  const normalizeDateTimeString = (v: unknown): unknown => {
+  const trim = (v: unknown) =>
+    typeof v === "string" ? v.trim() : v;
+
+  const normalizeDt = (v: unknown) => {
     if (typeof v !== "string") return v;
     let s = v.trim();
     if (!s) return s;
@@ -186,17 +183,18 @@ const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => 
     return s;
   };
 
-  const isNilLike = (v: unknown): boolean => {
-    return v == null || (typeof v === "string" && v.trim() === "");
-  };
+  const toScalar = (v: unknown) => {
+    if (v == null) return null;
 
-  const tryNormalizeScalar = (v: unknown): unknown => {
-    if (v == null) return v;
-    if (typeof v === "number") return v;
+    // ✅ 数値はそのまま保持（最重要）
+    if (typeof v === "number") {
+      return Number.isFinite(v) ? v : null;
+    }
+
     if (typeof v !== "string") return v;
 
     const s = v.trim();
-    if (s === "") return s;
+    if (s === "") return null;
 
     const normalized = s
       .replace(/^'+/, "")
@@ -206,102 +204,127 @@ const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => 
 
     if (/^-?\d+(\.\d+)?$/.test(normalized)) {
       const n = Number(normalized);
-      if (Number.isFinite(n)) return n;
+      return Number.isFinite(n) ? n : null;
     }
 
     return s;
   };
 
+  // ===============================
+  // ✅ 自動マッピング（完全版）
+  // ===============================
+  const autoMapMetric = (out: Record<string, any>) => {
+    const keys = Object.keys(out);
+
+    for (const key of keys) {
+
+      // AvgXXX → XXX
+      if (key.startsWith("Avg")) {
+        const base = key.replace(/^Avg/, "");
+        if (base && (out[base] == null || out[base] === "")) {
+          out[base] = out[key];
+        }
+      }
+
+      // SumXXX → XXX
+      if (key.startsWith("Sum")) {
+        const base = key.replace(/^Sum/, "");
+        if (base && (out[base] == null || out[base] === "")) {
+          out[base] = out[key];
+        }
+      }
+
+      // Min / Max も吸収（オプション）
+      if (key.startsWith("Min") || key.startsWith("Max")) {
+        const base = key.replace(/^(Min|Max)/, "");
+        if (base && (out[base] == null || out[base] === "")) {
+          out[base] = out[key];
+        }
+      }
+    }
+
+    return out;
+  };
+
   const normalized = rows
-    .filter((row) => row && typeof row === "object")
+    .filter((r) => r && typeof r === "object")
     .map((row) => {
-      const src = row as Record<string, unknown>;
-      const out: Record<string, unknown> = {};
+
+      const src = row as Record<string, any>;
+      const out: Record<string, any> = {};
 
       // ----------------------------
-      // 基本コピー
+      // ① 基本コピー＆正規化
       // ----------------------------
-      for (const [rawKey, rawValue] of Object.entries(src)) {
+      for (const [rawKey, rawVal] of Object.entries(src)) {
         const key = String(rawKey).trim();
-        let value = trimString(rawValue);
+        let v = trim(rawVal);
 
         if (
           key === "DatetimeAgg" ||
           key === "DeviceDatetime" ||
           key === "DeviceTimestamp"
         ) {
-          value = normalizeDateTimeString(value);
+          v = normalizeDt(v);
         } else {
-          value = tryNormalizeScalar(value);
+          v = toScalar(v);
         }
 
-        out[key] = value;
+        out[key] = v;
       }
 
       // ----------------------------
-      // Division補完
+      // ② Division統一
       // ----------------------------
-      if (isNilLike(out.DivisionAgg) && !isNilLike(out.Division)) {
+      if (isNil(out.DivisionAgg) && !isNil(out.Division)) {
         out.DivisionAgg = out.Division;
       }
-      if (isNilLike(out.Division) && !isNilLike(out.DivisionAgg)) {
+      if (isNil(out.Division) && !isNil(out.DivisionAgg)) {
         out.Division = out.DivisionAgg;
       }
 
       // ----------------------------
-      // Device補完
+      // ③ Device統一
       // ----------------------------
-      if (isNilLike(out.Device) && !isNilLike(out.DeviceName)) {
+      if (isNil(out.Device) && !isNil(out.DeviceName)) {
         out.Device = out.DeviceName;
       }
-      if (isNilLike(out.DeviceName) && !isNilLike(out.Device)) {
+      if (isNil(out.DeviceName) && !isNil(out.Device)) {
         out.DeviceName = out.Device;
       }
 
       // ----------------------------
-      // ★ ここが今回の修正（最重要）
+      // ✅ ④ 自動マッピング（核心）
       // ----------------------------
       if (kind === "agg") {
-        // 温度
-        if (isNilLike(out.ActualTemp) && !isNilLike(out.AvgActualTemp)) {
-          out.ActualTemp = out.AvgActualTemp;
-        }
-
-        // 電力
-        if (isNilLike(out.ActivePower) && !isNilLike(out.AvgActivePower)) {
-          out.ActivePower = out.AvgActivePower;
-        }
-
-        // 積算
-        if (isNilLike(out.CumulativeEnergy) && !isNilLike(out.SumCumulativeEnergy)) {
-          out.CumulativeEnergy = out.SumCumulativeEnergy;
-        }
+        autoMapMetric(out);
       }
 
       // ----------------------------
-      // Datetime補完
+      // ✅ ⑤ 時刻補完（最重要）
       // ----------------------------
-      const primaryTs =
+      let ts =
         out.DeviceDatetime ??
         out.DatetimeAgg ??
         out.DeviceTimestamp;
 
-      if (!isNilLike(primaryTs)) {
-        const ts = normalizeDateTimeString(primaryTs);
+      if (!isNil(ts)) {
+        ts = normalizeDt(ts);
 
-        if (isNilLike(out.DeviceDatetime)) out.DeviceDatetime = ts;
-        if (isNilLike(out.DatetimeAgg)) out.DatetimeAgg = ts;
-        if (isNilLike(out.DeviceTimestamp)) out.DeviceTimestamp = ts;
+        if (isNil(out.DeviceDatetime)) out.DeviceDatetime = ts;
+        if (isNil(out.DatetimeAgg)) out.DatetimeAgg = ts;
+        if (isNil(out.DeviceTimestamp)) out.DeviceTimestamp = ts;
       }
 
       // ----------------------------
-      // 必須キー補完
+      // ✅ ⑥ 必須キー補完（fields安定）
       // ----------------------------
       if (!("DivisionAgg" in out)) out.DivisionAgg = null;
       if (!("Division" in out)) out.Division = null;
       if (!("Device" in out)) out.Device = null;
       if (!("DeviceName" in out)) out.DeviceName = null;
       if (!("DeviceType" in out)) out.DeviceType = null;
+
       if (!("DatetimeAgg" in out)) out.DatetimeAgg = null;
       if (!("DeviceDatetime" in out)) out.DeviceDatetime = null;
       if (!("DeviceTimestamp" in out)) out.DeviceTimestamp = null;
@@ -310,27 +333,24 @@ const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => 
     });
 
   // ----------------------------
-  // keys統一（rows[0]対策）
+  // ✅ ⑦ rows[0]キー補完（超重要）
   // ----------------------------
-  const allKeys = new Set<string>();
-  normalized.forEach((r) =>
-    Object.keys(r).forEach((k) => allKeys.add(k))
-  );
+  if (normalized.length === 0) return normalized;
 
-  return normalized.map((row, index) => {
-    if (index !== 0) return row;
+  const keys = new Set<string>();
+  normalized.forEach(r => Object.keys(r).forEach(k => keys.add(k)));
 
-    const first = { ...row } as Record<string, unknown>;
-    for (const key of allKeys) {
-      if (!(key in first)) {
-        first[key] = null;
-      }
-    }
+  return normalized.map((row, i) => {
+    if (i !== 0) return row;
+
+    const first = { ...row } as Record<string, any>;
+    keys.forEach(k => {
+      if (!(k in first)) first[k] = null;
+    });
     return first;
   });
 
 }, []);
-
 
 
  
