@@ -295,6 +295,51 @@ export default function Page() {
      * prefix では吸いきれないものをここで補完
      */
     const applyAliasMapping = (out: Record<string, unknown>, kind: DataKind) => {
+
+
+
+      // ==============================
+      // ✅ agg 用 Datetime 補完（超重要）
+      // ==============================
+      if (kind === "agg") {
+        const toIso = (v: unknown) => {
+          if (!v || typeof v !== "string") return null;
+
+          let s = v.trim();
+          if (!s) return null;
+
+          // "2026-05-11 00:00:00+09:00" → ISO
+          if (s.includes(" ") && !s.includes("T")) {
+            s = s.replace(" ", "T");
+          }
+
+          // timezone 無い場合補完
+          if (
+            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+            !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
+          ) {
+            s += "+09:00";
+          }
+
+          return s;
+        };
+
+        // ✅ AggKey → Timestampへコピー
+        if (!out["DatetimeAgg"] && out["AggKey"]) {
+          out["DatetimeAgg"] = toIso(out["AggKey"]);
+        }
+
+        if (!out["DeviceDatetime"] && out["AggKey"]) {
+          out["DeviceDatetime"] = toIso(out["AggKey"]);
+        }
+
+        if (!out["DeviceTimestamp"] && out["AggKey"]) {
+          out["DeviceTimestamp"] = toIso(out["AggKey"]);
+        }
+      }
+
+
+
       // 共通
       fillIfEmpty(out, "DeviceType", "Type");
       fillIfEmpty(out, "Device", "DeviceName");
