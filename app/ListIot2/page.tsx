@@ -149,29 +149,18 @@ export default function Page() {
     }).length;
   }, [allRows, selectedDivision]);
 
-  /**
-   * app.js は rows[0] の keys をヘッダ相当として扱う前提なので、
-   * page.tsx 側で key / 列名ゆれ / 日時列揺れを吸収しておく。
-   */
+  // =========================================================
+  // normalize 共通ユーティリティ
+  // =========================================================
   const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
-    /**
-     * null / undefined / 空文字 判定
-     */
     const isNilLike = (v: unknown): boolean => {
       return v == null || (typeof v === "string" && v.trim() === "");
     };
 
-    /**
-     * 文字列の前後空白除去
-     */
     const trimString = (v: unknown): unknown => {
       return typeof v === "string" ? v.trim() : v;
     };
 
-    /**
-     * "2026-06-01 00:00:00+09:00" → "2026-06-01T00:00:00+09:00"
-     * のように app.js 側で扱いやすい ISO 風にそろえる
-     */
     const normalizeDateTimeString = (v: unknown): unknown => {
       if (typeof v !== "string") return v;
 
@@ -192,12 +181,6 @@ export default function Page() {
       return s;
     };
 
-    /**
-     * 数値らしければ number 化
-     * - number は壊さず保持（重要）
-     * - 空文字は null 化
-     * - それ以外の文字列はそのまま残す
-     */
     const tryNormalizeScalar = (v: unknown): unknown => {
       if (v == null) return null;
 
@@ -224,9 +207,6 @@ export default function Page() {
       return s;
     };
 
-    /**
-     * out[target] が空なら out[source] をコピー
-     */
     const fillIfEmpty = (
       out: Record<string, unknown>,
       target: string,
@@ -237,16 +217,12 @@ export default function Page() {
       }
     };
 
-    /**
-     * 複数候補のうち、最初に値が入っているものを target にコピー
-     */
     const fillFromCandidates = (
       out: Record<string, unknown>,
       target: string,
       candidates: string[]
     ) => {
       if (!isNilLike(out[target])) return;
-
       for (const c of candidates) {
         if (!isNilLike(out[c])) {
           out[target] = out[c];
@@ -255,14 +231,6 @@ export default function Page() {
       }
     };
 
-    /**
-     * agg 用の prefix 自動マッピング
-     * 例:
-     *   AvgActivePower -> ActivePower
-     *   AveActualTemp -> ActualTemp
-     *   SumCumulativeEnergy -> CumulativeEnergy
-     *   MaxApparentPower -> ApparentPower
-     */
     const autoMapByPrefix = (out: Record<string, unknown>) => {
       const keys = Object.keys(out);
 
@@ -290,158 +258,63 @@ export default function Page() {
       }
     };
 
-    /**
-     * 別名マッピング（必要に応じて拡張）
-     * prefix では吸いきれないものをここで補完
-     */
-    const applyAliasMapping = (out: Record<string, unknown>, kind: DataKind) => {
+    const finalizeFirstRowKeys = (normalized: IotRow[]): IotRow[] => {
+      if (normalized.length === 0) return normalized;
 
-
-
-      // ==============================
-      // ✅ agg 用 Datetime 補完（超重要）
-      // ==============================
-      if (kind === "agg") {
-        const toIso = (v: unknown) => {
-          if (!v || typeof v !== "string") return null;
-
-          let s = v.trim();
-          if (!s) return null;
-
-          // "2026-05-11 00:00:00+09:00" → ISO
-          if (s.includes(" ") && !s.includes("T")) {
-            s = s.replace(" ", "T");
-          }
-
-          // timezone 無い場合補完
-          if (
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
-            !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
-          ) {
-            s += "+09:00";
-          }
-
-          return s;
-        };
-
-        // ✅ AggKey → Timestampへコピー
-        if (!out["DatetimeAgg"] && out["AggKey"]) {
-          out["DatetimeAgg"] = toIso(out["AggKey"]);
-        }
-
-        if (!out["DeviceDatetime"] && out["AggKey"]) {
-          out["DeviceDatetime"] = toIso(out["AggKey"]);
-        }
-
-        if (!out["DeviceTimestamp"] && out["AggKey"]) {
-          out["DeviceTimestamp"] = toIso(out["AggKey"]);
-        }
+      const allKeys = new Set<string>();
+      for (const row of normalized) {
+        Object.keys(row).forEach((k) => allKeys.add(k));
       }
 
+      return normalized.map((row, index) => {
+        if (index !== 0) return row;
 
-
-      // 共通
-      fillIfEmpty(out, "DeviceType", "Type");
-      fillIfEmpty(out, "Device", "DeviceName");
-      fillIfEmpty(out, "DeviceName", "Device");
-      fillIfEmpty(out, "DivisionAgg", "Division");
-      fillIfEmpty(out, "Division", "DivisionAgg");
-
-      // iot / agg 共通のよくある差異
-      fillIfEmpty(out, "ActualTemp", "AvgActualTemp");
-      fillIfEmpty(out, "ActualTemp", "AveActualTemp");
-
-      fillIfEmpty(out, "ActualHumidity", "AvgActualHumidity");
-      fillIfEmpty(out, "ActualHumidity", "AveActualHumidity");
-
-      fillIfEmpty(out, "ActivePower", "AvgActivePower");
-      fillIfEmpty(out, "ActivePower", "AveActivePower");
-
-      fillIfEmpty(out, "ApparentPower", "AvgApparentPower");
-      fillIfEmpty(out, "ApparentPower", "AveApparentPower");
-
-      fillIfEmpty(out, "CumulativeEnergy", "SumCumulativeEnergy");
-
-      // CumulativeEnergy の候補順位（必要に応じて調整）
-      fillFromCandidates(out, "CumulativeEnergy", [
-        "SumCumulativeEnergy",
-        "CumulativeEnergyLast",
-        "CumulativeEnergyEnd",
-        "CumulativeEnergyStart",
-        "CumulativeEnergyMax",
-        "CumulativeEnergyMin",
-      ]);
-
-      // EnergyDeltaPerEffectiveMinute の候補
-      fillFromCandidates(out, "EnergyDeltaPerEffectiveMinute", [
-        "EnergyDeltaPerEffectiveMinute",
-        "EnergyDeltaPerMinute",
-        "EnergyDelta",
-      ]);
-
-      // 外気温（WtTemp）
-      fillFromCandidates(out, "WtTemp", [
-        "WtTemp",
-        "OutsideTemp",
-        "OutdoorTemp",
-        "ExternalTemp",
-        "OAT",
-      ]);
-
-      // agg で特に重要な prefix 自動吸収
-      if (kind === "agg") {
-        autoMapByPrefix(out);
-      }
+        const first = { ...row } as Record<string, unknown>;
+        for (const key of allKeys) {
+          if (!(key in first)) {
+            first[key] = null;
+          }
+        }
+        return first;
+      });
     };
 
-    const normalized = rows
-      .filter((row) => row && typeof row === "object")
-      .map((row) => {
-        const src = row as Record<string, unknown>;
-        const out: Record<string, unknown> = {};
+    // =========================================================
+    // iot 専用 normalize
+    // =========================================================
+    const normalizeIotRows = (srcRows: IotRow[]): IotRow[] => {
+      const normalized = srcRows
+        .filter((row) => row && typeof row === "object")
+        .map((row) => {
+          const src = row as Record<string, unknown>;
+          const out: Record<string, unknown> = {};
 
-        // --------------------------------------------------
-        // 1) key / value 基本コピー
-        // --------------------------------------------------
-        for (const [rawKey, rawValue] of Object.entries(src)) {
-          const key = String(rawKey).trim();
-          let value = trimString(rawValue);
+          for (const [rawKey, rawValue] of Object.entries(src)) {
+            const key = String(rawKey).trim();
+            let value = trimString(rawValue);
 
-          if (
-            key === "DatetimeAgg" ||
-            key === "DeviceDatetime" ||
-            key === "DeviceTimestamp"
-          ) {
-            value = normalizeDateTimeString(value);
-          } else {
-            value = tryNormalizeScalar(value);
+            if (
+              key === "DatetimeAgg" ||
+              key === "DeviceDatetime" ||
+              key === "DeviceTimestamp"
+            ) {
+              value = normalizeDateTimeString(value);
+            } else {
+              value = tryNormalizeScalar(value);
+            }
+
+            out[key] = value;
           }
 
-          out[key] = value;
-        }
+          // 共通別名
+          fillIfEmpty(out, "DeviceType", "Type");
+          fillIfEmpty(out, "Device", "DeviceName");
+          fillIfEmpty(out, "DeviceName", "Device");
+          fillIfEmpty(out, "DivisionAgg", "Division");
+          fillIfEmpty(out, "Division", "DivisionAgg");
 
-        // --------------------------------------------------
-        // 2) 別名マッピング / prefix 自動マッピング
-        // --------------------------------------------------
-        applyAliasMapping(out, kind);
-
-        // --------------------------------------------------
-        // 3) Datetime 系補完（最重要）
-        // dataKind ごとに優先順位を分ける
-        // --------------------------------------------------
-        let primaryTs: unknown = null;
-
-        if (kind === "agg") {
-          primaryTs =
-            !isNilLike(out["DatetimeAgg"])
-              ? out["DatetimeAgg"]
-              : !isNilLike(out["DeviceDatetime"])
-              ? out["DeviceDatetime"]
-              : !isNilLike(out["DeviceTimestamp"])
-              ? out["DeviceTimestamp"]
-              : null;
-        } else {
-          primaryTs =
+          // iot は DeviceDatetime 優先
+          const primaryTs =
             !isNilLike(out["DeviceDatetime"])
               ? out["DeviceDatetime"]
               : !isNilLike(out["DatetimeAgg"])
@@ -449,85 +322,237 @@ export default function Page() {
               : !isNilLike(out["DeviceTimestamp"])
               ? out["DeviceTimestamp"]
               : null;
-        }
 
-        if (!isNilLike(primaryTs)) {
-          const normalizedTs = normalizeDateTimeString(primaryTs);
+          if (!isNilLike(primaryTs)) {
+            const normalizedTs = normalizeDateTimeString(primaryTs);
 
-          if (isNilLike(out.DeviceDatetime)) {
-            out.DeviceDatetime = normalizedTs;
-          } else {
-            out.DeviceDatetime = normalizeDateTimeString(out.DeviceDatetime);
+            if (isNilLike(out.DeviceDatetime)) {
+              out.DeviceDatetime = normalizedTs;
+            } else {
+              out.DeviceDatetime = normalizeDateTimeString(out.DeviceDatetime);
+            }
+
+            if (isNilLike(out.DatetimeAgg)) {
+              out.DatetimeAgg = normalizedTs;
+            } else {
+              out.DatetimeAgg = normalizeDateTimeString(out.DatetimeAgg);
+            }
+
+            if (isNilLike(out.DeviceTimestamp)) {
+              out.DeviceTimestamp = normalizedTs;
+            } else {
+              out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
+            }
           }
 
-          if (isNilLike(out.DatetimeAgg)) {
-            out.DatetimeAgg = normalizedTs;
-          } else {
-            out.DatetimeAgg = normalizeDateTimeString(out.DatetimeAgg);
+          const mustHaveKeys = [
+            "DivisionAgg",
+            "Division",
+            "DivisionName",
+            "Device",
+            "DeviceName",
+            "DeviceType",
+            "DatetimeAgg",
+            "DeviceDatetime",
+            "DeviceTimestamp",
+            "ActualTemp",
+            "ActualHumidity",
+            "ActivePower",
+            "ApparentPower",
+            "CumulativeEnergy",
+            "EnergyDeltaPerEffectiveMinute",
+            "WtTemp",
+          ];
+
+          for (const k of mustHaveKeys) {
+            if (!(k in out)) {
+              out[k] = null;
+            }
           }
 
-          if (isNilLike(out.DeviceTimestamp)) {
-            out.DeviceTimestamp = normalizedTs;
-          } else {
-            out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
+          return out;
+        });
+
+      return finalizeFirstRowKeys(normalized);
+    };
+
+    // =========================================================
+    // agg 専用 normalize
+    // =========================================================
+    const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
+      const normalized = srcRows
+        .filter((row) => row && typeof row === "object")
+        .map((row) => {
+          const src = row as Record<string, unknown>;
+          const out: Record<string, unknown> = {};
+
+          for (const [rawKey, rawValue] of Object.entries(src)) {
+            const key = String(rawKey).trim();
+            let value = trimString(rawValue);
+
+            if (
+              key === "DatetimeAgg" ||
+              key === "DeviceDatetime" ||
+              key === "DeviceTimestamp" ||
+              key === "AggKey"
+            ) {
+              value = normalizeDateTimeString(value);
+            } else {
+              value = tryNormalizeScalar(value);
+            }
+
+            out[key] = value;
           }
-        }
 
-        // --------------------------------------------------
-        // 4) app.js が fields 判定で見落としにくいように
-        //    主要キーは必ず存在させる
-        // --------------------------------------------------
-        const mustHaveKeys = [
-          "DivisionAgg",
-          "Division",
-          "DivisionName",
-          "Device",
-          "DeviceName",
-          "DeviceType",
-          "DatetimeAgg",
-          "DeviceDatetime",
-          "DeviceTimestamp",
+          // 共通別名
+          fillIfEmpty(out, "DeviceType", "Type");
+          fillIfEmpty(out, "Device", "DeviceName");
+          fillIfEmpty(out, "DeviceName", "Device");
+          fillIfEmpty(out, "DivisionAgg", "Division");
+          fillIfEmpty(out, "Division", "DivisionAgg");
 
-          // よく使うメトリクス
-          "ActualTemp",
-          "ActualHumidity",
-          "ActivePower",
-          "ApparentPower",
-          "CumulativeEnergy",
-          "EnergyDeltaPerEffectiveMinute",
-          "WtTemp",
-        ];
+          // agg 列名吸収
+          autoMapByPrefix(out);
 
-        for (const k of mustHaveKeys) {
-          if (!(k in out)) {
-            out[k] = null;
+          fillIfEmpty(out, "ActualTemp", "AvgActualTemp");
+          fillIfEmpty(out, "ActualTemp", "AveActualTemp");
+
+          fillIfEmpty(out, "ActualHumidity", "AvgActualHumidity");
+          fillIfEmpty(out, "ActualHumidity", "AveActualHumidity");
+
+          fillIfEmpty(out, "ActivePower", "AvgActivePower");
+          fillIfEmpty(out, "ActivePower", "AveActivePower");
+
+          fillIfEmpty(out, "ApparentPower", "AvgApparentPower");
+          fillIfEmpty(out, "ApparentPower", "AveApparentPower");
+
+          fillIfEmpty(out, "CumulativeEnergy", "SumCumulativeEnergy");
+
+          fillFromCandidates(out, "CumulativeEnergy", [
+            "SumCumulativeEnergy",
+            "CumulativeEnergyLast",
+            "CumulativeEnergyEnd",
+            "CumulativeEnergyStart",
+            "CumulativeEnergyMax",
+            "CumulativeEnergyMin",
+          ]);
+
+          fillFromCandidates(out, "EnergyDeltaPerEffectiveMinute", [
+            "EnergyDeltaPerEffectiveMinute",
+            "EnergyDeltaPerMinute",
+            "EnergyDelta",
+          ]);
+
+          fillFromCandidates(out, "WtTemp", [
+            "WtTemp",
+            "OutsideTemp",
+            "OutdoorTemp",
+            "ExternalTemp",
+            "OAT",
+          ]);
+
+          // ★最重要：agg の時刻候補を広げる
+          fillFromCandidates(out, "DatetimeAgg", [
+            "DatetimeAgg",
+            "AggKey",
+            "ComputedAt",
+            "SourceWindowEnd",
+            "SourceWindowStart",
+            "DeviceDatetime",
+            "DeviceTimestamp",
+          ]);
+
+          fillFromCandidates(out, "DeviceDatetime", [
+            "DeviceDatetime",
+            "DatetimeAgg",
+            "AggKey",
+            "ComputedAt",
+            "SourceWindowEnd",
+            "SourceWindowStart",
+            "DeviceTimestamp",
+          ]);
+
+          fillFromCandidates(out, "DeviceTimestamp", [
+            "DeviceTimestamp",
+            "DatetimeAgg",
+            "AggKey",
+            "ComputedAt",
+            "SourceWindowEnd",
+            "SourceWindowStart",
+            "DeviceDatetime",
+          ]);
+
+          // agg は DatetimeAgg 優先
+          const primaryTs =
+            !isNilLike(out["DatetimeAgg"])
+              ? out["DatetimeAgg"]
+              : !isNilLike(out["DeviceDatetime"])
+              ? out["DeviceDatetime"]
+              : !isNilLike(out["DeviceTimestamp"])
+              ? out["DeviceTimestamp"]
+              : !isNilLike(out["AggKey"])
+              ? out["AggKey"]
+              : null;
+
+          if (!isNilLike(primaryTs)) {
+            const normalizedTs = normalizeDateTimeString(primaryTs);
+
+            if (isNilLike(out.DatetimeAgg)) {
+              out.DatetimeAgg = normalizedTs;
+            } else {
+              out.DatetimeAgg = normalizeDateTimeString(out.DatetimeAgg);
+            }
+
+            if (isNilLike(out.DeviceDatetime)) {
+              out.DeviceDatetime = normalizedTs;
+            } else {
+              out.DeviceDatetime = normalizeDateTimeString(out.DeviceDatetime);
+            }
+
+            if (isNilLike(out.DeviceTimestamp)) {
+              out.DeviceTimestamp = normalizedTs;
+            } else {
+              out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
+            }
           }
-        }
 
-        return out;
-      });
+          const mustHaveKeys = [
+            "DivisionAgg",
+            "Division",
+            "DivisionName",
+            "Device",
+            "DeviceName",
+            "DeviceType",
+            "DatetimeAgg",
+            "DeviceDatetime",
+            "DeviceTimestamp",
+            "AggKey",
+            "ActualTemp",
+            "ActualHumidity",
+            "ActivePower",
+            "ApparentPower",
+            "CumulativeEnergy",
+            "EnergyDeltaPerEffectiveMinute",
+            "WtTemp",
+          ];
 
-    // --------------------------------------------------
-    // 5) 先頭行に全キーをそろえて rows[0] 判定のブレを防ぐ
-    // --------------------------------------------------
-    if (normalized.length === 0) return normalized;
+          for (const k of mustHaveKeys) {
+            if (!(k in out)) {
+              out[k] = null;
+            }
+          }
 
-    const allKeys = new Set<string>();
-    for (const row of normalized) {
-      Object.keys(row).forEach((k) => allKeys.add(k));
+          return out;
+        });
+
+      return finalizeFirstRowKeys(normalized);
+    };
+
+    // dispatcher
+    if (kind === "agg") {
+      return normalizeAggRows(rows);
     }
-
-    return normalized.map((row, index) => {
-      if (index !== 0) return row;
-
-      const first = { ...row } as Record<string, unknown>;
-      for (const key of allKeys) {
-        if (!(key in first)) {
-          first[key] = null;
-        }
-      }
-      return first;
-    });
+    return normalizeIotRows(rows);
   }, []);
 
   /**
@@ -615,7 +640,6 @@ export default function Page() {
     const onMsg = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
 
-      // 必要なら origin も見る
       if (event.origin !== window.location.origin) {
         return;
       }
@@ -747,7 +771,11 @@ export default function Page() {
       do {
         // stale request は即中断
         if (seq !== requestSeqRef.current) {
-          console.log("SKIP outdated division request(before query)", { seq, kind, division });
+          console.log("SKIP outdated division request(before query)", {
+            seq,
+            kind,
+            division,
+          });
           return [];
         }
 
@@ -764,7 +792,11 @@ export default function Page() {
           });
 
           if (seq !== requestSeqRef.current) {
-            console.log("SKIP outdated division request(after query)", { seq, kind, division });
+            console.log("SKIP outdated division request(after query)", {
+              seq,
+              kind,
+              division,
+            });
             return [];
           }
 
@@ -780,7 +812,11 @@ export default function Page() {
           });
 
           if (seq !== requestSeqRef.current) {
-            console.log("SKIP outdated division request(after query)", { seq, kind, division });
+            console.log("SKIP outdated division request(after query)", {
+              seq,
+              kind,
+              division,
+            });
             return [];
           }
 
@@ -822,7 +858,11 @@ export default function Page() {
       } while (nextToken);
 
       if (seq !== requestSeqRef.current) {
-        console.log("SKIP outdated division result(final)", { seq, kind, division });
+        console.log("SKIP outdated division result(final)", {
+          seq,
+          kind,
+          division,
+        });
         return [];
       }
 
@@ -891,7 +931,11 @@ export default function Page() {
       const worker = async (workerId: number) => {
         while (true) {
           if (seq !== requestSeqRef.current) {
-            console.log("STOP worker due to stale seq", { workerId, kind, seq });
+            console.log("STOP worker due to stale seq", {
+              workerId,
+              kind,
+              seq,
+            });
             return;
           }
 
@@ -904,11 +948,22 @@ export default function Page() {
 
           try {
             console.time(timerLabel);
-            const rows = await fetchIotByRangeForDivision(start, end, division, kind, seq);
+            const rows = await fetchIotByRangeForDivision(
+              start,
+              end,
+              division,
+              kind,
+              seq
+            );
             console.timeEnd(timerLabel);
 
             if (seq !== requestSeqRef.current) {
-              console.log("SKIP outdated worker result", { workerId, kind, division, seq });
+              console.log("SKIP outdated worker result", {
+                workerId,
+                kind,
+                division,
+                seq,
+              });
               return;
             }
 
@@ -1015,6 +1070,7 @@ export default function Page() {
         setAllRows(cached);
         setLoading(false);
 
+        // キャッシュヒット時は即完了扱い
         setProgress(100);
         setProgressCompleted(divisions.length);
         setProgressTotal(divisions.length);
@@ -1070,7 +1126,10 @@ export default function Page() {
         if (seq !== requestSeqRef.current) return;
         sendFullPayloadToIframe(payload, rangeKey);
       } catch (err) {
-        console.error(`fetchIotByRangeAllDivisions(parallel)[${dataKind}] error:`, err);
+        console.error(
+          `fetchIotByRangeAllDivisions(parallel)[${dataKind}] error:`,
+          err
+        );
 
         if (!cancelled && seq === requestSeqRef.current) {
           setAllRows([]);
