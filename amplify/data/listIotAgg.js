@@ -59,7 +59,7 @@ export function request(ctx) {
 export function response(ctx) {
 
   var rawItems = [];
-  if (ctx.result != null && ctx.result.items != null) {
+  if (ctx.result && ctx.result.items) {
     rawItems = ctx.result.items;
   }
 
@@ -68,14 +68,19 @@ export function response(ctx) {
   for (var i = 0; i < rawItems.length; i++) {
 
     var item = rawItems[i];
+
+    // ✅ 直接コピーしない（ここが重要）
     var out = {};
 
-    // コピー
-    for (var key in item) {
-      out[key] = item[key];
-    }
+    // 必要なキーだけ手動コピー
+    out.Controller = item.Controller;
+    out.Division = item.Division;
+    out.DivisionAgg = item.DivisionAgg;
+    out.Device = item.Device;
+    out.DeviceName = item.DeviceName;
+    out.DeviceType = item.DeviceType;
 
-    // ===== 日時変換 =====
+    // ===== 日時 =====
     function toIso(v) {
       if (typeof v !== "string") return null;
 
@@ -95,6 +100,18 @@ export function response(ctx) {
       return s;
     }
 
+    var datetime = null;
+
+    if (item.DatetimeAgg != null) {
+      datetime = toIso(item.DatetimeAgg);
+    } else if (item.AggKey != null) {
+      datetime = toIso(item.AggKey);
+    }
+
+    out.DatetimeAgg = datetime;
+    out.DeviceDatetime = datetime;
+    out.DeviceTimestamp = datetime;
+
     // ===== 数値 =====
     function toNumber(v) {
       if (v === null || v === undefined) return null;
@@ -109,37 +126,21 @@ export function response(ctx) {
       return null;
     }
 
-    // ===== 時刻 =====
-    var datetime = null;
-
-    if (item != null && item.DatetimeAgg != null) {
-      datetime = toIso(item.DatetimeAgg);
-    } else if (item != null && item.AggKey != null) {
-      datetime = toIso(item.AggKey);
-    }
-
-    out.DatetimeAgg = datetime;
-    out.DeviceDatetime = datetime;
-    out.DeviceTimestamp = datetime;
-
-    // ===== 数値 =====
     out.AvgActualTemp = toNumber(item.AvgActualTemp);
     out.AvgActualHumidity = toNumber(item.AvgActualHumidity);
     out.AvgActivePower = toNumber(item.AvgActivePower);
     out.SumCumulativeEnergy = toNumber(item.SumCumulativeEnergy);
 
-    // ===== alias =====
+    // alias補完
     if (!out.DivisionAgg) out.DivisionAgg = out.Division;
-    if (!out.Division) out.Division = out.DivisionAgg;
-
-    if (!out.Device) out.Device = out.DeviceName;
-    if (!out.DeviceName) out.DeviceName = out.Device;
+    if (!out.Device && out.DeviceName) out.Device = out.DeviceName;
+    if (!out.DeviceName && out.Device) out.DeviceName = out.Device;
 
     items.push(out);
   }
 
   var nextToken = null;
-  if (ctx.result != null && ctx.result.nextToken != null) {
+  if (ctx.result && ctx.result.nextToken) {
     nextToken = ctx.result.nextToken;
   }
 
