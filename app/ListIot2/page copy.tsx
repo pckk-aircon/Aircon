@@ -150,67 +150,241 @@ export default function Page() {
   }, [allRows, selectedDivision]);
 
   /**
-   * app.js は rows[0] の keys をヘッダ相当として扱うので、
-   * page.tsx 側では「別にヘッダを渡す必要はない」。
-   * ただし列名ゆれはここで必ず吸収しておく。
+   * app.js は rows[0] の keys をヘッダ相当として扱う前提なので、
+   * page.tsx 側で key / 列名ゆれ / 日時列揺れを吸収しておく。
    */
   const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
-    return rows.map((row) => {
-      const out = { ...row } as Record<string, unknown>;
+    /**
+     * 文字列の前後空白除去
+     */
+    const trimString = (v: unknown): unknown => {
+      return typeof v === "string" ? v.trim() : v;
+    };
 
-      // --------------------------------------------------
-      // Division 揃え
-      // --------------------------------------------------
-      if (out.DivisionAgg == null && out.Division != null) {
-        out.DivisionAgg = out.Division;
-      }
-      if (out.Division == null && out.DivisionAgg != null) {
-        out.Division = out.DivisionAgg;
-      }
+    /**
+     * "2026-06-01 00:00:00+09:00" → "2026-06-01T00:00:00+09:00"
+     * のように、app.js 側で扱いやすい ISO 風に寄せる
+     */
+    const normalizeDateTimeString = (v: unknown): unknown => {
+      if (typeof v !== "string") return v;
 
-      // --------------------------------------------------
-      // Device 揃え
-      // --------------------------------------------------
-      if (out.Device == null && out.DeviceName != null) {
-        out.Device = out.DeviceName;
-      }
-      if (out.DeviceName == null && out.Device != null) {
-        out.DeviceName = out.Device;
-      }
+      let s = v.trim();
+      if (!s) return s;
 
-      // --------------------------------------------------
-      // Datetime 揃え（最重要）
-      // app.js は DeviceDatetime / DatetimeAgg / DeviceTimestamp を候補に見る
-      // embed 時に安全に認識させるため、少なくとも DeviceDatetime と DatetimeAgg の
-      // どちらも埋めるようにしておく
-      // --------------------------------------------------
-      if (out.DeviceDatetime == null && out.DatetimeAgg != null) {
-        out.DeviceDatetime = out.DatetimeAgg;
-      }
-      if (out.DatetimeAgg == null && out.DeviceDatetime != null) {
-        out.DatetimeAgg = out.DeviceDatetime;
+      // "YYYY-MM-DD HH:mm:ss+09:00" → "YYYY-MM-DDTHH:mm:ss+09:00"
+      if (s.includes(" ") && !s.includes("T")) {
+        s = s.replace(" ", "T");
       }
 
-      // 参考: もし DeviceTimestamp も必要になればここで補完可能
-      if (out.DeviceTimestamp == null && out.DeviceDatetime != null) {
-        out.DeviceTimestamp = out.DeviceDatetime;
+      // 末尾に timezone が無い場合は +09:00 を補完
+      // 例: 2026-06-01T00:00:00 → 2026-06-01T00:00:00+09:00
+      if (
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+        !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
+      ) {
+        s += "+09:00";
       }
 
-      // --------------------------------------------------
-      // 集約データ側で列名差がある場合はここで揃える
-      // 必要に応じて追記
-      // --------------------------------------------------
-      if (kind === "agg") {
-        // 例:
-        // if (out.ActualTemp == null && out.AvgActualTemp != null) {
-        //   out.ActualTemp = out.AvgActualTemp;
-        // }
-        // if (out.ActivePower == null && out.AvgActivePower != null) {
-        //   out.ActivePower = out.AvgActivePower;
-        // }
+      return s;
+    };
+
+    /**
+     * null / undefined / 空文字 の判定
+     */
+    const isNilLike = (v: unknown): boolean => {
+      return v == null || (typeof v === "string" && v.trim() === "");
+    };
+
+    /**
+     * 数値らしければ number 化、それ以外は元のまま
+     * app.js 側は toNum() を持っているので必須ではないが、
+     * 行データの揺れを少しでも減らす用途で使用
+     */
+    const tryNormalizeScalar = (v: unknown): unknown => {
+      if (v == null) return v;
+      if (typeof v === "number") return v;
+      if (typeof v !== "string") return v;
+
+      const s = v.trim();
+      if (s === "") return s;
+
+      // 数値候補だけ number 化
+      const normalized = s
+        .replace(/^'+/, "")
+        .replace(/^["']|["']$/g, "")
+        .replace(/[−ー―]/g, "-")
+        .replace(/,/g, "");
+
+      if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+        const n = Number(normalized);
+        if (Number.isFinite(n)) return n;
       }
 
-      return out;
+      return s;
+    };
+
+    /**
+     * まず各 row の key / value をざっと掃除
+     * - key 前後空白除去
+     * - value 前後空白除去
+     * - datetime っぽい列は ISO 風に寄せる
+     */
+    const normalized = rows
+      .filter((row) => row && typeof row === "object")
+      .map((row) => {
+        const src = row as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
+
+        // --------------------------------------------------
+        // 1) key の前後空白を除去してコピー
+        // --------------------------------------------------
+        for (const [rawKey, rawValue] of Object.entries(src)) {
+          const key = String(rawKey).trim();
+          let value = trimString(rawValue);
+
+          // datetime 系は先に文字列表現を揃える
+          if (
+            key === "DatetimeAgg" ||
+            key === "DeviceDatetime" ||
+            key === "DeviceTimestamp"
+          ) {
+            value = normalizeDateTimeString(value);
+          } else {
+            value = tryNormalizeScalar(value);
+          }
+
+          out[key] = value;
+        }
+
+        // --------------------------------------------------
+        // 2) Division 系を揃える
+        // app.js は DivisionAgg 優先 / なければ Division
+        // --------------------------------------------------
+        if (isNilLike(out.DivisionAgg) && !isNilLike(out.Division)) {
+          out.DivisionAgg = out.Division;
+        }
+        if (isNilLike(out.Division) && !isNilLike(out.DivisionAgg)) {
+          out.Division = out.DivisionAgg;
+        }
+
+        // --------------------------------------------------
+        // 3) Device 系を揃える
+        // app.js は Device 優先 / なければ DeviceName
+        // --------------------------------------------------
+        if (isNilLike(out.Device) && !isNilLike(out.DeviceName)) {
+          out.Device = out.DeviceName;
+        }
+        if (isNilLike(out.DeviceName) && !isNilLike(out.Device)) {
+          out.DeviceName = out.Device;
+        }
+
+        // --------------------------------------------------
+        // 4) DeviceType の別名吸収（必要ならここで拡張）
+        // --------------------------------------------------
+        if (isNilLike(out.DeviceType) && !isNilLike(out.Type)) {
+          out.DeviceType = out.Type;
+        }
+
+        // --------------------------------------------------
+        // 5) Datetime 系を揃える（最重要）
+        //
+        // app.js の時刻候補:
+        //   ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"]
+        //
+        // embed では rows[0] の keys を見て列候補を作るので、
+        // 少なくともこの3列は可能な限り埋めておくと安定する
+        // --------------------------------------------------
+        const primaryTs =
+          !isNilLike(out.DeviceDatetime)
+            ? out.DeviceDatetime
+            : !isNilLike(out.DatetimeAgg)
+            ? out.DatetimeAgg
+            : !isNilLike(out.DeviceTimestamp)
+            ? out.DeviceTimestamp
+            : null;
+
+        if (!isNilLike(primaryTs)) {
+          const normalizedTs = normalizeDateTimeString(primaryTs);
+
+          if (isNilLike(out.DeviceDatetime)) {
+            out.DeviceDatetime = normalizedTs;
+          } else {
+            out.DeviceDatetime = normalizeDateTimeString(out.DeviceDatetime);
+          }
+
+          if (isNilLike(out.DatetimeAgg)) {
+            out.DatetimeAgg = normalizedTs;
+          } else {
+            out.DatetimeAgg = normalizeDateTimeString(out.DatetimeAgg);
+          }
+
+          if (isNilLike(out.DeviceTimestamp)) {
+            out.DeviceTimestamp = normalizedTs;
+          } else {
+            out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
+          }
+        }
+
+        // --------------------------------------------------
+        // 6) app.js 側で存在チェックされる可能性がある列を必要に応じて補完
+        // --------------------------------------------------
+        if (isNilLike(out.DivisionName) && !isNilLike(out.DivisionAgg)) {
+          out.DivisionName = out.DivisionAgg;
+        }
+
+        // --------------------------------------------------
+        // 7) agg 用の列名差異吸収（必要に応じてここを拡張）
+        // --------------------------------------------------
+        if (kind === "agg") {
+          // 例:
+          // if (isNilLike(out.ActualTemp) && !isNilLike(out.AvgActualTemp)) {
+          //   out.ActualTemp = out.AvgActualTemp;
+          // }
+          // if (isNilLike(out.ActivePower) && !isNilLike(out.AvgActivePower)) {
+          //   out.ActivePower = out.AvgActivePower;
+          // }
+          // if (isNilLike(out.CumulativeEnergy) && !isNilLike(out.SumCumulativeEnergy)) {
+          //   out.CumulativeEnergy = out.SumCumulativeEnergy;
+          // }
+        }
+
+        // --------------------------------------------------
+        // 8) Object.keys(rows[0]) に欲しい列をなるべく安定して出すため、
+        //    主要列が欠損していても key だけは作る
+        // --------------------------------------------------
+        if (!("DivisionAgg" in out)) out.DivisionAgg = null;
+        if (!("Division" in out)) out.Division = null;
+        if (!("Device" in out)) out.Device = null;
+        if (!("DeviceName" in out)) out.DeviceName = null;
+        if (!("DeviceType" in out)) out.DeviceType = null;
+        if (!("DatetimeAgg" in out)) out.DatetimeAgg = null;
+        if (!("DeviceDatetime" in out)) out.DeviceDatetime = null;
+        if (!("DeviceTimestamp" in out)) out.DeviceTimestamp = null;
+
+        return out;
+      });
+
+    // --------------------------------------------------
+    // 9) 先頭行に必要 key が無いと app.js 側の fields 判定がブレるので、
+    //    すべての row に出現した key を先頭 row にも揃える
+    // --------------------------------------------------
+    if (normalized.length === 0) return normalized;
+
+    const allKeys = new Set<string>();
+    for (const row of normalized) {
+      Object.keys(row).forEach((k) => allKeys.add(k));
+    }
+
+    return normalized.map((row, index) => {
+      if (index !== 0) return row;
+
+      const first = { ...row } as Record<string, unknown>;
+      for (const key of allKeys) {
+        if (!(key in first)) {
+          first[key] = null;
+        }
+      }
+      return first;
     });
   }, []);
 
@@ -264,6 +438,23 @@ export default function Page() {
       if (payload.rows.length > 0) {
         console.log("[postMessage] first row keys=", Object.keys(payload.rows[0]));
         console.log("[postMessage] first row=", payload.rows[0]);
+        console.log(
+          "[postMessage] first row DatetimeAgg=",
+          payload.rows[0]["DatetimeAgg"]
+        );
+        console.log(
+          "[postMessage] first row DeviceDatetime=",
+          payload.rows[0]["DeviceDatetime"]
+        );
+        console.log(
+          "[postMessage] first row DeviceTimestamp=",
+          payload.rows[0]["DeviceTimestamp"]
+        );
+        console.log(
+          "[postMessage] first row DivisionAgg=",
+          payload.rows[0]["DivisionAgg"]
+        );
+        console.log("[postMessage] first row Device=", payload.rows[0]["Device"]);
       }
 
       // app.js の想定どおり、先に viewState、そのあと rows
@@ -455,6 +646,10 @@ export default function Page() {
             `[${kind}][${division}] first keys=`,
             Object.keys(normalizedItems[0])
           );
+          console.log(
+            `[${kind}][${division}] first row=`,
+            normalizedItems[0]
+          );
         }
 
         result.push(...normalizedItems);
@@ -561,7 +756,11 @@ export default function Page() {
       }
 
       const sortedDatetimes = finalRows
-        .map((r) => (r?.DeviceDatetime as string | undefined) ?? (r?.DatetimeAgg as string | undefined))
+        .map(
+          (r) =>
+            (r?.DeviceDatetime as string | undefined) ??
+            (r?.DatetimeAgg as string | undefined)
+        )
         .filter(Boolean)
         .sort() as string[];
 
@@ -720,11 +919,9 @@ export default function Page() {
       prevViewState.startDay !== nextViewState.startDay ||
       prevViewState.endDay !== nextViewState.endDay;
 
-    const divisionChanged =
-      prevViewState.division !== nextViewState.division;
+    const divisionChanged = prevViewState.division !== nextViewState.division;
 
-    const kindChanged =
-      prevViewState.dataKind !== nextViewState.dataKind;
+    const kindChanged = prevViewState.dataKind !== nextViewState.dataKind;
 
     if (divisionChanged && !dateChanged && !kindChanged) {
       sendViewStateToIframe(nextViewState);
@@ -843,7 +1040,6 @@ export default function Page() {
           </div>
         </div>
       )}
-
 
       <iframe
         ref={iframeRef}
