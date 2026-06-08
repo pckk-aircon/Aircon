@@ -737,6 +737,9 @@ const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
     let items: IotRow[] = [];
     let nextToken: string | null | undefined = null;
 
+
+
+
     if (Array.isArray(raw)) {
       items = raw.filter(Boolean) as IotRow[];
       nextToken = null;
@@ -839,6 +842,12 @@ const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
         }
 
         const { items, nextToken: newNextToken } = unwrapQueryData(data);
+
+
+        
+        // ✅ ★APPSYNCのログ確認
+        console.log("RAW FROM APPSYNC:", items?.[0]);
+
 
         if (kind === "agg") {
           console.log("RAW AGG DATA", items);
