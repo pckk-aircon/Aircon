@@ -50,21 +50,17 @@ export function request(ctx) {
 
   return {
     operation: 'Query',
-    index: 'Controller-DatetimeAgg-index',
+    index: 'Controller-Division-DatetimeAgg-index',
 
     query: {
       expression:
-        'Controller = :controller AND DatetimeAgg BETWEEN :start AND :end',
+        'Controller = :controller AND Division = :division AND DatetimeAgg BETWEEN :start AND :end',
       expressionValues: util.dynamodb.toMapValues({
         ':controller': ctx.args.Controller,
+        ':division': ctx.args.Division,
         ':start': start,
         ':end': end,
       }),
-    },
-
-    // ✅ ★これが今回の修正の核心
-    filter: {
-      expression: 'attribute_exists(DatetimeAgg)',
     },
 
     limit: 1000,
@@ -79,6 +75,15 @@ export function response(ctx) {
   }
 
   console.log('[listIotAgg] count:', ctx.result?.items?.length);
+  console.log('[listIotAgg] nextToken:', ctx.result?.nextToken);
+
+  // ✅ デバッグ用（最初だけ残してOK）
+  if (ctx.result?.items?.length) {
+    console.log(
+      '[listIotAgg] first item:',
+      JSON.stringify(ctx.result.items[0], null, 2)
+    );
+  }
 
   return {
     items: ctx.result?.items ?? [],
