@@ -55,12 +55,14 @@ export function request(ctx) {
     query: {
       expression:
         'Controller = :controller AND Division = :division AND DatetimeAgg BETWEEN :start AND :end',
+
       expressionValues: util.dynamodb.toMapValues({
         ':controller': ctx.args.Controller,
         ':division': ctx.args.Division,
-        ':start': start,
-        ':end': end,
-      }),
+        ':start': ctx.args.StartDatetime,
+        ':end': ctx.args.EndDatetime,
+      }),      
+
     },
 
     limit: 1000,
