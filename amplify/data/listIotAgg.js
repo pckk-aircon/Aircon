@@ -1,4 +1,4 @@
-
+/*
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
@@ -39,3 +39,49 @@ export function response(ctx) {
   };
 }
 
+*/
+
+import { util } from '@aws-appsync/utils';
+
+export function request(ctx) {
+  const start = ctx.args.StartDatetime;
+  const end = ctx.args.EndDatetime;
+  const nextToken = ctx.args.nextToken ?? null;
+
+  return {
+    operation: 'Query',
+    index: 'Controller-DatetimeAgg-index',
+
+    query: {
+      expression:
+        'Controller = :controller AND DatetimeAgg BETWEEN :start AND :end',
+      expressionValues: util.dynamodb.toMapValues({
+        ':controller': ctx.args.Controller,
+        ':start': start,
+        ':end': end,
+      }),
+    },
+
+    // ✅ ★これが今回の修正の核心
+    filter: {
+      expression: 'attribute_exists(DatetimeAgg)',
+    },
+
+    limit: 1000,
+    scanIndexForward: true,
+    nextToken,
+  };
+}
+
+export function response(ctx) {
+  if (ctx.error) {
+    util.error(ctx.error.message, ctx.error.type, ctx.result);
+  }
+
+  console.log('[listIotAgg] count:', ctx.result?.items?.length);
+
+  return {
+    items: ctx.result?.items ?? [],
+    nextToken: ctx.result?.nextToken ?? null,
+  };
+}
