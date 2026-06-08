@@ -53,33 +53,24 @@ export function response(ctx) {
 }
 
 */
-
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
   const nextToken = ctx.args.nextToken ?? null;
-
-  // ✅ Division + Datetime を連結して SortKey として使う
-  const startKey = `${ctx.args.Division}#${ctx.args.StartDatetime}`;
-  const endKey = `${ctx.args.Division}#${ctx.args.EndDatetime}`;
 
   return {
     operation: 'Query',
     index: 'Controller-Division-DatetimeAgg-index',
 
     query: {
-      // ✅ SortKey（Division-DatetimeAgg）を1つとして扱う
       expression:
-        'Controller = :controller AND #sk BETWEEN :start AND :end',
-
-      expressionNames: {
-        '#sk': 'Division-DatetimeAgg',
-      },
+        'Controller = :controller AND Division = :division AND DatetimeAgg BETWEEN :start AND :end',
 
       expressionValues: util.dynamodb.toMapValues({
         ':controller': ctx.args.Controller,
-        ':start': startKey,
-        ':end': endKey,
+        ':division': ctx.args.Division,
+        ':start': ctx.args.StartDatetime,
+        ':end': ctx.args.EndDatetime,
       }),
     },
 
@@ -99,10 +90,9 @@ export function response(ctx) {
   console.log('[listIotAgg] count:', items.length);
   console.log('[listIotAgg] nextToken:', ctx.result?.nextToken);
 
-  // ✅ デバッグ（最初の1件）
   if (items.length > 0) {
     console.log(
-      '[listIotAgg] first raw item:',
+      '[listIotAgg] first item:',
       JSON.stringify(items[0], null, 2)
     );
   }
