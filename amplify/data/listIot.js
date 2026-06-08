@@ -41,7 +41,6 @@ export function response(ctx) {
 import { util } from '@aws-appsync/utils';
 
 export function request(ctx) {
-  console.log("★★★ listIot.js 修正後 ★★★");  // ★これ重要
 
   const start = ctx.args.StartDatetime;
   const end = ctx.args.EndDatetime;
