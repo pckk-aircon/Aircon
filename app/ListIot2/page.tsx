@@ -379,184 +379,184 @@ export default function Page() {
     // =========================================================
     // agg 専用 normalize
     // =========================================================
-    const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
-      const isNilLike = (v: unknown): boolean => {
-        return v == null || (typeof v === "string" && v.trim() === "");
-      };
+const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
 
-      const trimString = (v: unknown): unknown =>
-        typeof v === "string" ? v.trim() : v;
+  const isNilLike = (v: unknown): boolean => {
+    return v == null || (typeof v === "string" && v.trim() === "");
+  };
 
-      const normalizeDateTimeString = (v: unknown): string | null => {
-        if (typeof v !== "string") return null;
+  const trimString = (v: unknown): unknown =>
+    typeof v === "string" ? v.trim() : v;
 
-        let s = v.trim();
-        if (!s) return null;
+  const normalizeDateTimeString = (v: unknown): string | null => {
+    if (typeof v !== "string") return null;
 
-        // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
-        if (s.includes(" ") && !s.includes("T")) {
-          s = s.replace(" ", "T");
-        }
+    let s = v.trim();
+    if (!s) return null;
 
-        // タイムゾーン付与
-        if (
-          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
-          !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
-        ) {
-          s += "+09:00";
-        }
+    // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
+    if (s.includes(" ") && !s.includes("T")) {
+      s = s.replace(" ", "T");
+    }
 
-        return s;
-      };
+    // タイムゾーン付与
+    if (
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+      !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
+    ) {
+      s += "+09:00";
+    }
 
-      const tryNormalizeScalar = (v: unknown): unknown => {
-        if (v == null) return null;
-        if (typeof v === "number") return Number.isFinite(v) ? v : null;
-        if (typeof v !== "string") return v;
+    return s;
+  };
 
-        const s = v.trim();
-        if (!s) return null;
+  const tryNormalizeScalar = (v: unknown): unknown => {
+    if (v == null) return null;
+    if (typeof v === "number") return Number.isFinite(v) ? v : null;
+    if (typeof v !== "string") return v;
 
-        const normalized = s
-          .replace(/^'+/, "")
-          .replace(/^["']|["']$/g, "")
-          .replace(/[−ー―]/g, "-")
-          .replace(/,/g, "");
+    const s = v.trim();
+    if (!s) return null;
 
-        if (/^-?\d+(\.\d+)?$/.test(normalized)) {
-          const n = Number(normalized);
-          if (Number.isFinite(n)) return n;
-        }
+    const normalized = s
+      .replace(/^'+/, "")
+      .replace(/^["']|["']$/g, "")
+      .replace(/[−ー―]/g, "-")
+      .replace(/,/g, "");
 
-        return s;
-      };
+    if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+      const n = Number(normalized);
+      if (Number.isFinite(n)) return n;
+    }
 
-      const normalized = srcRows
-        .filter((row) => row && typeof row === "object")
-        .map((row) => {
-          const src = row as Record<string, unknown>;
-          const out: Record<string, unknown> = {};
+    return s;
+  };
 
-          // =========================
-          // ① 基本コピー（AggKeyは特別扱い）
-          // =========================
-          for (const [rawKey, rawValue] of Object.entries(src)) {
-            const key = String(rawKey).trim();
+  const normalized = srcRows
+    .filter((row) => row && typeof row === "object")
+    .map((row) => {
+      const src = row as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
 
-            let value;
+      // =========================
+      // ① 基本コピー
+      // =========================
+      for (const [rawKey, rawValue] of Object.entries(src)) {
+        const key = String(rawKey).trim();
+        const value =
+          key === "DatetimeAgg"
+            ? trimString(rawValue)
+            : tryNormalizeScalar(trimString(rawValue));
 
-            if (key === "AggKey") {
-              // ✅ 絶対壊さない
-              value = trimString(rawValue);
-            } else {
-              value = tryNormalizeScalar(trimString(rawValue));
-            }
+        out[key] = value;
+      }
 
-            out[key] = value;
-          }
+      // =========================
+      // ② 共通別名
+      // =========================
+      if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
+      if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
 
-          // =========================
-          // ② 共通別名
-          // =========================
-          if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
-          if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
+      if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
+      if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
 
-          if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
-          if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
+      // =========================
+      // ③ 集計列マッピング
+      // =========================
+      if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
+        out["ActivePower"] = out["AvgActivePower"];
+      }
 
-          // =========================
-          // ③ 集計列マッピング
-          // =========================
-          if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
-            out["ActivePower"] = out["AvgActivePower"];
-          }
+      if (
+        !isNilLike(out["SumCumulativeEnergy"]) &&
+        isNilLike(out["CumulativeEnergy"])
+      ) {
+        out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
+      }
 
-          if (
-            !isNilLike(out["SumCumulativeEnergy"]) &&
-            isNilLike(out["CumulativeEnergy"])
-          ) {
-            out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
-          }
+      if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
+        out["ActualTemp"] = out["AvgActualTemp"];
+      }
 
-          if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
-            out["ActualTemp"] = out["AvgActualTemp"];
-          }
+      if (
+        !isNilLike(out["AvgActualHumidity"]) &&
+        isNilLike(out["ActualHumidity"])
+      ) {
+        out["ActualHumidity"] = out["AvgActualHumidity"];
+      }
 
-          if (
-            !isNilLike(out["AvgActualHumidity"]) &&
-            isNilLike(out["ActualHumidity"])
-          ) {
-            out["ActualHumidity"] = out["AvgActualHumidity"];
-          }
+      // =========================
+      // ✅ ④ 最重要：DatetimeAggを最優先
+      // =========================
+      let ts: string | null = null;
 
-          // =========================
-          // ✅ ④ 最重要：AggKey → 時刻生成（強制）
-          // =========================
+      // ✅ ★ここが今回の修正ポイント
+      if (!isNilLike(src["DatetimeAgg"])) {
+        ts = normalizeDateTimeString(src["DatetimeAgg"]);
+      }
 
-          let ts: string | null = null;
+      // fallback（あれば）
+      if (!ts && !isNilLike(src["AggKey"])) {
+        ts = normalizeDateTimeString(src["AggKey"]);
+      }
 
-          // ① AggKey（最優先）
-          if (!isNilLike(src["AggKey"])) {
-            ts = normalizeDateTimeString(src["AggKey"]);
-          }
+      if (!ts && !isNilLike(src["ComputedAt"])) {
+        ts = normalizeDateTimeString(src["ComputedAt"]);
+      }
 
-          // ② fallback
-          if (!ts && !isNilLike(src["ComputedAt"])) {
-            ts = normalizeDateTimeString(src["ComputedAt"]);
-          }
+      if (!ts && !isNilLike(src["SourceWindowEnd"])) {
+        ts = normalizeDateTimeString(src["SourceWindowEnd"]);
+      }
 
-          if (!ts && !isNilLike(src["SourceWindowEnd"])) {
-            ts = normalizeDateTimeString(src["SourceWindowEnd"]);
-          }
+      // ✅ 強制セット
+      if (ts) {
+        out["DatetimeAgg"] = ts;
+        out["DeviceDatetime"] = ts;
+        out["DeviceTimestamp"] = ts;
+      } else {
+        out["DatetimeAgg"] = null;
+        out["DeviceDatetime"] = null;
+        out["DeviceTimestamp"] = null;
 
-          // ✅ 強制セット
-          if (ts) {
-            out["DatetimeAgg"] = ts;
-            out["DeviceDatetime"] = ts;
-            out["DeviceTimestamp"] = ts;
-          } else {
-            out["DatetimeAgg"] = null;
-            out["DeviceDatetime"] = null;
-            out["DeviceTimestamp"] = null;
-
-            console.warn("⚠️ agg datetime missing", {
-              AggKey: src["AggKey"],
-              row: src,
-            });
-          }
-
-          // =========================
-          // ⑤ 必須キー補完
-          // =========================
-          const mustHaveKeys = [
-            "DivisionAgg",
-            "Division",
-            "DivisionName",
-            "Device",
-            "DeviceName",
-            "DeviceType",
-            "DatetimeAgg",
-            "DeviceDatetime",
-            "DeviceTimestamp",
-            "AggKey",
-            "ActualTemp",
-            "ActualHumidity",
-            "ActivePower",
-            "ApparentPower",
-            "CumulativeEnergy",
-            "EnergyDeltaPerEffectiveMinute",
-            "WtTemp",
-          ];
-
-          for (const k of mustHaveKeys) {
-            if (!(k in out)) out[k] = null;
-          }
-
-          return out;
+        console.warn("⚠️ agg datetime missing", {
+          DatetimeAgg: src["DatetimeAgg"],
+          row: src,
         });
+      }
 
-      return normalized;
-    };
+      // =========================
+      // ⑤ 必須キー補完
+      // =========================
+      const mustHaveKeys = [
+        "DivisionAgg",
+        "Division",
+        "DivisionName",
+        "Device",
+        "DeviceName",
+        "DeviceType",
+        "DatetimeAgg",
+        "DeviceDatetime",
+        "DeviceTimestamp",
+        "ActualTemp",
+        "ActualHumidity",
+        "ActivePower",
+        "ApparentPower",
+        "CumulativeEnergy",
+        "EnergyDeltaPerEffectiveMinute",
+        "WtTemp",
+      ];
+
+      for (const k of mustHaveKeys) {
+        if (!(k in out)) out[k] = null;
+      }
+
+      return out;
+    });
+
+  return normalized;
+};
+
+
 
     // dispatcher
     if (kind === "agg") {

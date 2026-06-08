@@ -380,142 +380,154 @@ export default function Page() {
     // agg 専用 normalize
     // =========================================================
     const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
+      const isNilLike = (v: unknown): boolean => {
+        return v == null || (typeof v === "string" && v.trim() === "");
+      };
+
+      const trimString = (v: unknown): unknown =>
+        typeof v === "string" ? v.trim() : v;
+
+      const normalizeDateTimeString = (v: unknown): string | null => {
+        if (typeof v !== "string") return null;
+
+        let s = v.trim();
+        if (!s) return null;
+
+        // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
+        if (s.includes(" ") && !s.includes("T")) {
+          s = s.replace(" ", "T");
+        }
+
+        // タイムゾーン付与
+        if (
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+          !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
+        ) {
+          s += "+09:00";
+        }
+
+        return s;
+      };
+
+      const tryNormalizeScalar = (v: unknown): unknown => {
+        if (v == null) return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        if (typeof v !== "string") return v;
+
+        const s = v.trim();
+        if (!s) return null;
+
+        const normalized = s
+          .replace(/^'+/, "")
+          .replace(/^["']|["']$/g, "")
+          .replace(/[−ー―]/g, "-")
+          .replace(/,/g, "");
+
+        if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+          const n = Number(normalized);
+          if (Number.isFinite(n)) return n;
+        }
+
+        return s;
+      };
+
       const normalized = srcRows
         .filter((row) => row && typeof row === "object")
         .map((row) => {
           const src = row as Record<string, unknown>;
           const out: Record<string, unknown> = {};
 
+          // =========================
+          // ① 基本コピー（AggKeyは特別扱い）
+          // =========================
           for (const [rawKey, rawValue] of Object.entries(src)) {
             const key = String(rawKey).trim();
-            let value = trimString(rawValue);
 
-            if (
-              key === "DatetimeAgg" ||
-              key === "DeviceDatetime" ||
-              key === "DeviceTimestamp" ||
-              key === "AggKey"
-            ) {
-              value = normalizeDateTimeString(value);
+            let value;
+
+            if (key === "AggKey") {
+              // ✅ 絶対壊さない
+              value = trimString(rawValue);
             } else {
-              value = tryNormalizeScalar(value);
+              value = tryNormalizeScalar(trimString(rawValue));
             }
 
             out[key] = value;
           }
 
-          // 共通別名
-          fillIfEmpty(out, "DeviceType", "Type");
-          fillIfEmpty(out, "Device", "DeviceName");
-          fillIfEmpty(out, "DeviceName", "Device");
-          fillIfEmpty(out, "DivisionAgg", "Division");
-          fillIfEmpty(out, "Division", "DivisionAgg");
+          // =========================
+          // ② 共通別名
+          // =========================
+          if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
+          if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
 
-          // agg 列名吸収
-          autoMapByPrefix(out);
+          if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
+          if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
 
-          fillIfEmpty(out, "ActualTemp", "AvgActualTemp");
-          fillIfEmpty(out, "ActualTemp", "AveActualTemp");
-
-          fillIfEmpty(out, "ActualHumidity", "AvgActualHumidity");
-          fillIfEmpty(out, "ActualHumidity", "AveActualHumidity");
-
-          fillIfEmpty(out, "ActivePower", "AvgActivePower");
-          fillIfEmpty(out, "ActivePower", "AveActivePower");
-
-          fillIfEmpty(out, "ApparentPower", "AvgApparentPower");
-          fillIfEmpty(out, "ApparentPower", "AveApparentPower");
-
-          fillIfEmpty(out, "CumulativeEnergy", "SumCumulativeEnergy");
-
-          fillFromCandidates(out, "CumulativeEnergy", [
-            "SumCumulativeEnergy",
-            "CumulativeEnergyLast",
-            "CumulativeEnergyEnd",
-            "CumulativeEnergyStart",
-            "CumulativeEnergyMax",
-            "CumulativeEnergyMin",
-          ]);
-
-          fillFromCandidates(out, "EnergyDeltaPerEffectiveMinute", [
-            "EnergyDeltaPerEffectiveMinute",
-            "EnergyDeltaPerMinute",
-            "EnergyDelta",
-          ]);
-
-          fillFromCandidates(out, "WtTemp", [
-            "WtTemp",
-            "OutsideTemp",
-            "OutdoorTemp",
-            "ExternalTemp",
-            "OAT",
-          ]);
-
-          // ★最重要：agg の時刻候補を広げる
-          fillFromCandidates(out, "DatetimeAgg", [
-            "DatetimeAgg",
-            "AggKey",
-            "ComputedAt",
-            "SourceWindowEnd",
-            "SourceWindowStart",
-            "DeviceDatetime",
-            "DeviceTimestamp",
-          ]);
-
-          fillFromCandidates(out, "DeviceDatetime", [
-            "DeviceDatetime",
-            "DatetimeAgg",
-            "AggKey",
-            "ComputedAt",
-            "SourceWindowEnd",
-            "SourceWindowStart",
-            "DeviceTimestamp",
-          ]);
-
-          fillFromCandidates(out, "DeviceTimestamp", [
-            "DeviceTimestamp",
-            "DatetimeAgg",
-            "AggKey",
-            "ComputedAt",
-            "SourceWindowEnd",
-            "SourceWindowStart",
-            "DeviceDatetime",
-          ]);
-
-          // agg は DatetimeAgg 優先
-          const primaryTs =
-            !isNilLike(out["DatetimeAgg"])
-              ? out["DatetimeAgg"]
-              : !isNilLike(out["DeviceDatetime"])
-              ? out["DeviceDatetime"]
-              : !isNilLike(out["DeviceTimestamp"])
-              ? out["DeviceTimestamp"]
-              : !isNilLike(out["AggKey"])
-              ? out["AggKey"]
-              : null;
-
-          if (!isNilLike(primaryTs)) {
-            const normalizedTs = normalizeDateTimeString(primaryTs);
-
-            if (isNilLike(out.DatetimeAgg)) {
-              out.DatetimeAgg = normalizedTs;
-            } else {
-              out.DatetimeAgg = normalizeDateTimeString(out.DatetimeAgg);
-            }
-
-            if (isNilLike(out.DeviceDatetime)) {
-              out.DeviceDatetime = normalizedTs;
-            } else {
-              out.DeviceDatetime = normalizeDateTimeString(out.DeviceDatetime);
-            }
-
-            if (isNilLike(out.DeviceTimestamp)) {
-              out.DeviceTimestamp = normalizedTs;
-            } else {
-              out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
-            }
+          // =========================
+          // ③ 集計列マッピング
+          // =========================
+          if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
+            out["ActivePower"] = out["AvgActivePower"];
           }
 
+          if (
+            !isNilLike(out["SumCumulativeEnergy"]) &&
+            isNilLike(out["CumulativeEnergy"])
+          ) {
+            out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
+          }
+
+          if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
+            out["ActualTemp"] = out["AvgActualTemp"];
+          }
+
+          if (
+            !isNilLike(out["AvgActualHumidity"]) &&
+            isNilLike(out["ActualHumidity"])
+          ) {
+            out["ActualHumidity"] = out["AvgActualHumidity"];
+          }
+
+          // =========================
+          // ✅ ④ 最重要：AggKey → 時刻生成（強制）
+          // =========================
+
+          let ts: string | null = null;
+
+          // ① AggKey（最優先）
+          if (!isNilLike(src["AggKey"])) {
+            ts = normalizeDateTimeString(src["AggKey"]);
+          }
+
+          // ② fallback
+          if (!ts && !isNilLike(src["ComputedAt"])) {
+            ts = normalizeDateTimeString(src["ComputedAt"]);
+          }
+
+          if (!ts && !isNilLike(src["SourceWindowEnd"])) {
+            ts = normalizeDateTimeString(src["SourceWindowEnd"]);
+          }
+
+          // ✅ 強制セット
+          if (ts) {
+            out["DatetimeAgg"] = ts;
+            out["DeviceDatetime"] = ts;
+            out["DeviceTimestamp"] = ts;
+          } else {
+            out["DatetimeAgg"] = null;
+            out["DeviceDatetime"] = null;
+            out["DeviceTimestamp"] = null;
+
+            console.warn("⚠️ agg datetime missing", {
+              AggKey: src["AggKey"],
+              row: src,
+            });
+          }
+
+          // =========================
+          // ⑤ 必須キー補完
+          // =========================
           const mustHaveKeys = [
             "DivisionAgg",
             "Division",
@@ -537,15 +549,13 @@ export default function Page() {
           ];
 
           for (const k of mustHaveKeys) {
-            if (!(k in out)) {
-              out[k] = null;
-            }
+            if (!(k in out)) out[k] = null;
           }
 
           return out;
         });
 
-      return finalizeFirstRowKeys(normalized);
+      return normalized;
     };
 
     // dispatcher
