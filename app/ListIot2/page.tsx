@@ -858,10 +858,10 @@ export default function Page() {
         }
 
         const { items, nextToken: newNextToken } = unwrapQueryData(data);
-
-
         
+
         // ✅ ★APPSYNCのログ確認
+        console.error("RAW FULL ITEM:", JSON.stringify(items?.[0], null, 2));
         console.log("RAW FROM APPSYNC:", items?.[0]);
 
 
