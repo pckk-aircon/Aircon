@@ -401,6 +401,8 @@ const schema = a.schema({
     AvgActualHumidity: a.string(),
     AvgActivePower: a.string(),
     SumCumulativeEnergy: a.string(),
+    EnergyDeltaPerEffectiveMinute: a.string(),
+    WtTemp: a.string(),
 
     // 必要なら粒度列なども追加
     AggUnit: a.string(),      // 例: "hour", "day"
