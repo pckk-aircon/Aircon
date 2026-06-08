@@ -391,7 +391,7 @@ const schema = a.schema({
 
   IotDataAgg: a.customType({
     Device: a.id().required(),
-    DeviceDatetime: a.string(),
+    DatetimeAgg: a.string(),
     DeviceType: a.string(),
     Controller: a.string(),
     Division: a.string(),
