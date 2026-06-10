@@ -32,10 +32,20 @@
   const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
 
   // デフォルト選択
-  const DEFAULT_LEFT1 = ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"];
-  const DEFAULT_LEFT2 = ["ActualTemp"];
-  const DEFAULT_RIGHT1 = ["CumulativeEnergy", "WtTemp"];
-  const DEFAULT_RIGHT2 = ["ActualHumidity"];
+  const DEFAULT_SELECTIONS = {
+    iot: {
+      left1: ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"],
+      left2: ["ActualTemp"],
+      right1: ["CumulativeEnergy", "WtTemp"],
+      right2: ["ActualHumidity"],
+    },
+    agg: {
+      left1: ["EnergyDeltaPerEffectiveMinute"],
+      left2: [],
+      right1: ["WtTemp"],
+      right2: [],
+    },
+  };
 
   // 表示名（ラベル）
   const DISPLAY_NAME_MAP = {
@@ -467,7 +477,6 @@
   // 4軸用の列セレクタ構築
   // =========================================================
   function buildColumnSelectors(fields, data) {
-
     const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
 
     const Y_EXCLUDE = [
@@ -504,7 +513,7 @@
     }
 
     // ----------------------------
-    // ✅ Y候補抽出（ここが超重要）
+    // ✅ Y候補抽出
     // ----------------------------
     const yCandidates = fields
       .filter(f => !tsFinal.includes(f))
@@ -514,13 +523,12 @@
       );
 
     // ----------------------------
-    // ✅ fallback（全滅防止）
+    // fallback（全滅防止）
     // ----------------------------
     let finalCandidates = yCandidates;
 
     if (finalCandidates.length === 0) {
       console.warn("⚠ yCandidates empty → fallback to all fields");
-
       finalCandidates = fields.filter(f => !tsFinal.includes(f));
     }
 
@@ -536,18 +544,25 @@
 
       sel.disabled = false;
 
-      // ✅ 初期選択
       for (const opt of sel.options) {
         opt.selected = defaults.includes(opt.value);
       }
     }
 
-    fill(yLeft1Sel, DEFAULT_LEFT1);
-    fill(yLeft2Sel, DEFAULT_LEFT2);
-    fill(yRight1Sel, DEFAULT_RIGHT1);
-    fill(yRight2Sel, DEFAULT_RIGHT2);
+    // ✅ dataKindごとのデフォルト選択
+    const defaults =
+      appState.currentDataKind === "agg"
+        ? DEFAULT_SELECTIONS.agg
+        : DEFAULT_SELECTIONS.iot;
 
+    fill(yLeft1Sel, defaults.left1);
+    fill(yLeft2Sel, defaults.left2);
+    fill(yRight1Sel, defaults.right1);
+    fill(yRight2Sel, defaults.right2);
+
+    console.log("✅ dataKind:", appState.currentDataKind);
     console.log("✅ yCandidates:", finalCandidates);
+    console.log("✅ default selections:", defaults);
   }
 
   // =========================================================

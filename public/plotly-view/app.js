@@ -604,112 +604,11 @@
       tpSetTempSel.value === "ALL" ? "ALL（フィルタなし）" : `TpSetTempAvgOn=${tpSetTempSel.value}`;
   }
 
-  // =========================================================
-  // Aircon側：Datetime(TS列)ごとの TpSetTempAvgOn（最頻値）を作る
-  // =========================================================
-  function buildAirconTempMap(data) {
-    const tsCol = tsSel?.value || "";
-    const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
-    if (!tsCol || !hasSetTemp) return new Map();
-
-    const divCol = appState.colDivision;
-    const dtCounts = new Map();
-
-    for (const r of data || []) {
-      if (r[divCol] !== divisionSel?.value) continue;
-      if (!isAirconType(r[CONFIG.colDeviceType])) continue;
-
-      const tsRaw = r[tsCol];
-      if (!tsRaw) continue;
-
-      const day = getDayFromTs(tsRaw);
-      if (!inDayRange(day)) continue;
-
-      const dt = normalizeDt(tsRaw);
-      const tp = toNum(r.TpSetTempAvgOn);
-      if (!Number.isFinite(tp)) continue;
-
-      if (!dtCounts.has(dt)) dtCounts.set(dt, new Map());
-      const mp = dtCounts.get(dt);
-      mp.set(tp, (mp.get(tp) || 0) + 1);
-    }
-
-    const out = new Map();
-    for (const [dt, mp] of dtCounts.entries()) {
-      let bestTp = null;
-      let bestCnt = -1;
-      const temps = [...mp.keys()].sort((a, b) => a - b);
-      for (const t of temps) {
-        const c = mp.get(t);
-        if (c > bestCnt) {
-          bestCnt = c;
-          bestTp = t;
-        }
-      }
-      if (bestTp != null) out.set(dt, bestTp);
-    }
-    return out;
-  }
-
-  // =========================================================
-  // Aircon条件（選択値）を満たす TS(dt) 集合を作る
-  // =========================================================
-  function buildAllowedDatetimeAggSet(data) {
-    if (!tpSetTempSel) return null;
-
-    const selected = String(tpSetTempSel.value || "ALL");
-    appState.tpSetTempOn = selected;
-    syncTpBadge();
-
-    if (selected === "ALL") {
-      dbg("Aircon条件: すべてを表示（フィルタなし）");
-      return null;
-    }
-
-    const target = Number(selected);
-    if (!Number.isFinite(target)) {
-      dbg("WARNING: TpSetTempAvgOn の選択値が数値ではありません。フィルタ無効化します。");
-      return null;
-    }
-
-    const divCol = appState.colDivision;
-    const tsCol = tsSel?.value || "";
-    const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
-
-    if (!tsCol || !hasSetTemp) {
-      dbg("WARNING: TS列 または TpSetTempAvgOn 列がありません。フィルタ無効化します。");
-      return null;
-    }
-
-    const out = new Set();
-    for (const r of data || []) {
-      if (r[divCol] !== divisionSel?.value) continue;
-      if (!isAirconType(r[CONFIG.colDeviceType])) continue;
-
-      const tsRaw = r[tsCol];
-      if (!tsRaw) continue;
-
-      const day = getDayFromTs(tsRaw);
-      if (!inDayRange(day)) continue;
-
-      const v = toNum(r.TpSetTempAvgOn);
-      if (Number.isFinite(v) && Math.abs(v - target) < 1e-9) {
-        out.add(normalizeDt(tsRaw));
-      }
-    }
-    dbg(`Aircon条件: TpSetTempAvgOn=${target} のTS(dt)が ${out.size} 個`);
-    return out;
-  }
-
-  // =========================================================
-  // 生データ → rows 正規化
-  // =========================================================
-  function buildRowsRaw(data, allowedSet, airconTempMap) {
-    const out = [];
+  function buildRowsAndAirconCaches(data) {
     const divCol = appState.colDivision;
     const devCol = appState.colDevice;
 
-    const colTs = tsSel?.value;
+    const colTs = tsSel?.value || "";
     const left1 = getSelectedValues(yLeft1Sel);
     const left2 = getSelectedValues(yLeft2Sel);
     const right1 = getSelectedValues(yRight1Sel);
@@ -718,8 +617,41 @@
     const allMetrics = [...left1, ...left2, ...right1, ...right2];
     if (allMetrics.length === 0) {
       dbg("Y軸がすべて未選択のため、描画しません。");
-      return { rows: [], left1, left2, right1, right2, colTs };
+      return {
+        rows: [],
+        left1,
+        left2,
+        right1,
+        right2,
+        colTs,
+        airconTempMap: null,
+        allowed: null,
+      };
     }
+
+    const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
+
+    // Aircon の「最頻値マップ」は、従来どおり iot + TpSetTemp列あり のときだけ作る
+    const useAirconMap =
+      appState.currentDataKind === "iot" &&
+      !!tpSetTempSel &&
+      hasSetTemp;
+
+    // Aircon の「allowedフィルタ」は、さらに ALL 以外のときだけ有効
+    const selectedTp = String(tpSetTempSel?.value || "ALL");
+    appState.tpSetTempOn = selectedTp;
+    syncTpBadge();
+
+    const targetTp = selectedTp === "ALL" ? NaN : Number(selectedTp);
+    const useAllowedFilter = useAirconMap && Number.isFinite(targetTp);
+
+    // 1回の sourceData 走査で以下を同時に構築する
+    // - 候補 rows
+    // - dt ごとの TpSetTempAvgOn カウント
+    // - allowed dt set
+    const candidateRows = [];
+    const dtCounts = useAirconMap ? new Map() : null;
+    const allowed = useAllowedFilter ? new Set() : null;
 
     for (const r of data || []) {
       const div = r[divCol];
@@ -735,22 +667,96 @@
       const dt = normalizeDt(tsRawForPlot);
       const dtypeRaw = r[CONFIG.colDeviceType];
 
-      if (allowedSet && !allowedSet.has(dt)) continue;
+      // -------------------------------------------------
+      // Aircon 集計（最頻値用 + allowed判定用）
+      // -------------------------------------------------
+      if (useAirconMap && isAirconType(dtypeRaw)) {
+        const tp = toNum(r.TpSetTempAvgOn);
+        if (Number.isFinite(tp)) {
+          if (!dtCounts.has(dt)) dtCounts.set(dt, new Map());
+          const mp = dtCounts.get(dt);
+          mp.set(tp, (mp.get(tp) || 0) + 1);
 
-      const tp = airconTempMap?.has(dt) ? airconTempMap.get(dt) : NaN;
+          if (useAllowedFilter && Math.abs(tp - targetTp) < 1e-9) {
+            allowed.add(dt);
+          }
+        }
+      }
 
+      // -------------------------------------------------
+      // rows 候補作成
+      // ※ ここではまだ allowed で落とさない
+      //    （同じ dt の aircon 行が後ろに出る可能性があるため）
+      // -------------------------------------------------
       for (const metric of allMetrics) {
         if (POWER_ONLY_METRICS.includes(metric)) {
           if (!isPowerType(dtypeRaw)) continue;
         }
+
         const v = toNum(r[metric]);
-        if (Number.isFinite(v)) {
-          out.push({ dev, dt, day, metric, v, tsRaw: tsRawForPlot, tp });
-        }
+        if (!Number.isFinite(v)) continue;
+
+        candidateRows.push({
+          dev,
+          dt,
+          day,
+          metric,
+          v,
+          tsRaw: tsRawForPlot,
+        });
       }
     }
 
-    return { rows: out, left1, left2, right1, right2, colTs };
+    // -------------------------------------------------
+    // dt ごとの最頻 TpSetTempAvgOn を確定
+    // -------------------------------------------------
+    let airconTempMap = null;
+    if (useAirconMap) {
+      airconTempMap = new Map();
+
+      for (const [dt, mp] of dtCounts.entries()) {
+        let bestTp = null;
+        let bestCnt = -1;
+        const temps = [...mp.keys()].sort((a, b) => a - b);
+
+        for (const t of temps) {
+          const c = mp.get(t);
+          if (c > bestCnt) {
+            bestCnt = c;
+            bestTp = t;
+          }
+        }
+        if (bestTp != null) airconTempMap.set(dt, bestTp);
+      }
+    }
+
+    // -------------------------------------------------
+    // allowed 適用 + tp 付与
+    // -------------------------------------------------
+    const out = [];
+    for (const row of candidateRows) {
+      if (allowed && !allowed.has(row.dt)) continue;
+
+      row.tp = airconTempMap?.has(row.dt) ? airconTempMap.get(row.dt) : NaN;
+      out.push(row);
+    }
+
+    if (useAllowedFilter) {
+      dbg(`Aircon条件: TpSetTempAvgOn=${targetTp} のTS(dt)が ${allowed.size} 個`);
+    } else if (useAirconMap) {
+      dbg("Aircon条件: すべてを表示（フィルタなし）");
+    }
+
+    return {
+      rows: out,
+      left1,
+      left2,
+      right1,
+      right2,
+      colTs,
+      airconTempMap,
+      allowed,
+    };
   }
 
   // =========================================================
@@ -1198,33 +1204,56 @@
   function updatePlot() {
     if (!appState.sourceData) return;
 
-    const airconTempMap = buildAirconTempMap(appState.sourceData);
-    const allowed = buildAllowedDatetimeAggSet(appState.sourceData);
+    console.time("updatePlot_total");
 
-    const { rows: rows0, left1, left2, right1, right2, colTs } = buildRowsRaw(
-      appState.sourceData,
-      allowed,
-      airconTempMap
-    );
+    // -------------------------------------------------
+    // sourceData はここで 1回だけ走査
+    // -------------------------------------------------
+    console.time("buildRowsAndAirconCaches");
+    const {
+      rows: rows0,
+      left1,
+      left2,
+      right1,
+      right2,
+      colTs,
+    } = buildRowsAndAirconCaches(appState.sourceData);
+    console.timeEnd("buildRowsAndAirconCaches");
 
     if (badgeColTs) badgeColTs.textContent = colTs || "";
 
+    // -------------------------------------------------
+    // 粒度集計
+    // -------------------------------------------------
+    console.time("aggregateRows");
     const rows = aggregateRows(rows0, appState.grainMin);
+    console.timeEnd("aggregateRows");
 
-    const daysInView = [...new Set((rows || []).map((r) => r.day).filter(Boolean))].sort();
+    // -------------------------------------------------
+    // rows 側のループも 1回に統合
+    // daysInView / tempsInView / valueMap
+    // -------------------------------------------------
+    console.time("buildViewCaches");
+    const daySet = new Set();
+    const tempSet = new Set();
+    const m = new Map();
+
+    for (const r of rows || []) {
+      if (r.day) daySet.add(r.day);
+      if (Number.isFinite(r.tp)) tempSet.add(Number(r.tp));
+      m.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
+    }
+
+    const daysInView = [...daySet].sort();
+    const tempsInView = [...tempSet].sort((a, b) => a - b);
+
     appState.dayColors = buildDayColors(daysInView);
-
-    const tempsInView = [...new Set((rows || []).map((r) => r.tp).filter((v) => Number.isFinite(v)).map((v) => Number(v)))].sort(
-      (a, b) => a - b
-    );
     appState.tempColors = buildTempColors(tempsInView);
 
     appState.lastLeft1 = left1;
     appState.lastRight1 = right1;
-
-    const m = new Map();
-    for (const r of rows || []) m.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
     appState.valueMap = m;
+    console.timeEnd("buildViewCaches");
 
     dbg(`dataKind=${appState.currentDataKind}`);
     dbg(`TS列=${colTs}`);
@@ -1232,9 +1261,17 @@
     dbg(`Device列=${appState.colDevice}`);
     dbg(`rows(raw)=${rows0.length}, rows(agg)=${rows.length}`);
 
+    console.time("render_line");
     render(rows, left1, left2, right1, right2, colTs);
+    console.timeEnd("render_line");
+
+    console.time("render_scatter");
     renderScatter(rows, left1, right1);
+    console.timeEnd("render_scatter");
+
     bindScatterToLineHover();
+
+    console.timeEnd("updatePlot_total");
   }
 
   function enableControls() {
