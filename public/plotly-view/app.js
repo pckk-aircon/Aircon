@@ -945,10 +945,7 @@
     const hit = cache.aggregatedRows.get(aggKey);
     if (hit) return hit;
 
-    const rows =
-      appState.currentDataKind === "agg"
-        ? expanded.rows
-        : aggregateRows(expanded.rows, grainMin);
+    const rows = aggregateRows(expanded.rows, grainMin);
 
     const result = {
       aggKey,
