@@ -379,182 +379,198 @@ export default function Page() {
     // =========================================================
     // agg 専用 normalize
     // =========================================================
-const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
+  const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
 
-  const isNilLike = (v: unknown): boolean => {
-    return v == null || (typeof v === "string" && v.trim() === "");
-  };
+    const isNilLike = (v: unknown): boolean => {
+      return v == null || (typeof v === "string" && v.trim() === "");
+    };
 
-  const trimString = (v: unknown): unknown =>
-    typeof v === "string" ? v.trim() : v;
+    const trimString = (v: unknown): unknown =>
+      typeof v === "string" ? v.trim() : v;
 
-  const normalizeDateTimeString = (v: unknown): string | null => {
-    if (typeof v !== "string") return null;
+    const normalizeDateTimeString = (v: unknown): string | null => {
+      if (typeof v !== "string") return null;
 
-    let s = v.trim();
-    if (!s) return null;
+      let s = v.trim();
+      if (!s) return null;
 
-    // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
-    if (s.includes(" ") && !s.includes("T")) {
-      s = s.replace(" ", "T");
-    }
-
-    // タイムゾーン付与
-    if (
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
-      !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
-    ) {
-      s += "+09:00";
-    }
-
-    return s;
-  };
-
-  const tryNormalizeScalar = (v: unknown): unknown => {
-    if (v == null) return null;
-    if (typeof v === "number") return Number.isFinite(v) ? v : null;
-    if (typeof v !== "string") return v;
-
-    const s = v.trim();
-    if (!s) return null;
-
-    const normalized = s
-      .replace(/^'+/, "")
-      .replace(/^["']|["']$/g, "")
-      .replace(/[−ー―]/g, "-")
-      .replace(/,/g, "");
-
-    if (/^-?\d+(\.\d+)?$/.test(normalized)) {
-      const n = Number(normalized);
-      if (Number.isFinite(n)) return n;
-    }
-
-    return s;
-  };
-
-  const normalized = srcRows
-    .filter((row) => row && typeof row === "object")
-    .map((row) => {
-      const src = row as Record<string, unknown>;
-      const out: Record<string, unknown> = {};
-
-      // =========================
-      // ① 基本コピー
-      // =========================
-      for (const [rawKey, rawValue] of Object.entries(src)) {
-        const key = String(rawKey).trim();
-        const value =
-          key === "DatetimeAgg"
-            ? trimString(rawValue)
-            : tryNormalizeScalar(trimString(rawValue));
-
-        out[key] = value;
+      // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
+      if (s.includes(" ") && !s.includes("T")) {
+        s = s.replace(" ", "T");
       }
 
-      // =========================
-      // ② 共通別名
-      // =========================
-      if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
-      if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
-
-      if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
-      if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
-
-      // =========================
-      // ③ 集計列マッピング
-      // =========================
-      if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
-        out["ActivePower"] = out["AvgActivePower"];
-      }
-
+      // タイムゾーン補完
       if (
-        !isNilLike(out["SumCumulativeEnergy"]) &&
-        isNilLike(out["CumulativeEnergy"])
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+        !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
       ) {
-        out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
+        s += "+09:00";
       }
 
-      if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
-        out["ActualTemp"] = out["AvgActualTemp"];
+      return s;
+    };
+
+    const tryNormalizeScalar = (v: unknown): unknown => {
+      if (v == null) return null;
+      if (typeof v === "number") return Number.isFinite(v) ? v : null;
+      if (typeof v !== "string") return v;
+
+      const s = v.trim();
+      if (!s) return null;
+
+      const normalized = s
+        .replace(/^'+/, "")
+        .replace(/^["']|["']$/g, "")
+        .replace(/[−ー―]/g, "-")
+        .replace(/,/g, "");
+
+      if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+        const n = Number(normalized);
+        if (Number.isFinite(n)) return n;
       }
 
-      if (
-        !isNilLike(out["AvgActualHumidity"]) &&
-        isNilLike(out["ActualHumidity"])
-      ) {
-        out["ActualHumidity"] = out["AvgActualHumidity"];
-      }
+      return s;
+    };
 
-      // =========================
-      // ✅ ④ 最重要：DatetimeAggを最優先
-      // =========================
-      let ts: string | null = null;
+    const normalized = srcRows
+      .filter((row) => row && typeof row === "object")
+      .map((row) => {
+        const src = row as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
 
-      // ✅ ★ここが今回の修正ポイント
-      if (!isNilLike(src["DatetimeAgg"])) {
-        ts = normalizeDateTimeString(src["DatetimeAgg"]);
-      }
+        // =========================
+        // ① 基本コピー
+        // =========================
+        for (const [rawKey, rawValue] of Object.entries(src)) {
+          const key = String(rawKey).trim();
 
-      // fallback（あれば）
-      if (!ts && !isNilLike(src["AggKey"])) {
-        ts = normalizeDateTimeString(src["AggKey"]);
-      }
+          const value =
+            key === "DatetimeAgg"
+              ? trimString(rawValue)
+              : tryNormalizeScalar(trimString(rawValue));
 
-      if (!ts && !isNilLike(src["ComputedAt"])) {
-        ts = normalizeDateTimeString(src["ComputedAt"]);
-      }
+          out[key] = value;
+        }
 
-      if (!ts && !isNilLike(src["SourceWindowEnd"])) {
-        ts = normalizeDateTimeString(src["SourceWindowEnd"]);
-      }
+        // =========================
+        // ② 共通別名補完
+        // =========================
+        if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
+        if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
 
-      // ✅ 強制セット
-      if (ts) {
-        out["DatetimeAgg"] = ts;
-        out["DeviceDatetime"] = ts;
-        out["DeviceTimestamp"] = ts;
-      } else {
-        out["DatetimeAgg"] = null;
-        out["DeviceDatetime"] = null;
-        out["DeviceTimestamp"] = null;
+        if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
+        if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
 
-        console.warn("⚠️ agg datetime missing", {
-          DatetimeAgg: src["DatetimeAgg"],
-          row: src,
-        });
-      }
+        if (isNilLike(out["DeviceType"])) out["DeviceType"] = out["Type"];
 
-      // =========================
-      // ⑤ 必須キー補完
-      // =========================
-      const mustHaveKeys = [
-        "DivisionAgg",
-        "Division",
-        "DivisionName",
-        "Device",
-        "DeviceName",
-        "DeviceType",
-        "DatetimeAgg",
-        "DeviceDatetime",
-        "DeviceTimestamp",
-        "ActualTemp",
-        "ActualHumidity",
-        "ActivePower",
-        "ApparentPower",
-        "CumulativeEnergy",
-        "EnergyDeltaPerEffectiveMinute",
-        "WtTemp",
-      ];
+        // =========================
+        // ③ 集計列 → 通常列マッピング（重要）
+        // =========================
+        if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
+          out["ActivePower"] = out["AvgActivePower"];
+        }
 
-      for (const k of mustHaveKeys) {
-        if (!(k in out)) out[k] = null;
-      }
+        if (!isNilLike(out["AvgApparentPower"]) && isNilLike(out["ApparentPower"])) {
+          out["ApparentPower"] = out["AvgApparentPower"];
+        }
 
-      return out;
-    });
+        if (!isNilLike(out["SumCumulativeEnergy"]) && isNilLike(out["CumulativeEnergy"])) {
+          out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
+        }
 
-  return normalized;
-};
+        if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
+          out["ActualTemp"] = out["AvgActualTemp"];
+        }
+
+        if (!isNilLike(out["AvgActualHumidity"]) && isNilLike(out["ActualHumidity"])) {
+          out["ActualHumidity"] = out["AvgActualHumidity"];
+        }
+
+        if (!isNilLike(out["AvgWtTemp"]) && isNilLike(out["WtTemp"])) {
+          out["WtTemp"] = out["AvgWtTemp"];
+        }
+
+        if (
+          !isNilLike(out["SumEnergyDeltaPerEffectiveMinute"]) &&
+          isNilLike(out["EnergyDeltaPerEffectiveMinute"])
+        ) {
+          out["EnergyDeltaPerEffectiveMinute"] =
+            out["SumEnergyDeltaPerEffectiveMinute"];
+        }
+
+        // =========================
+        // ✅ ④ DatetimeAgg取得（最重要）
+        // =========================
+        let ts: string | null = null;
+
+        const candidates = [
+          "DatetimeAgg",
+          "AggKey",
+          "DateTimeAgg",
+          "Datetime",
+          "ComputedAt",
+          "SourceWindowEnd",
+        ];
+
+        for (const key of candidates) {
+          if (!ts && !isNilLike(src[key])) {
+            ts = normalizeDateTimeString(src[key]);
+            console.log("✅ use datetime from", key, "=", src[key]);
+          }
+        }
+
+        // fallback（DeviceDatetime）
+        if (!ts && !isNilLike(src["DeviceDatetime"])) {
+          ts = normalizeDateTimeString(src["DeviceDatetime"]);
+          console.log("✅ use datetime from DeviceDatetime");
+        }
+
+        // セット
+        if (ts) {
+          out["DatetimeAgg"] = ts;
+          out["DeviceDatetime"] = ts;
+          out["DeviceTimestamp"] = ts;
+        } else {
+          out["DatetimeAgg"] = null;
+          out["DeviceDatetime"] = null;
+          out["DeviceTimestamp"] = null;
+
+          console.warn("⚠️ agg datetime missing", {
+            row: src,
+          });
+        }
+
+        // =========================
+        // ⑤ 必須キー補完
+        // =========================
+        const mustHaveKeys = [
+          "DivisionAgg",
+          "Division",
+          "DivisionName",
+          "Device",
+          "DeviceName",
+          "DeviceType",
+          "DatetimeAgg",
+          "DeviceDatetime",
+          "DeviceTimestamp",
+          "ActualTemp",
+          "ActualHumidity",
+          "ActivePower",
+          "ApparentPower",
+          "CumulativeEnergy",
+          "EnergyDeltaPerEffectiveMinute",
+          "WtTemp",
+        ];
+
+        for (const k of mustHaveKeys) {
+          if (!(k in out)) out[k] = null;
+        }
+
+        return out;
+      });
+
+    return normalized;
+  };
 
 
 
@@ -842,10 +858,10 @@ const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
         }
 
         const { items, nextToken: newNextToken } = unwrapQueryData(data);
-
-
         
+
         // ✅ ★APPSYNCのログ確認
+        console.error("RAW FULL ITEM:", JSON.stringify(items?.[0], null, 2));
         console.log("RAW FROM APPSYNC:", items?.[0]);
 
 

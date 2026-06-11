@@ -96,7 +96,7 @@ export default function Page() {
   const latestFullPayloadRef = useRef<FullPayload | null>(null);
 
   /**
-   * どの rangeKey の rows を最後に送ったか
+   * どの iframeDataKey の rows を最後に送ったか
    */
   const lastSentDataKeyRef = useRef<string>("");
 
@@ -122,6 +122,22 @@ export default function Page() {
         kind,
         format(startOfDay(start), "yyyy-MM-dd"),
         format(startOfDay(end), "yyyy-MM-dd"),
+      ].join("|"),
+    [controller]
+  );
+
+  /**
+   * iframeへ送ったデータを識別するキー
+   * range cache key と違い division も含める
+   */
+  const makeIframeDataKey = useCallback(
+    (start: Date, end: Date, kind: DataKind, division: string) =>
+      [
+        controller,
+        kind,
+        format(startOfDay(start), "yyyy-MM-dd"),
+        format(startOfDay(end), "yyyy-MM-dd"),
+        division,
       ].join("|"),
     [controller]
   );
@@ -195,7 +211,7 @@ export default function Page() {
 
       const normalized = s
         .replace(/^'+/, "")
-        .replace(/^["']|["']$/g, "")
+        .replace(/^[\"']|[\"']$/g, "")
         .replace(/[−ー―]/g, "-")
         .replace(/,/g, "");
 
@@ -214,47 +230,6 @@ export default function Page() {
     ) => {
       if (isNilLike(out[target]) && !isNilLike(out[source])) {
         out[target] = out[source];
-      }
-    };
-
-    const fillFromCandidates = (
-      out: Record<string, unknown>,
-      target: string,
-      candidates: string[]
-    ) => {
-      if (!isNilLike(out[target])) return;
-      for (const c of candidates) {
-        if (!isNilLike(out[c])) {
-          out[target] = out[c];
-          return;
-        }
-      }
-    };
-
-    const autoMapByPrefix = (out: Record<string, unknown>) => {
-      const keys = Object.keys(out);
-
-      for (const key of keys) {
-        const value = out[key];
-        if (isNilLike(value)) continue;
-
-        let base: string | null = null;
-
-        if (key.startsWith("Avg")) {
-          base = key.replace(/^Avg/, "");
-        } else if (key.startsWith("Ave")) {
-          base = key.replace(/^Ave/, "");
-        } else if (key.startsWith("Sum")) {
-          base = key.replace(/^Sum/, "");
-        } else if (key.startsWith("Min")) {
-          base = key.replace(/^Min/, "");
-        } else if (key.startsWith("Max")) {
-          base = key.replace(/^Max/, "");
-        }
-
-        if (base && isNilLike(out[base])) {
-          out[base] = value;
-        }
       }
     };
 
@@ -379,200 +354,197 @@ export default function Page() {
     // =========================================================
     // agg 専用 normalize
     // =========================================================
-  const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
+    const normalizeAggRows = (srcRows: IotRow[]): IotRow[] => {
+      const isNilLike = (v: unknown): boolean => {
+        return v == null || (typeof v === "string" && v.trim() === "");
+      };
 
-    const isNilLike = (v: unknown): boolean => {
-      return v == null || (typeof v === "string" && v.trim() === "");
-    };
+      const trimString = (v: unknown): unknown =>
+        typeof v === "string" ? v.trim() : v;
 
-    const trimString = (v: unknown): unknown =>
-      typeof v === "string" ? v.trim() : v;
+      const normalizeDateTimeString = (v: unknown): string | null => {
+        if (typeof v !== "string") return null;
 
-    const normalizeDateTimeString = (v: unknown): string | null => {
-      if (typeof v !== "string") return null;
+        let s = v.trim();
+        if (!s) return null;
 
-      let s = v.trim();
-      if (!s) return null;
-
-      // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
-      if (s.includes(" ") && !s.includes("T")) {
-        s = s.replace(" ", "T");
-      }
-
-      // タイムゾーン補完
-      if (
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
-        !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
-      ) {
-        s += "+09:00";
-      }
-
-      return s;
-    };
-
-    const tryNormalizeScalar = (v: unknown): unknown => {
-      if (v == null) return null;
-      if (typeof v === "number") return Number.isFinite(v) ? v : null;
-      if (typeof v !== "string") return v;
-
-      const s = v.trim();
-      if (!s) return null;
-
-      const normalized = s
-        .replace(/^'+/, "")
-        .replace(/^["']|["']$/g, "")
-        .replace(/[−ー―]/g, "-")
-        .replace(/,/g, "");
-
-      if (/^-?\d+(\.\d+)?$/.test(normalized)) {
-        const n = Number(normalized);
-        if (Number.isFinite(n)) return n;
-      }
-
-      return s;
-    };
-
-    const normalized = srcRows
-      .filter((row) => row && typeof row === "object")
-      .map((row) => {
-        const src = row as Record<string, unknown>;
-        const out: Record<string, unknown> = {};
-
-        // =========================
-        // ① 基本コピー
-        // =========================
-        for (const [rawKey, rawValue] of Object.entries(src)) {
-          const key = String(rawKey).trim();
-
-          const value =
-            key === "DatetimeAgg"
-              ? trimString(rawValue)
-              : tryNormalizeScalar(trimString(rawValue));
-
-          out[key] = value;
+        // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
+        if (s.includes(" ") && !s.includes("T")) {
+          s = s.replace(" ", "T");
         }
 
-        // =========================
-        // ② 共通別名補完
-        // =========================
-        if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
-        if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
-
-        if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
-        if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
-
-        if (isNilLike(out["DeviceType"])) out["DeviceType"] = out["Type"];
-
-        // =========================
-        // ③ 集計列 → 通常列マッピング（重要）
-        // =========================
-        if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
-          out["ActivePower"] = out["AvgActivePower"];
-        }
-
-        if (!isNilLike(out["AvgApparentPower"]) && isNilLike(out["ApparentPower"])) {
-          out["ApparentPower"] = out["AvgApparentPower"];
-        }
-
-        if (!isNilLike(out["SumCumulativeEnergy"]) && isNilLike(out["CumulativeEnergy"])) {
-          out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
-        }
-
-        if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
-          out["ActualTemp"] = out["AvgActualTemp"];
-        }
-
-        if (!isNilLike(out["AvgActualHumidity"]) && isNilLike(out["ActualHumidity"])) {
-          out["ActualHumidity"] = out["AvgActualHumidity"];
-        }
-
-        if (!isNilLike(out["AvgWtTemp"]) && isNilLike(out["WtTemp"])) {
-          out["WtTemp"] = out["AvgWtTemp"];
-        }
-
+        // タイムゾーン補完
         if (
-          !isNilLike(out["SumEnergyDeltaPerEffectiveMinute"]) &&
-          isNilLike(out["EnergyDeltaPerEffectiveMinute"])
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+          !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
         ) {
-          out["EnergyDeltaPerEffectiveMinute"] =
-            out["SumEnergyDeltaPerEffectiveMinute"];
+          s += "+09:00";
         }
 
-        // =========================
-        // ✅ ④ DatetimeAgg取得（最重要）
-        // =========================
-        let ts: string | null = null;
+        return s;
+      };
 
-        const candidates = [
-          "DatetimeAgg",
-          "AggKey",
-          "DateTimeAgg",
-          "Datetime",
-          "ComputedAt",
-          "SourceWindowEnd",
-        ];
+      const tryNormalizeScalar = (v: unknown): unknown => {
+        if (v == null) return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        if (typeof v !== "string") return v;
 
-        for (const key of candidates) {
-          if (!ts && !isNilLike(src[key])) {
-            ts = normalizeDateTimeString(src[key]);
-            console.log("✅ use datetime from", key, "=", src[key]);
+        const s = v.trim();
+        if (!s) return null;
+
+        const normalized = s
+          .replace(/^'+/, "")
+          .replace(/^[\"']|[\"']$/g, "")
+          .replace(/[−ー―]/g, "-")
+          .replace(/,/g, "");
+
+        if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+          const n = Number(normalized);
+          if (Number.isFinite(n)) return n;
+        }
+
+        return s;
+      };
+
+      const normalized = srcRows
+        .filter((row) => row && typeof row === "object")
+        .map((row) => {
+          const src = row as Record<string, unknown>;
+          const out: Record<string, unknown> = {};
+
+          // =========================
+          // ① 基本コピー
+          // =========================
+          for (const [rawKey, rawValue] of Object.entries(src)) {
+            const key = String(rawKey).trim();
+
+            const value =
+              key === "DatetimeAgg"
+                ? trimString(rawValue)
+                : tryNormalizeScalar(trimString(rawValue));
+
+            out[key] = value;
           }
-        }
 
-        // fallback（DeviceDatetime）
-        if (!ts && !isNilLike(src["DeviceDatetime"])) {
-          ts = normalizeDateTimeString(src["DeviceDatetime"]);
-          console.log("✅ use datetime from DeviceDatetime");
-        }
+          // =========================
+          // ② 共通別名補完
+          // =========================
+          if (isNilLike(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
+          if (isNilLike(out["Division"])) out["Division"] = out["DivisionAgg"];
 
-        // セット
-        if (ts) {
-          out["DatetimeAgg"] = ts;
-          out["DeviceDatetime"] = ts;
-          out["DeviceTimestamp"] = ts;
-        } else {
-          out["DatetimeAgg"] = null;
-          out["DeviceDatetime"] = null;
-          out["DeviceTimestamp"] = null;
+          if (isNilLike(out["Device"])) out["Device"] = out["DeviceName"];
+          if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
 
-          console.warn("⚠️ agg datetime missing", {
-            row: src,
-          });
-        }
+          if (isNilLike(out["DeviceType"])) out["DeviceType"] = out["Type"];
 
-        // =========================
-        // ⑤ 必須キー補完
-        // =========================
-        const mustHaveKeys = [
-          "DivisionAgg",
-          "Division",
-          "DivisionName",
-          "Device",
-          "DeviceName",
-          "DeviceType",
-          "DatetimeAgg",
-          "DeviceDatetime",
-          "DeviceTimestamp",
-          "ActualTemp",
-          "ActualHumidity",
-          "ActivePower",
-          "ApparentPower",
-          "CumulativeEnergy",
-          "EnergyDeltaPerEffectiveMinute",
-          "WtTemp",
-        ];
+          // =========================
+          // ③ 集計列 → 通常列マッピング（重要）
+          // =========================
+          if (!isNilLike(out["AvgActivePower"]) && isNilLike(out["ActivePower"])) {
+            out["ActivePower"] = out["AvgActivePower"];
+          }
 
-        for (const k of mustHaveKeys) {
-          if (!(k in out)) out[k] = null;
-        }
+          if (!isNilLike(out["AvgApparentPower"]) && isNilLike(out["ApparentPower"])) {
+            out["ApparentPower"] = out["AvgApparentPower"];
+          }
 
-        return out;
-      });
+          if (!isNilLike(out["SumCumulativeEnergy"]) && isNilLike(out["CumulativeEnergy"])) {
+            out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
+          }
 
-    return normalized;
-  };
+          if (!isNilLike(out["AvgActualTemp"]) && isNilLike(out["ActualTemp"])) {
+            out["ActualTemp"] = out["AvgActualTemp"];
+          }
 
+          if (!isNilLike(out["AvgActualHumidity"]) && isNilLike(out["ActualHumidity"])) {
+            out["ActualHumidity"] = out["AvgActualHumidity"];
+          }
 
+          if (!isNilLike(out["AvgWtTemp"]) && isNilLike(out["WtTemp"])) {
+            out["WtTemp"] = out["AvgWtTemp"];
+          }
+
+          if (
+            !isNilLike(out["SumEnergyDeltaPerEffectiveMinute"]) &&
+            isNilLike(out["EnergyDeltaPerEffectiveMinute"])
+          ) {
+            out["EnergyDeltaPerEffectiveMinute"] =
+              out["SumEnergyDeltaPerEffectiveMinute"];
+          }
+
+          // =========================
+          // ✅ ④ DatetimeAgg取得（最重要）
+          // =========================
+          let ts: string | null = null;
+
+          const candidates = [
+            "DatetimeAgg",
+            "AggKey",
+            "DateTimeAgg",
+            "Datetime",
+            "ComputedAt",
+            "SourceWindowEnd",
+          ];
+
+          for (const key of candidates) {
+            if (!ts && !isNilLike(src[key])) {
+              ts = normalizeDateTimeString(src[key]);
+              console.log("✅ use datetime from", key, "=", src[key]);
+            }
+          }
+
+          // fallback（DeviceDatetime）
+          if (!ts && !isNilLike(src["DeviceDatetime"])) {
+            ts = normalizeDateTimeString(src["DeviceDatetime"]);
+            console.log("✅ use datetime from DeviceDatetime");
+          }
+
+          // セット
+          if (ts) {
+            out["DatetimeAgg"] = ts;
+            out["DeviceDatetime"] = ts;
+            out["DeviceTimestamp"] = ts;
+          } else {
+            out["DatetimeAgg"] = null;
+            out["DeviceDatetime"] = null;
+            out["DeviceTimestamp"] = null;
+
+            console.warn("⚠️ agg datetime missing", {
+              row: src,
+            });
+          }
+
+          // =========================
+          // ⑤ 必須キー補完
+          // =========================
+          const mustHaveKeys = [
+            "DivisionAgg",
+            "Division",
+            "DivisionName",
+            "Device",
+            "DeviceName",
+            "DeviceType",
+            "DatetimeAgg",
+            "DeviceDatetime",
+            "DeviceTimestamp",
+            "ActualTemp",
+            "ActualHumidity",
+            "ActivePower",
+            "ApparentPower",
+            "CumulativeEnergy",
+            "EnergyDeltaPerEffectiveMinute",
+            "WtTemp",
+          ];
+
+          for (const k of mustHaveKeys) {
+            if (!(k in out)) out[k] = null;
+          }
+
+          return out;
+        });
+
+      return finalizeFirstRowKeys(normalized);
+    };
 
     // dispatcher
     if (kind === "agg") {
@@ -580,6 +552,23 @@ export default function Page() {
     }
     return normalizeIotRows(rows);
   }, []);
+
+  /**
+   * iframe に送る rows は現在選択 Division のみに絞る
+   * これで postMessage の転送量と app.js 側の処理量を減らす
+   */
+  const filterRowsForDivision = useCallback(
+    (rows: IotRow[], division: string): IotRow[] => {
+      if (!division || rows.length === 0) return [];
+
+      return rows.filter((r) => {
+        const row = r as Record<string, unknown>;
+        const div = (row.DivisionAgg ?? row.Division) as string | undefined;
+        return div === division;
+      });
+    },
+    []
+  );
 
   /**
    * postMessage 送信先 origin
@@ -592,7 +581,8 @@ export default function Page() {
 
   /**
    * iframeへ viewState だけ送る
-   * Division変更時に使用
+   * 基本的には division 単独変更ではなく full payload 送信に寄せるが、
+   * READY直後の最終fallback用として残す
    */
   const sendViewStateToIframe = useCallback(
     (viewState: ViewState) => {
@@ -613,7 +603,7 @@ export default function Page() {
 
   /**
    * iframeへ viewState + rows を送る
-   * 日付変更時 / dataKind変更時に使用
+   * rows は親では全Division保持、iframeへは選択Divisionのみ送る
    */
   const sendFullPayloadToIframe = useCallback(
     (payload: FullPayload, dataKey: string) => {
@@ -626,37 +616,42 @@ export default function Page() {
 
       const origin = getTargetOrigin();
 
+      const rowsForView = filterRowsForDivision(
+        payload.rows,
+        payload.viewState.division
+      );
+
       console.log("[postMessage] SET_VIEWSTATE", payload.viewState);
-      console.log("[postMessage] SET_DATA rows=", payload.rows.length);
-      if (payload.rows.length > 0) {
-        console.log("[postMessage] first row keys=", Object.keys(payload.rows[0]));
-        console.log("[postMessage] first row=", payload.rows[0]);
+      console.log("[postMessage] SET_DATA filtered rows=", rowsForView.length);
+      if (rowsForView.length > 0) {
+        console.log("[postMessage] first row keys=", Object.keys(rowsForView[0]));
+        console.log("[postMessage] first row=", rowsForView[0]);
         console.log(
           "[postMessage] first row DatetimeAgg=",
-          payload.rows[0]["DatetimeAgg"]
+          rowsForView[0]["DatetimeAgg"]
         );
         console.log(
           "[postMessage] first row DeviceDatetime=",
-          payload.rows[0]["DeviceDatetime"]
+          rowsForView[0]["DeviceDatetime"]
         );
         console.log(
           "[postMessage] first row DeviceTimestamp=",
-          payload.rows[0]["DeviceTimestamp"]
+          rowsForView[0]["DeviceTimestamp"]
         );
         console.log(
           "[postMessage] first row DivisionAgg=",
-          payload.rows[0]["DivisionAgg"]
+          rowsForView[0]["DivisionAgg"]
         );
-        console.log("[postMessage] first row Device=", payload.rows[0]["Device"]);
+        console.log("[postMessage] first row Device=", rowsForView[0]["Device"]);
       }
 
       // app.js の想定どおり、先に viewState、そのあと rows
       win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
-      win.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
+      win.postMessage({ type: "SET_DATA", rows: rowsForView }, origin);
 
       lastSentDataKeyRef.current = dataKey;
     },
-    [iframeReady, getTargetOrigin]
+    [iframeReady, getTargetOrigin, filterRowsForDivision]
   );
 
   /**
@@ -682,17 +677,23 @@ export default function Page() {
 
   /**
    * iframe readyになったら最新状態を流す
+   * division も含めた iframeDataKey で比較する
    */
   useEffect(() => {
     if (!iframeReady) return;
 
-    const rangeKey = makeRangeCacheKey(startDate, endDate, dataKind);
+    const iframeDataKey = makeIframeDataKey(
+      startDate,
+      endDate,
+      dataKind,
+      selectedDivision
+    );
 
     if (
       latestFullPayloadRef.current &&
-      lastSentDataKeyRef.current !== rangeKey
+      lastSentDataKeyRef.current !== iframeDataKey
     ) {
-      sendFullPayloadToIframe(latestFullPayloadRef.current, rangeKey);
+      sendFullPayloadToIframe(latestFullPayloadRef.current, iframeDataKey);
       return;
     }
 
@@ -704,7 +705,8 @@ export default function Page() {
     startDate,
     endDate,
     dataKind,
-    makeRangeCacheKey,
+    selectedDivision,
+    makeIframeDataKey,
     sendFullPayloadToIframe,
     sendViewStateToIframe,
   ]);
@@ -753,14 +755,11 @@ export default function Page() {
     let items: IotRow[] = [];
     let nextToken: string | null | undefined = null;
 
-
-
-
     if (Array.isArray(raw)) {
       items = raw.filter(Boolean) as IotRow[];
       nextToken = null;
     } else {
-      items = ((raw?.items ?? []).filter(Boolean) as IotRow[]);
+      items = (raw?.items ?? []).filter(Boolean) as IotRow[];
       nextToken = raw?.nextToken ?? null;
     }
 
@@ -858,12 +857,10 @@ export default function Page() {
         }
 
         const { items, nextToken: newNextToken } = unwrapQueryData(data);
-        
 
         // ✅ ★APPSYNCのログ確認
         console.error("RAW FULL ITEM:", JSON.stringify(items?.[0], null, 2));
         console.log("RAW FROM APPSYNC:", items?.[0]);
-
 
         if (kind === "agg") {
           console.log("RAW AGG DATA", items);
@@ -883,10 +880,7 @@ export default function Page() {
             `[${kind}][${division}] first keys=`,
             Object.keys(normalizedItems[0])
           );
-          console.log(
-            `[${kind}][${division}] first row=`,
-            normalizedItems[0]
-          );
+          console.log(`[${kind}][${division}] first row=`, normalizedItems[0]);
         }
 
         result.push(...normalizedItems);
@@ -1087,6 +1081,12 @@ export default function Page() {
 
     (async () => {
       const rangeKey = makeRangeCacheKey(startDate, endDate, dataKind);
+      const iframeDataKey = makeIframeDataKey(
+        startDate,
+        endDate,
+        dataKind,
+        selectedDivision
+      );
       const currentViewState = buildViewState(
         selectedDivision,
         startDate,
@@ -1117,7 +1117,7 @@ export default function Page() {
         latestFullPayloadRef.current = payload;
 
         if (seq !== requestSeqRef.current) return;
-        sendFullPayloadToIframe(payload, rangeKey);
+        sendFullPayloadToIframe(payload, iframeDataKey);
         return;
       }
 
@@ -1159,7 +1159,7 @@ export default function Page() {
         latestFullPayloadRef.current = payload;
 
         if (seq !== requestSeqRef.current) return;
-        sendFullPayloadToIframe(payload, rangeKey);
+        sendFullPayloadToIframe(payload, iframeDataKey);
       } catch (err) {
         console.error(
           `fetchIotByRangeAllDivisions(parallel)[${dataKind}] error:`,
@@ -1176,7 +1176,7 @@ export default function Page() {
           latestFullPayloadRef.current = payload;
 
           if (seq === requestSeqRef.current) {
-            sendFullPayloadToIframe(payload, rangeKey);
+            sendFullPayloadToIframe(payload, iframeDataKey);
           }
 
           setProgress(100);
@@ -1198,6 +1198,7 @@ export default function Page() {
     selectedDivision,
     dataKind,
     makeRangeCacheKey,
+    makeIframeDataKey,
     buildViewState,
     fetchIotByRangeAllDivisions,
     sendFullPayloadToIframe,
@@ -1205,13 +1206,11 @@ export default function Page() {
 
   /**
    * Division変更時:
-   * 再取得せず viewState だけ送る
-   *
-   * ※ dataKind変更時は別データ取得が必要なので、このuseEffectではなく
-   *    上の「日付範囲変更時 / dataKind変更時」のuseEffectで full fetch させる
+   * 再取得せず、親が保持している allRows から選択Divisionの rows を iframe へ再送する
    */
   useEffect(() => {
     if (!selectedDivision) return;
+    if (allRows.length === 0) return;
 
     const nextViewState = buildViewState(
       selectedDivision,
@@ -1230,22 +1229,36 @@ export default function Page() {
       prevViewState.startDay !== nextViewState.startDay ||
       prevViewState.endDay !== nextViewState.endDay;
 
-    const divisionChanged =
-      prevViewState.division !== nextViewState.division;
+    const divisionChanged = prevViewState.division !== nextViewState.division;
 
-    const kindChanged =
-      prevViewState.dataKind !== nextViewState.dataKind;
+    const kindChanged = prevViewState.dataKind !== nextViewState.dataKind;
 
     if (divisionChanged && !dateChanged && !kindChanged) {
-      sendViewStateToIframe(nextViewState);
+      const payload: FullPayload = {
+        viewState: nextViewState,
+        rows: allRows,
+      };
+
+      latestFullPayloadRef.current = payload;
+
+      const iframeDataKey = makeIframeDataKey(
+        startDate,
+        endDate,
+        dataKind,
+        selectedDivision
+      );
+
+      sendFullPayloadToIframe(payload, iframeDataKey);
     }
   }, [
     selectedDivision,
     startDate,
     endDate,
     dataKind,
+    allRows,
     buildViewState,
-    sendViewStateToIframe,
+    makeIframeDataKey,
+    sendFullPayloadToIframe,
   ]);
 
   const viewState = useMemo(
