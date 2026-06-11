@@ -1,37 +1,74 @@
 (() => {
-  const dbgEl = document.getElementById("debug");
-  const dbg = (m) => {
-    if (dbgEl) dbgEl.textContent += m + "\n";
-    console.log(m);
-  };
-  const clearDbg = () => {
-    if (dbgEl) dbgEl.textContent = "";
-  };
+  "use strict";
 
+  // =========================================================
+  // Guard
+  // =========================================================
   if (typeof Papa === "undefined") throw new Error("PapaParse が読み込まれていません");
   if (typeof Plotly === "undefined") throw new Error("Plotly が読み込まれていません");
 
   // =========================================================
-  // mode 切替（standalone / embed）
+  // Boot / Mode
   // =========================================================
   function getMode() {
     const p = new URLSearchParams(location.search);
     return p.get("mode") || "standalone";
   }
-  const MODE = getMode();
-  if (MODE === "embed") {
-    document.body.classList.add("embed");
-  }
 
-  // embedのときに React 側の選択値を後から反映するためのバッファ
-  let pendingViewState = null;
+  const MODE = getMode();
 
   // =========================================================
-  // X列ホワイトリスト
+  // DOM refs
+  // =========================================================
+  const els = {
+    body: document.body,
+    debug: document.getElementById("debug"),
+    line: document.getElementById("line"),
+    scatter: document.getElementById("scatter"),
+
+    divisionSel: document.getElementById("divisionSel"),
+    startDaySel: document.getElementById("startDaySel"),
+    endDaySel: document.getElementById("endDaySel"),
+
+    fileInput: document.getElementById("fileInput"),
+    replotBtn: document.getElementById("replotBtn"),
+
+    tsSel: document.getElementById("tsSel"),
+    yLeft1Sel: document.getElementById("yLeft1Sel"),
+    yLeft2Sel: document.getElementById("yLeft2Sel"),
+    yRight1Sel: document.getElementById("yRight1Sel"),
+    yRight2Sel: document.getElementById("yRight2Sel"),
+
+    xModeSel: document.getElementById("xModeSel"),
+    grainSel: document.getElementById("grainSel"),
+
+    tpSetTempSel: document.getElementById("tpSetTempSel"),
+    colorModeSel: document.getElementById("colorModeSel"),
+
+    badgeTpSetTemp: document.getElementById("badgeTpSetTemp"),
+    badgeColDiv: document.getElementById("badgeColDiv"),
+    badgeColDevice: document.getElementById("badgeColDevice"),
+    badgeColTs: document.getElementById("badgeColTs"),
+  };
+
+  // =========================================================
+  // Debug utils
+  // =========================================================
+  function dbg(msg) {
+    const s = String(msg);
+    if (els.debug) els.debug.textContent += s + "\n";
+    console.log(s);
+  }
+
+  function clearDbg() {
+    if (els.debug) els.debug.textContent = "";
+  }
+
+  // =========================================================
+  // Config / Const
   // =========================================================
   const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
 
-  // デフォルト選択
   const DEFAULT_SELECTIONS = {
     iot: {
       left1: ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"],
@@ -47,7 +84,6 @@
     },
   };
 
-  // 表示名（ラベル）
   const DISPLAY_NAME_MAP = {
     ActualTemp: "温度",
     ActualHumidity: "湿度",
@@ -61,9 +97,7 @@
     WtTemp: "外気温",
     TpSetTempAvgOn: "設定温度(On平均)",
   };
-  const disp = (c) => DISPLAY_NAME_MAP[c] ?? c;
 
-  // Y候補から除外する列
   const Y_EXCLUDE = [
     "DivisionAgg",
     "Division",
@@ -86,60 +120,59 @@
   // 特定メトリクスは Power系(DeviceType)のみ描画
   const POWER_ONLY_METRICS = ["WtTemp"];
 
-  // =========================================================
   // 粒度変更：バケット集計ルール
-  // =========================================================
   const SUM_METRICS_EXACT = ["EnergyDeltaPerEffectiveMinute"];
   const LAST_METRICS_EXACT = ["CumulativeEnergy"];
 
-  function aggMode(metric) {
-    const m = String(metric || "");
-    if (SUM_METRICS_EXACT.includes(m)) return "sum";
-    if (/energydelta/i.test(m)) return "sum";
-    if (LAST_METRICS_EXACT.includes(m)) return "last";
-    if (/cumulative/i.test(m)) return "last";
-    return "mean";
-  }
+  const PALETTE = [
+    "#1f77b4",
+    "#2ca02c",
+    "#ff7f0e",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#d62728",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+    "#aec7e8",
+    "#ffbb78",
+    "#98df8a",
+    "#ff9896",
+    "#c5b0d5",
+    "#c49c94",
+    "#f7b6d2",
+    "#c7c7c7",
+    "#dbdb8d",
+    "#9edae5",
+  ];
 
-  // ===== DOM =====
-  const lineDiv = document.getElementById("line");
-  const scatterDiv = document.getElementById("scatter");
+  // JST(Asia/Tokyo) の YYYY-MM-DD で日付キーを作る
+  const JST_DAY_FMT = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 
-  const divisionSel = document.getElementById("divisionSel");
-  const startDaySel = document.getElementById("startDaySel");
-  const endDaySel = document.getElementById("endDaySel");
-
-  const fileInput = document.getElementById("fileInput");
-  const replotBtn = document.getElementById("replotBtn");
-
-  const tsSel = document.getElementById("tsSel");
-  const yLeft1Sel = document.getElementById("yLeft1Sel");
-  const yLeft2Sel = document.getElementById("yLeft2Sel");
-  const yRight1Sel = document.getElementById("yRight1Sel");
-  const yRight2Sel = document.getElementById("yRight2Sel");
-
-  const xModeSel = document.getElementById("xModeSel");
-  const grainSel = document.getElementById("grainSel");
-
-  const tpSetTempSel = document.getElementById("tpSetTempSel");
-  const colorModeSel = document.getElementById("colorModeSel");
-  const badgeTpSetTemp = document.getElementById("badgeTpSetTemp");
-
-  const badgeColDiv = document.getElementById("badgeColDiv");
-  const badgeColDevice = document.getElementById("badgeColDevice");
-  const badgeColTs = document.getElementById("badgeColTs");
-
+  // =========================================================
+  // State
+  // =========================================================
   const appState = {
+    mode: MODE,
+
     sourceData: null,
     fields: null,
+
+    currentDataKind: "iot",
+
     colDivision: null,
     colDevice: null,
+
     days: [],
+
     xMode: "A",
     grainMin: 0,
-
-    // ✅ 追加：iot / agg を保持
-    currentDataKind: "iot",
 
     // Airconフィルタ："ALL" or 数値文字列（例 "26"）
     tpSetTempOn: "ALL",
@@ -160,17 +193,24 @@
     lastRight1: [],
     hlLeftIdx: null,
     hlRightIdx: null,
+
+    // embedのときに React 側の選択値を後から反映するためのバッファ
+    pendingViewState: null,
+
+    uiEventsBound: false,
   };
 
-  function applyEmbedUiLock() {
-    if (MODE !== "embed") return;
-    if (divisionSel) divisionSel.disabled = true;
-    if (startDaySel) startDaySel.disabled = true;
-    if (endDaySel) endDaySel.disabled = true;
+  function setAppState(patch) {
+    Object.assign(appState, patch);
   }
 
   // =========================================================
-  // 共通ユーティリティ
+  // Display helpers
+  // =========================================================
+  const disp = (c) => DISPLAY_NAME_MAP[c] ?? c;
+
+  // =========================================================
+  // Common utils
   // =========================================================
   function toNum(v) {
     if (v === null || v === undefined) return NaN;
@@ -184,61 +224,14 @@
     return Number.isFinite(n) ? n : NaN;
   }
 
-  function pickColumn(fields, a, b) {
-    if (fields.includes(a)) return a;
-    if (fields.includes(b)) return b;
-    return null;
+  function getSelectedValues(sel) {
+    if (!sel) return [];
+    return Array.from(sel.selectedOptions)
+      .map((o) => o.value)
+      .filter((v) => v !== "");
   }
 
-  // =========================================================
-  // ✅ dataKind ベースの列選択
-  // =========================================================
-  function detectDataKindFromFields(fields) {
-    // standalone 用。CSVヘッダから推定
-    if (fields.includes("DeviceDatetime") && fields.includes("Division")) return "iot";
-    if (fields.includes("DatetimeAgg") && fields.includes("DivisionAgg")) return "agg";
-
-    // fallback
-    if (fields.includes("DeviceDatetime")) return "iot";
-    if (fields.includes("DatetimeAgg")) return "agg";
-    return "iot";
-  }
-
-  function pickDivisionColumn(fields, dataKind) {
-    if (dataKind === "agg") {
-      if (fields.includes("DivisionAgg")) return "DivisionAgg";
-      if (fields.includes("Division")) return "Division";
-      return null;
-    }
-    // iot
-    if (fields.includes("Division")) return "Division";
-    if (fields.includes("DivisionAgg")) return "DivisionAgg";
-    return null;
-  }
-
-  function pickDeviceColumn(fields, dataKind) {
-    // 今回は iot / agg とも Device を優先
-    if (fields.includes("Device")) return "Device";
-    if (fields.includes("DeviceName")) return "DeviceName";
-    return null;
-  }
-
-  function pickTsColumnByDataKind(fields, dataKind) {
-    if (dataKind === "agg") {
-      if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
-      if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
-      if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
-      return "";
-    }
-
-    // iot
-    if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
-    if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
-    if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
-    return "";
-  }
-
-  // ✅ rows[0]問題対策：全rowsのkeysを先頭行に補完
+  // rows[0]問題対策：全rowsのkeysを先頭行に補完
   function normalizeIncomingRowsAllKeys(rows) {
     if (!rows || rows.length === 0) return rows;
 
@@ -259,57 +252,30 @@
     });
   }
 
-  // ★重要：日時表現を統一（" "→"T"）＋TZが無い場合は +09:00 を付与
+  // 日時表現を統一（" "→"T"）＋TZが無い場合は +09:00 を付与
   function normalizeDt(ts) {
     let s = String(ts ?? "").trim();
     if (!s) return "";
     s = s.includes("T") ? s : s.replace(" ", "T");
 
-    // 末尾にZ or +hh:mm or -hh:mm が無ければ JST を補完
     if (!/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)) {
       s += "+09:00";
     }
     return s;
   }
 
-  // ★重要：日付キーは必ず JST(Asia/Tokyo) の YYYY-MM-DD で作る
-  const JST_DAY_FMT = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
   function getDayFromTs(ts) {
     const s = normalizeDt(ts);
     const d = new Date(s);
     if (!Number.isFinite(d.getTime())) return null;
-    return JST_DAY_FMT.format(d); // "YYYY-MM-DD"
-  }
-
-  function buildDaySelectors(days) {
-    if (!startDaySel || !endDaySel) return;
-    const opts = days.map((d) => `<option value="${d}">${d}</option>`).join("");
-    startDaySel.innerHTML = opts;
-    endDaySel.innerHTML = opts;
-    startDaySel.disabled = false;
-    endDaySel.disabled = false;
-    startDaySel.value = days[0];
-    endDaySel.value = days[days.length - 1];
+    return JST_DAY_FMT.format(d); // YYYY-MM-DD
   }
 
   function inDayRange(day) {
-    if (!day || !startDaySel || !endDaySel) return false;
-    const s = startDaySel.value;
-    const e = endDaySel.value;
+    if (!day || !els.startDaySel || !els.endDaySel) return false;
+    const s = els.startDaySel.value;
+    const e = els.endDaySel.value;
     return s <= day && day <= e;
-  }
-
-  function getSelectedValues(sel) {
-    if (!sel) return [];
-    return Array.from(sel.selectedOptions)
-      .map((o) => o.value)
-      .filter((v) => v !== "");
   }
 
   function getTodHM(ts) {
@@ -318,35 +284,28 @@
     return `${m[1]}:${m[2]}`;
   }
 
-  function isMostlyNumericColumn(data, col, sampleN = 200, ratio = 0.3) {
-
+  function isMostlyNumericColumn(data, col, sampleN = 200) {
     let seen = 0;
     let ok = 0;
 
     for (const r of data || []) {
       const v = r[col];
 
-      // ✅ null / 空文字は完全除外
       if (v == null || v === "") continue;
 
       seen++;
-
       const n = toNum(v);
-      if (Number.isFinite(n)) {
-        ok++;
-      }
+      if (Number.isFinite(n)) ok++;
 
-      // ✅ 1件でも数値が見えたらOK判定へ
       if (ok > 0 && seen >= sampleN) break;
     }
 
-    // ✅ 全部nullでも候補として残す（重要）
+    // 全部nullでも候補として残す
     if (seen === 0) return true;
 
-    // ✅ 数値1件でもあればOK
+    // 数値1件でもあればOK
     return ok > 0;
   }
-
 
   // 粒度に合わせたカテゴリ配列（00–23重ね）
   function buildTodCategoryArray(rows, stepMinOverride = null) {
@@ -364,6 +323,7 @@
       const is30 = ms.length > 0 && ms.every((m) => m === 0 || m === 30);
       const is10 = ms.length > 0 && ms.every((m) => m % 10 === 0);
       const is5 = ms.length > 0 && ms.every((m) => m % 5 === 0);
+
       if (is30) step = 30;
       else if (is10) step = 10;
       else if (is5) step = 5;
@@ -401,7 +361,52 @@
   }
 
   // =========================================================
-  // DeviceType の表記ゆれ吸収（Power/Aircon判定）
+  // DataKind rules
+  // =========================================================
+  function detectDataKindFromFields(fields) {
+    // standalone 用。CSVヘッダから推定
+    if (fields.includes("DeviceDatetime") && fields.includes("Division")) return "iot";
+    if (fields.includes("DatetimeAgg") && fields.includes("DivisionAgg")) return "agg";
+
+    if (fields.includes("DeviceDatetime")) return "iot";
+    if (fields.includes("DatetimeAgg")) return "agg";
+    return "iot";
+  }
+
+  function pickDivisionColumn(fields, dataKind) {
+    if (dataKind === "agg") {
+      if (fields.includes("DivisionAgg")) return "DivisionAgg";
+      if (fields.includes("Division")) return "Division";
+      return null;
+    }
+
+    if (fields.includes("Division")) return "Division";
+    if (fields.includes("DivisionAgg")) return "DivisionAgg";
+    return null;
+  }
+
+  function pickDeviceColumn(fields) {
+    if (fields.includes("Device")) return "Device";
+    if (fields.includes("DeviceName")) return "DeviceName";
+    return null;
+  }
+
+  function pickTsColumnByDataKind(fields, dataKind) {
+    if (dataKind === "agg") {
+      if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
+      if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
+      if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
+      return "";
+    }
+
+    if (fields.includes("DeviceDatetime")) return "DeviceDatetime";
+    if (fields.includes("DatetimeAgg")) return "DatetimeAgg";
+    if (fields.includes("DeviceTimestamp")) return "DeviceTimestamp";
+    return "";
+  }
+
+  // =========================================================
+  // DeviceType normalize
   // =========================================================
   function normalizeType(s) {
     return String(s ?? "")
@@ -410,11 +415,13 @@
       .replace(/[_\-\/\.]+/g, " ")
       .replace(/\s+/g, " ");
   }
+
   function isPowerType(raw) {
     const t = normalizeType(raw);
     const tokens = ["power", "pwr", "watt", "electric", "electricity", "電力", "消費電力", "電力量", "電力計"];
     return tokens.some((tok) => t.includes(tok));
   }
+
   function isAirconType(raw) {
     const t = normalizeType(raw);
     const tokens = ["aircon", "ac", "hvac", "空調", "エアコン", "冷暖房"];
@@ -422,34 +429,13 @@
   }
 
   // =========================================================
-  // 散布図の色マップ（day/temp）
+  // Plot color helpers
   // =========================================================
-  const PALETTE = [
-    "#1f77b4",
-    "#2ca02c",
-    "#ff7f0e",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#d62728",
-    "#7f7f7f",
-    "#bcbd22",
-    "#17becf",
-    "#aec7e8",
-    "#ffbb78",
-    "#98df8a",
-    "#ff9896",
-    "#c5b0d5",
-    "#c49c94",
-    "#f7b6d2",
-    "#c7c7c7",
-    "#dbdb8d",
-    "#9edae5",
-  ];
-
   function buildColorMap(keys) {
     const m = {};
-    (keys || []).forEach((k, i) => (m[k] = PALETTE[i % PALETTE.length]));
+    (keys || []).forEach((k, i) => {
+      m[k] = PALETTE[i % PALETTE.length];
+    });
     return m;
   }
 
@@ -462,9 +448,6 @@
     return buildColorMap(labels);
   }
 
-  // =========================================================
-  // 折れ線色固定（キーに対して固定）
-  // =========================================================
   function getTraceColor(key) {
     if (!appState.traceColors[key]) {
       const idx = Object.keys(appState.traceColors).length % PALETTE.length;
@@ -474,294 +457,17 @@
   }
 
   // =========================================================
-  // 4軸用の列セレクタ構築
+  // Aggregation
   // =========================================================
-  function buildColumnSelectors(fields, data) {
-    const TS_ALLOW = ["DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"];
-
-    const Y_EXCLUDE = [
-      "DivisionAgg", "Division",
-      "Device", "DeviceName",
-      "DeviceType",
-      "DatetimeAgg", "DeviceDatetime", "DeviceTimestamp"
-    ];
-
-    // ✅ 最重要メトリクス（強制表示）
-    const FORCE_INCLUDE_METRICS = [
-      "ActivePower",
-      "ApparentPower",
-      "CumulativeEnergy",
-      "EnergyDeltaPerEffectiveMinute",
-      "ActualTemp",
-      "ActualHumidity",
-      "WtTemp"
-    ];
-
-    // ----------------------------
-    // TS列
-    // ----------------------------
-    const tsCandidates = TS_ALLOW.filter(c => fields.includes(c));
-    const tsFinal = tsCandidates.length ? tsCandidates : fields.slice(0, 1);
-
-    if (tsSel) {
-      tsSel.innerHTML = tsFinal
-        .map(c => `<option value="${c}">${disp(c)}</option>`)
-        .join("");
-
-      tsSel.disabled = false;
-      tsSel.value = tsFinal[0] || "";
-    }
-
-    // ----------------------------
-    // ✅ Y候補抽出
-    // ----------------------------
-    const yCandidates = fields
-      .filter(f => !tsFinal.includes(f))
-      .filter(f => !Y_EXCLUDE.includes(f))
-      .filter(f =>
-        FORCE_INCLUDE_METRICS.includes(f) || isMostlyNumericColumn(data, f)
-      );
-
-    // ----------------------------
-    // fallback（全滅防止）
-    // ----------------------------
-    let finalCandidates = yCandidates;
-
-    if (finalCandidates.length === 0) {
-      console.warn("⚠ yCandidates empty → fallback to all fields");
-      finalCandidates = fields.filter(f => !tsFinal.includes(f));
-    }
-
-    // ----------------------------
-    // セレクタ生成
-    // ----------------------------
-    function fill(sel, defaults) {
-      if (!sel) return;
-
-      sel.innerHTML = finalCandidates
-        .map(c => `<option value="${c}">${disp(c)}</option>`)
-        .join("");
-
-      sel.disabled = false;
-
-      for (const opt of sel.options) {
-        opt.selected = defaults.includes(opt.value);
-      }
-    }
-
-    // ✅ dataKindごとのデフォルト選択
-    const defaults =
-      appState.currentDataKind === "agg"
-        ? DEFAULT_SELECTIONS.agg
-        : DEFAULT_SELECTIONS.iot;
-
-    fill(yLeft1Sel, defaults.left1);
-    fill(yLeft2Sel, defaults.left2);
-    fill(yRight1Sel, defaults.right1);
-    fill(yRight2Sel, defaults.right2);
-
-    console.log("✅ dataKind:", appState.currentDataKind);
-    console.log("✅ yCandidates:", finalCandidates);
-    console.log("✅ default selections:", defaults);
+  function aggMode(metric) {
+    const m = String(metric || "");
+    if (SUM_METRICS_EXACT.includes(m)) return "sum";
+    if (/energydelta/i.test(m)) return "sum";
+    if (LAST_METRICS_EXACT.includes(m)) return "last";
+    if (/cumulative/i.test(m)) return "last";
+    return "mean";
   }
 
-  // =========================================================
-  // TpSetTempAvgOn 候補をCSVから抽出 → セレクト生成（先頭ALL）
-  // =========================================================
-  function buildTpSetTempOptionsFromCsv(data) {
-    if (!(appState.fields || []).includes("TpSetTempAvgOn")) return null;
-    if (!(appState.fields || []).includes(CONFIG.colDeviceType)) return null;
-
-    const set = new Set();
-    for (const r of data || []) {
-      if (!isAirconType(r[CONFIG.colDeviceType])) continue;
-      const v = toNum(r.TpSetTempAvgOn);
-      if (Number.isFinite(v)) set.add(v);
-    }
-    const arr = [...set].sort((a, b) => a - b);
-    return arr.length ? arr : null;
-  }
-
-  function applyTpSetTempOptions(values) {
-    if (!tpSetTempSel) return;
-
-    const opts = [`<option value="ALL">すべてを表示</option>`].concat(
-      values.map((v) => `<option value="${String(v)}">${String(v)}℃</option>`)
-    );
-    tpSetTempSel.innerHTML = opts.join("");
-
-    const cur = String(appState.tpSetTempOn ?? "ALL");
-    const has = cur === "ALL" || values.some((v) => String(v) === cur);
-    appState.tpSetTempOn = has ? cur : "ALL";
-
-    tpSetTempSel.value = String(appState.tpSetTempOn);
-    syncTpBadge();
-  }
-
-  function syncTpBadge() {
-    if (!badgeTpSetTemp || !tpSetTempSel) return;
-    badgeTpSetTemp.textContent =
-      tpSetTempSel.value === "ALL" ? "ALL（フィルタなし）" : `TpSetTempAvgOn=${tpSetTempSel.value}`;
-  }
-
-  function buildRowsAndAirconCaches(data) {
-    const divCol = appState.colDivision;
-    const devCol = appState.colDevice;
-
-    const colTs = tsSel?.value || "";
-    const left1 = getSelectedValues(yLeft1Sel);
-    const left2 = getSelectedValues(yLeft2Sel);
-    const right1 = getSelectedValues(yRight1Sel);
-    const right2 = getSelectedValues(yRight2Sel);
-
-    const allMetrics = [...left1, ...left2, ...right1, ...right2];
-    if (allMetrics.length === 0) {
-      dbg("Y軸がすべて未選択のため、描画しません。");
-      return {
-        rows: [],
-        left1,
-        left2,
-        right1,
-        right2,
-        colTs,
-        airconTempMap: null,
-        allowed: null,
-      };
-    }
-
-    const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
-
-    // Aircon の「最頻値マップ」は、従来どおり iot + TpSetTemp列あり のときだけ作る
-    const useAirconMap =
-      appState.currentDataKind === "iot" &&
-      !!tpSetTempSel &&
-      hasSetTemp;
-
-    // Aircon の「allowedフィルタ」は、さらに ALL 以外のときだけ有効
-    const selectedTp = String(tpSetTempSel?.value || "ALL");
-    appState.tpSetTempOn = selectedTp;
-    syncTpBadge();
-
-    const targetTp = selectedTp === "ALL" ? NaN : Number(selectedTp);
-    const useAllowedFilter = useAirconMap && Number.isFinite(targetTp);
-
-    // 1回の sourceData 走査で以下を同時に構築する
-    // - 候補 rows
-    // - dt ごとの TpSetTempAvgOn カウント
-    // - allowed dt set
-    const candidateRows = [];
-    const dtCounts = useAirconMap ? new Map() : null;
-    const allowed = useAllowedFilter ? new Set() : null;
-
-    for (const r of data || []) {
-      const div = r[divCol];
-      if (div !== divisionSel?.value) continue;
-
-      const dev = r[devCol];
-      const tsRawForPlot = r[colTs];
-      if (!dev || !tsRawForPlot) continue;
-
-      const day = getDayFromTs(tsRawForPlot);
-      if (!inDayRange(day)) continue;
-
-      const dt = normalizeDt(tsRawForPlot);
-      const dtypeRaw = r[CONFIG.colDeviceType];
-
-      // -------------------------------------------------
-      // Aircon 集計（最頻値用 + allowed判定用）
-      // -------------------------------------------------
-      if (useAirconMap && isAirconType(dtypeRaw)) {
-        const tp = toNum(r.TpSetTempAvgOn);
-        if (Number.isFinite(tp)) {
-          if (!dtCounts.has(dt)) dtCounts.set(dt, new Map());
-          const mp = dtCounts.get(dt);
-          mp.set(tp, (mp.get(tp) || 0) + 1);
-
-          if (useAllowedFilter && Math.abs(tp - targetTp) < 1e-9) {
-            allowed.add(dt);
-          }
-        }
-      }
-
-      // -------------------------------------------------
-      // rows 候補作成
-      // ※ ここではまだ allowed で落とさない
-      //    （同じ dt の aircon 行が後ろに出る可能性があるため）
-      // -------------------------------------------------
-      for (const metric of allMetrics) {
-        if (POWER_ONLY_METRICS.includes(metric)) {
-          if (!isPowerType(dtypeRaw)) continue;
-        }
-
-        const v = toNum(r[metric]);
-        if (!Number.isFinite(v)) continue;
-
-        candidateRows.push({
-          dev,
-          dt,
-          day,
-          metric,
-          v,
-          tsRaw: tsRawForPlot,
-        });
-      }
-    }
-
-    // -------------------------------------------------
-    // dt ごとの最頻 TpSetTempAvgOn を確定
-    // -------------------------------------------------
-    let airconTempMap = null;
-    if (useAirconMap) {
-      airconTempMap = new Map();
-
-      for (const [dt, mp] of dtCounts.entries()) {
-        let bestTp = null;
-        let bestCnt = -1;
-        const temps = [...mp.keys()].sort((a, b) => a - b);
-
-        for (const t of temps) {
-          const c = mp.get(t);
-          if (c > bestCnt) {
-            bestCnt = c;
-            bestTp = t;
-          }
-        }
-        if (bestTp != null) airconTempMap.set(dt, bestTp);
-      }
-    }
-
-    // -------------------------------------------------
-    // allowed 適用 + tp 付与
-    // -------------------------------------------------
-    const out = [];
-    for (const row of candidateRows) {
-      if (allowed && !allowed.has(row.dt)) continue;
-
-      row.tp = airconTempMap?.has(row.dt) ? airconTempMap.get(row.dt) : NaN;
-      out.push(row);
-    }
-
-    if (useAllowedFilter) {
-      dbg(`Aircon条件: TpSetTempAvgOn=${targetTp} のTS(dt)が ${allowed.size} 個`);
-    } else if (useAirconMap) {
-      dbg("Aircon条件: すべてを表示（フィルタなし）");
-    }
-
-    return {
-      rows: out,
-      left1,
-      left2,
-      right1,
-      right2,
-      colTs,
-      airconTempMap,
-      allowed,
-    };
-  }
-
-  // =========================================================
-  // 粒度集計
-  // =========================================================
   function fmt2(n) {
     return String(n).padStart(2, "0");
   }
@@ -816,6 +522,7 @@
           tpLast: NaN,
         });
       }
+
       const o = g.get(key);
       const mode = aggMode(r.metric);
 
@@ -836,6 +543,7 @@
     for (const o of g.values()) {
       const mode = aggMode(o.metric);
       let v = NaN;
+
       if (mode === "sum") v = o.sum;
       else if (mode === "mean") v = o.cnt ? o.sum / o.cnt : NaN;
       else if (mode === "last") v = o.lastVal;
@@ -852,20 +560,294 @@
         });
       }
     }
+
     return out;
   }
 
   // =========================================================
-  // 4軸 range 計算
+  // UI builders
+  // =========================================================
+  function buildDaySelectors(days) {
+    if (!els.startDaySel || !els.endDaySel) return;
+    const opts = days.map((d) => `<option value="${d}">${d}</option>`).join("");
+    els.startDaySel.innerHTML = opts;
+    els.endDaySel.innerHTML = opts;
+    els.startDaySel.disabled = false;
+    els.endDaySel.disabled = false;
+    els.startDaySel.value = days[0];
+    els.endDaySel.value = days[days.length - 1];
+  }
+
+  function buildDivisionSelector(divs) {
+    if (!els.divisionSel) return;
+    els.divisionSel.innerHTML = divs.map((d) => `<option value="${d}">${d}</option>`).join("");
+  }
+
+  function buildColumnSelectors(fields, data) {
+    const tsCandidates = TS_ALLOW.filter((c) => fields.includes(c));
+    const tsFinal = tsCandidates.length ? tsCandidates : fields.slice(0, 1);
+
+    if (els.tsSel) {
+      els.tsSel.innerHTML = tsFinal
+        .map((c) => `<option value="${c}">${disp(c)}</option>`)
+        .join("");
+
+      els.tsSel.disabled = false;
+      els.tsSel.value = pickTsColumnByDataKind(fields, appState.currentDataKind) || tsFinal[0] || "";
+    }
+
+    const FORCE_INCLUDE_METRICS = [
+      "ActivePower",
+      "ApparentPower",
+      "CumulativeEnergy",
+      "EnergyDeltaPerEffectiveMinute",
+      "ActualTemp",
+      "ActualHumidity",
+      "WtTemp",
+    ];
+
+    const yCandidates = fields
+      .filter((f) => !tsFinal.includes(f))
+      .filter((f) => !Y_EXCLUDE.includes(f))
+      .filter((f) => FORCE_INCLUDE_METRICS.includes(f) || isMostlyNumericColumn(data, f));
+
+    let finalCandidates = yCandidates;
+    if (finalCandidates.length === 0) {
+      console.warn("⚠ yCandidates empty → fallback to all fields");
+      finalCandidates = fields.filter((f) => !tsFinal.includes(f));
+    }
+
+    function fill(sel, defaults) {
+      if (!sel) return;
+      sel.innerHTML = finalCandidates.map((c) => `<option value="${c}">${disp(c)}</option>`).join("");
+      sel.disabled = false;
+
+      for (const opt of sel.options) {
+        opt.selected = defaults.includes(opt.value);
+      }
+    }
+
+    const defaults =
+      appState.currentDataKind === "agg"
+        ? DEFAULT_SELECTIONS.agg
+        : DEFAULT_SELECTIONS.iot;
+
+    fill(els.yLeft1Sel, defaults.left1);
+    fill(els.yLeft2Sel, defaults.left2);
+    fill(els.yRight1Sel, defaults.right1);
+    fill(els.yRight2Sel, defaults.right2);
+
+    console.log("✅ dataKind:", appState.currentDataKind);
+    console.log("✅ yCandidates:", finalCandidates);
+    console.log("✅ default selections:", defaults);
+  }
+
+  function buildTpSetTempOptionsFromCsv(data) {
+    if (!(appState.fields || []).includes("TpSetTempAvgOn")) return null;
+    if (!(appState.fields || []).includes(CONFIG.colDeviceType)) return null;
+
+    const set = new Set();
+    for (const r of data || []) {
+      if (!isAirconType(r[CONFIG.colDeviceType])) continue;
+      const v = toNum(r.TpSetTempAvgOn);
+      if (Number.isFinite(v)) set.add(v);
+    }
+    const arr = [...set].sort((a, b) => a - b);
+    return arr.length ? arr : null;
+  }
+
+  function applyTpSetTempOptions(values) {
+    if (!els.tpSetTempSel) return;
+
+    const opts = [`<option value="ALL">すべてを表示</option>`].concat(
+      values.map((v) => `<option value="${String(v)}">${String(v)}℃</option>`)
+    );
+
+    els.tpSetTempSel.innerHTML = opts.join("");
+
+    const cur = String(appState.tpSetTempOn ?? "ALL");
+    const has = cur === "ALL" || values.some((v) => String(v) === cur);
+    appState.tpSetTempOn = has ? cur : "ALL";
+
+    els.tpSetTempSel.value = String(appState.tpSetTempOn);
+    syncTpBadge();
+  }
+
+  function syncTpBadge() {
+    if (!els.badgeTpSetTemp || !els.tpSetTempSel) return;
+    els.badgeTpSetTemp.textContent =
+      els.tpSetTempSel.value === "ALL"
+        ? "ALL（フィルタなし）"
+        : `TpSetTempAvgOn=${els.tpSetTempSel.value}`;
+  }
+
+  function updateColumnBadges() {
+    if (els.badgeColDiv) els.badgeColDiv.textContent = appState.colDivision || "-";
+    if (els.badgeColDevice) els.badgeColDevice.textContent = appState.colDevice || "-";
+    if (els.badgeColTs) els.badgeColTs.textContent = els.tsSel?.value || "-";
+  }
+
+  function enableControls() {
+    if (els.divisionSel) els.divisionSel.disabled = false;
+    if (els.startDaySel) els.startDaySel.disabled = false;
+    if (els.endDaySel) els.endDaySel.disabled = false;
+    if (els.replotBtn) els.replotBtn.disabled = false;
+    if (els.xModeSel) els.xModeSel.disabled = false;
+    if (els.grainSel) els.grainSel.disabled = false;
+    if (els.tpSetTempSel) els.tpSetTempSel.disabled = false;
+    if (els.colorModeSel) els.colorModeSel.disabled = false;
+  }
+
+  // =========================================================
+  // Data -> rows for plotting
+  // =========================================================
+  function buildRowsAndAirconCaches(data) {
+    const divCol = appState.colDivision;
+    const devCol = appState.colDevice;
+
+    const colTs = els.tsSel?.value || pickTsColumnByDataKind(appState.fields, appState.currentDataKind);
+    const left1 = getSelectedValues(els.yLeft1Sel);
+    const left2 = getSelectedValues(els.yLeft2Sel);
+    const right1 = getSelectedValues(els.yRight1Sel);
+    const right2 = getSelectedValues(els.yRight2Sel);
+
+    const allMetrics = [...left1, ...left2, ...right1, ...right2];
+    if (allMetrics.length === 0) {
+      dbg("Y軸がすべて未選択のため、描画しません。");
+      return {
+        rows: [],
+        left1,
+        left2,
+        right1,
+        right2,
+        colTs,
+        airconTempMap: null,
+        allowed: null,
+      };
+    }
+
+    const hasSetTemp = (appState.fields || []).includes("TpSetTempAvgOn");
+
+    // iot + TpSetTemp列あり のときだけ Aircon の最頻値マップを作る
+    const useAirconMap =
+      appState.currentDataKind === "iot" &&
+      !!els.tpSetTempSel &&
+      hasSetTemp;
+
+    const selectedTp = String(els.tpSetTempSel?.value || "ALL");
+    appState.tpSetTempOn = selectedTp;
+    syncTpBadge();
+
+    const targetTp = selectedTp === "ALL" ? NaN : Number(selectedTp);
+    const useAllowedFilter = useAirconMap && Number.isFinite(targetTp);
+
+    const candidateRows = [];
+    const dtCounts = useAirconMap ? new Map() : null;
+    const allowed = useAllowedFilter ? new Set() : null;
+
+    for (const r of data || []) {
+      const div = r[divCol];
+      if (div !== els.divisionSel?.value) continue;
+
+      const dev = r[devCol];
+      const tsRawForPlot = r[colTs];
+      if (!dev || !tsRawForPlot) continue;
+
+      const day = getDayFromTs(tsRawForPlot);
+      if (!inDayRange(day)) continue;
+
+      const dt = normalizeDt(tsRawForPlot);
+      const dtypeRaw = r[CONFIG.colDeviceType];
+
+      if (useAirconMap && isAirconType(dtypeRaw)) {
+        const tp = toNum(r.TpSetTempAvgOn);
+        if (Number.isFinite(tp)) {
+          if (!dtCounts.has(dt)) dtCounts.set(dt, new Map());
+          const mp = dtCounts.get(dt);
+          mp.set(tp, (mp.get(tp) || 0) + 1);
+
+          if (useAllowedFilter && Math.abs(tp - targetTp) < 1e-9) {
+            allowed.add(dt);
+          }
+        }
+      }
+
+      for (const metric of allMetrics) {
+        if (POWER_ONLY_METRICS.includes(metric)) {
+          if (!isPowerType(dtypeRaw)) continue;
+        }
+
+        const v = toNum(r[metric]);
+        if (!Number.isFinite(v)) continue;
+
+        candidateRows.push({
+          dev,
+          dt,
+          day,
+          metric,
+          v,
+          tsRaw: tsRawForPlot,
+        });
+      }
+    }
+
+    let airconTempMap = null;
+    if (useAirconMap) {
+      airconTempMap = new Map();
+
+      for (const [dt, mp] of dtCounts.entries()) {
+        let bestTp = null;
+        let bestCnt = -1;
+        const temps = [...mp.keys()].sort((a, b) => a - b);
+
+        for (const t of temps) {
+          const c = mp.get(t);
+          if (c > bestCnt) {
+            bestCnt = c;
+            bestTp = t;
+          }
+        }
+        if (bestTp != null) airconTempMap.set(dt, bestTp);
+      }
+    }
+
+    const out = [];
+    for (const row of candidateRows) {
+      if (allowed && !allowed.has(row.dt)) continue;
+      row.tp = airconTempMap?.has(row.dt) ? airconTempMap.get(row.dt) : NaN;
+      out.push(row);
+    }
+
+    if (useAllowedFilter) {
+      dbg(`Aircon条件: TpSetTempAvgOn=${targetTp} のTS(dt)が ${allowed.size} 個`);
+    } else if (useAirconMap) {
+      dbg("Aircon条件: すべてを表示（フィルタなし）");
+    }
+
+    return {
+      rows: out,
+      left1,
+      left2,
+      right1,
+      right2,
+      colTs,
+      airconTempMap,
+      allowed,
+    };
+  }
+
+  // =========================================================
+  // Plot ranges
   // =========================================================
   function calcRanges(traces) {
     const range = { y: null, y2: null, y3: null, y4: null };
 
     function upd(key, arr) {
-      const nums = arr.filter((v) => Number.isFinite(v));
+      const nums = (arr || []).filter((v) => Number.isFinite(v));
       if (!nums.length) return;
       const mn = Math.min(...nums);
       const mx = Math.max(...nums);
+
       if (!range[key]) range[key] = { mn, mx };
       else {
         range[key].mn = Math.min(range[key].mn, mn);
@@ -882,13 +864,18 @@
       return [r.mn - p, r.mx + p];
     }
 
-    return { y: pad(range.y), y2: pad(range.y2), y3: pad(range.y3), y4: pad(range.y4) };
+    return {
+      y: pad(range.y),
+      y2: pad(range.y2),
+      y3: pad(range.y3),
+      y4: pad(range.y4),
+    };
   }
 
   // =========================================================
-  // 折れ線描画
+  // Render: line
   // =========================================================
-  function render(rows, left1, left2, right1, right2, colTs) {
+  function renderLine(rows, left1, left2, right1, right2, colTs) {
     const xMode = appState.xMode;
 
     const byKey = new Map();
@@ -967,6 +954,7 @@
     }
 
     const ranges = calcRanges(traces);
+
     const layout = {
       uirevision: "keep-ui",
       margin: { r: 320, l: 80 },
@@ -983,7 +971,10 @@
     } else {
       const cat = buildTodCategoryArray(rows, appState.grainMin);
       const stepLabel =
-        appState.grainMin && appState.grainMin > 0 ? `${appState.grainMin}分刻み` : "データ刻み（自動）";
+        appState.grainMin && appState.grainMin > 0
+          ? `${appState.grainMin}分刻み`
+          : "データ刻み（自動）";
+
       layout.xaxis = {
         type: "category",
         title: `時刻帯（00–23重ね / ${stepLabel}）`,
@@ -1030,13 +1021,13 @@
       };
     }
 
-    Plotly.react(lineDiv, traces, layout, { responsive: true });
+    Plotly.react(els.line, traces, layout, { responsive: true });
   }
 
   // =========================================================
-  // 散布図：色分け切替（day/temp）
+  // Render: scatter
   // =========================================================
-  function buildScatterTraces(rows, yMetric, xMetric, xMode) {
+  function buildScatterTraces(rows, yMetric, xMetric) {
     const byKey = new Map();
     for (const r of rows || []) {
       const key = `${r.dev}__${r.dt}`;
@@ -1062,9 +1053,14 @@
         groupKey = Number.isFinite(obj.tp) ? `${obj.tp}℃` : "unknown-temp";
       }
 
-      if (!byGroup.has(groupKey)) byGroup.set(groupKey, { x: [], y: [], customdata: [] });
+      if (!byGroup.has(groupKey)) {
+        byGroup.set(groupKey, { x: [], y: [], customdata: [] });
+      }
 
-      const xPlot = xMode === "A" ? new Date(obj.dt) : getTodHM(obj.tsRaw ?? obj.dt) ?? obj.dt;
+      const xPlot =
+        appState.xMode === "A"
+          ? new Date(obj.dt)
+          : getTodHM(obj.tsRaw ?? obj.dt) ?? obj.dt;
 
       byGroup.get(groupKey).x.push(xv);
       byGroup.get(groupKey).y.push(yv);
@@ -1106,11 +1102,11 @@
   }
 
   function renderScatter(rows, left1, right1) {
-    if (!scatterDiv) return;
+    if (!els.scatter) return;
 
     if (!left1.length || !right1.length) {
       Plotly.react(
-        scatterDiv,
+        els.scatter,
         [],
         {
           margin: { l: 60, r: 20, t: 30, b: 60 },
@@ -1134,7 +1130,7 @@
 
     const yMetric = left1[0];
     const xMetric = right1[0];
-    const traces = buildScatterTraces(rows, yMetric, xMetric, appState.xMode);
+    const traces = buildScatterTraces(rows, yMetric, xMetric);
 
     const layout = {
       margin: { l: 60, r: 180, t: 30, b: 40 },
@@ -1150,35 +1146,39 @@
       },
     };
 
-    Plotly.react(scatterDiv, traces, layout, { responsive: true });
+    Plotly.react(els.scatter, traces, layout, { responsive: true });
   }
 
   // =========================================================
-  // 散布図 → 折れ線 連動（赤丸ハイライト）
+  // Scatter -> line hover
   // =========================================================
   function clearLineHighlight() {
-    if (appState.hlLeftIdx != null) Plotly.restyle(lineDiv, { x: [[]], y: [[]] }, [appState.hlLeftIdx]);
-    if (appState.hlRightIdx != null) Plotly.restyle(lineDiv, { x: [[]], y: [[]] }, [appState.hlRightIdx]);
+    if (appState.hlLeftIdx != null) {
+      Plotly.restyle(els.line, { x: [[]], y: [[]] }, [appState.hlLeftIdx]);
+    }
+    if (appState.hlRightIdx != null) {
+      Plotly.restyle(els.line, { x: [[]], y: [[]] }, [appState.hlRightIdx]);
+    }
   }
 
   function setLineHighlight(xPlot, yLeft, yRight) {
     if (appState.hlLeftIdx != null && Number.isFinite(yLeft)) {
-      Plotly.restyle(lineDiv, { x: [[xPlot]], y: [[yLeft]] }, [appState.hlLeftIdx]);
+      Plotly.restyle(els.line, { x: [[xPlot]], y: [[yLeft]] }, [appState.hlLeftIdx]);
     }
     if (appState.hlRightIdx != null && Number.isFinite(yRight)) {
-      Plotly.restyle(lineDiv, { x: [[xPlot]], y: [[yRight]] }, [appState.hlRightIdx]);
+      Plotly.restyle(els.line, { x: [[xPlot]], y: [[yRight]] }, [appState.hlRightIdx]);
     }
   }
 
   function bindScatterToLineHover() {
-    if (!scatterDiv || !lineDiv) return;
+    if (!els.scatter || !els.line) return;
 
-    if (typeof scatterDiv.removeAllListeners === "function") {
-      scatterDiv.removeAllListeners("plotly_hover");
-      scatterDiv.removeAllListeners("plotly_unhover");
+    if (typeof els.scatter.removeAllListeners === "function") {
+      els.scatter.removeAllListeners("plotly_hover");
+      els.scatter.removeAllListeners("plotly_unhover");
     }
 
-    scatterDiv.on("plotly_hover", (ev) => {
+    els.scatter.on("plotly_hover", (ev) => {
       const cd = ev?.points?.[0]?.customdata;
       if (!cd) return;
 
@@ -1195,20 +1195,188 @@
       setLineHighlight(cd.xPlot, yLeft, yRight);
     });
 
-    scatterDiv.on("plotly_unhover", () => clearLineHighlight());
+    els.scatter.on("plotly_unhover", () => clearLineHighlight());
   }
 
   // =========================================================
-  // 再描画
+  // Controller: data / state / render
   // =========================================================
-  function updatePlot() {
+  function setSourceData(rows, options = {}) {
+    const normalized = normalizeIncomingRowsAllKeys(rows || []);
+
+    if (!normalized || normalized.length === 0) {
+      clearDbg();
+      dbg(`WARNING: ${options.label || "rows"} が空です`);
+      setAppState({
+        sourceData: [],
+        fields: [],
+      });
+      return false;
+    }
+
+    clearDbg();
+    dbg(`LOAD: ${options.label || "rows"} count=${normalized.length}`);
+
+    const fields = Object.keys(normalized[0] || {});
+    let dataKind = appState.currentDataKind;
+
+    if (MODE !== "embed") {
+      // standalone のときは CSVヘッダから dataKind 推定
+      dataKind = detectDataKindFromFields(fields);
+    } else {
+      // embed のときは viewState 優先 → なければ fields から推定
+      if (options.viewState?.dataKind) dataKind = options.viewState.dataKind;
+      else if (appState.pendingViewState?.dataKind) dataKind = appState.pendingViewState.dataKind;
+      else dataKind = detectDataKindFromFields(fields);
+    }
+
+    const colDivision = pickDivisionColumn(fields, dataKind);
+    const colDevice = pickDeviceColumn(fields);
+
+    if (!colDivision) throw new Error("Division列がありません（DivisionAgg / Division）");
+    if (!colDevice) throw new Error("Device列がありません（Device / DeviceName）");
+
+    setAppState({
+      sourceData: normalized,
+      fields,
+      currentDataKind: dataKind,
+      colDivision,
+      colDevice,
+    });
+
+    dbg(`dataKind=${appState.currentDataKind}`);
+    dbg(`fields=${JSON.stringify(fields)}`);
+    dbg(`sample=${JSON.stringify(normalized[0])}`);
+
+    return true;
+  }
+
+  function rebuildUiFromState() {
+    if (!appState.sourceData || !appState.fields?.length) return;
+
+    buildColumnSelectors(appState.fields, appState.sourceData);
+
+    const divs = [
+      ...new Set(appState.sourceData.map((r) => r[appState.colDivision]).filter(Boolean)),
+    ].sort();
+
+    buildDivisionSelector(divs);
+
+    const tsCol =
+      els.tsSel?.value || pickTsColumnByDataKind(appState.fields, appState.currentDataKind);
+
+    const days = [
+      ...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean)),
+    ].sort();
+
+    setAppState({
+      days,
+      xMode: els.xModeSel?.value || "A",
+      grainMin: Number(els.grainSel?.value || 0),
+      colorMode: els.colorModeSel?.value || "day",
+    });
+
+    if (days.length) {
+      buildDaySelectors(days);
+    }
+
+    const tpOptions = buildTpSetTempOptionsFromCsv(appState.sourceData);
+    if (tpOptions) {
+      applyTpSetTempOptions(tpOptions);
+    } else if (els.tpSetTempSel) {
+      els.tpSetTempSel.value = "ALL";
+      appState.tpSetTempOn = "ALL";
+      syncTpBadge();
+    }
+
+    if (els.divisionSel && divs.length && !els.divisionSel.value) {
+      els.divisionSel.value = divs[0];
+    }
+
+    updateColumnBadges();
+    enableControls();
+  }
+
+  function syncViewStateToControls(viewState) {
+    if (!viewState) return;
     if (!appState.sourceData) return;
 
-    console.time("updatePlot_total");
+    const divs = [
+      ...new Set(appState.sourceData.map((r) => r[appState.colDivision]).filter(Boolean)),
+    ].sort();
 
-    // -------------------------------------------------
-    // sourceData はここで 1回だけ走査
-    // -------------------------------------------------
+    const tsCol =
+      els.tsSel?.value || pickTsColumnByDataKind(appState.fields, appState.currentDataKind);
+
+    const days = [
+      ...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean)),
+    ].sort();
+
+    if (els.divisionSel && viewState.division && divs.includes(viewState.division)) {
+      els.divisionSel.value = viewState.division;
+    }
+
+    if (els.startDaySel && viewState.startDay && days.includes(viewState.startDay)) {
+      els.startDaySel.value = viewState.startDay;
+    }
+
+    if (els.endDaySel && viewState.endDay && days.includes(viewState.endDay)) {
+      els.endDaySel.value = viewState.endDay;
+    }
+  }
+
+  function applyPendingViewStateIfAny() {
+    if (!appState.pendingViewState) return;
+    syncViewStateToControls(appState.pendingViewState);
+  }
+
+  function onRowsLoaded(rows, options = {}) {
+    const ok = setSourceData(rows, options);
+    if (!ok) return;
+
+    rebuildUiFromState();
+    applyPendingViewStateIfAny();
+    adapter.applyUiLock();
+    renderAll();
+    dbg("DONE(init)");
+  }
+
+  function onViewStateChanged(viewState) {
+    setAppState({
+      pendingViewState: {
+        division: viewState?.division ?? null,
+        startDay: viewState?.startDay ?? null,
+        endDay: viewState?.endDay ?? null,
+        dataKind: viewState?.dataKind ?? "iot",
+      },
+    });
+
+    dbg(`SET_VIEWSTATE: ${JSON.stringify(appState.pendingViewState)}`);
+
+    if (appState.pendingViewState?.dataKind) {
+      appState.currentDataKind = appState.pendingViewState.dataKind;
+      dbg(`currentDataKind=${appState.currentDataKind}`);
+    }
+
+    if (!appState.sourceData) return;
+
+    appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
+    appState.colDevice = pickDeviceColumn(appState.fields);
+
+    if (!appState.colDivision) throw new Error("Division列がありません（DivisionAgg / Division）");
+    if (!appState.colDevice) throw new Error("Device列がありません（Device / DeviceName）");
+
+    rebuildUiFromState();
+    syncViewStateToControls(appState.pendingViewState);
+    adapter.applyUiLock();
+    renderAll();
+  }
+
+  function renderAll() {
+    if (!appState.sourceData) return;
+
+    console.time("renderAll_total");
+
     console.time("buildRowsAndAirconCaches");
     const {
       rows: rows0,
@@ -1220,39 +1388,33 @@
     } = buildRowsAndAirconCaches(appState.sourceData);
     console.timeEnd("buildRowsAndAirconCaches");
 
-    if (badgeColTs) badgeColTs.textContent = colTs || "";
+    if (els.badgeColTs) els.badgeColTs.textContent = colTs || "";
 
-    // -------------------------------------------------
-    // 粒度集計
-    // -------------------------------------------------
     console.time("aggregateRows");
     const rows = aggregateRows(rows0, appState.grainMin);
     console.timeEnd("aggregateRows");
 
-    // -------------------------------------------------
-    // rows 側のループも 1回に統合
-    // daysInView / tempsInView / valueMap
-    // -------------------------------------------------
     console.time("buildViewCaches");
     const daySet = new Set();
     const tempSet = new Set();
-    const m = new Map();
+    const valueMap = new Map();
 
     for (const r of rows || []) {
       if (r.day) daySet.add(r.day);
       if (Number.isFinite(r.tp)) tempSet.add(Number(r.tp));
-      m.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
+      valueMap.set(`${r.dev}__${r.dt}__${r.metric}`, r.v);
     }
 
     const daysInView = [...daySet].sort();
     const tempsInView = [...tempSet].sort((a, b) => a - b);
 
-    appState.dayColors = buildDayColors(daysInView);
-    appState.tempColors = buildTempColors(tempsInView);
-
-    appState.lastLeft1 = left1;
-    appState.lastRight1 = right1;
-    appState.valueMap = m;
+    setAppState({
+      dayColors: buildDayColors(daysInView),
+      tempColors: buildTempColors(tempsInView),
+      lastLeft1: left1,
+      lastRight1: right1,
+      valueMap,
+    });
     console.timeEnd("buildViewCaches");
 
     dbg(`dataKind=${appState.currentDataKind}`);
@@ -1262,7 +1424,7 @@
     dbg(`rows(raw)=${rows0.length}, rows(agg)=${rows.length}`);
 
     console.time("render_line");
-    render(rows, left1, left2, right1, right2, colTs);
+    renderLine(rows, left1, left2, right1, right2, colTs);
     console.timeEnd("render_line");
 
     console.time("render_scatter");
@@ -1271,281 +1433,221 @@
 
     bindScatterToLineHover();
 
-    console.timeEnd("updatePlot_total");
-  }
-
-  function enableControls() {
-    if (divisionSel) divisionSel.disabled = false;
-    if (startDaySel) startDaySel.disabled = false;
-    if (endDaySel) endDaySel.disabled = false;
-    if (replotBtn) replotBtn.disabled = false;
-    if (xModeSel) xModeSel.disabled = false;
-    if (grainSel) grainSel.disabled = false;
-    if (tpSetTempSel) tpSetTempSel.disabled = false;
-    if (colorModeSel) colorModeSel.disabled = false;
+    console.timeEnd("renderAll_total");
   }
 
   // =========================================================
-  // CSVでもReactでも共通の初期化入口
+  // UI Event binding
   // =========================================================
-  function loadRowsAndInit(rows, label = "rows", viewState = null) {
-    rows = normalizeIncomingRowsAllKeys(rows || []);
+  function bindUiEventsOnce() {
+    if (appState.uiEventsBound) return;
+    appState.uiEventsBound = true;
 
-    if (!rows || rows.length === 0) {
-      clearDbg();
-      dbg(`WARNING: ${label} が空です`);
-      return;
+    if (els.divisionSel) {
+      els.divisionSel.addEventListener("change", () => {
+        if (MODE === "embed") return;
+        renderAll();
+      });
     }
 
-    clearDbg();
-    dbg(`LOAD: ${label} count=${rows.length}`);
-
-    appState.fields = Object.keys(rows[0] || {});
-    appState.sourceData = rows;
-
-    // ✅ standalone のときは CSVヘッダから dataKind 推定
-    if (MODE !== "embed") {
-      appState.currentDataKind = detectDataKindFromFields(appState.fields);
-    } else if (viewState?.dataKind) {
-      appState.currentDataKind = viewState.dataKind;
-    } else if (pendingViewState?.dataKind) {
-      appState.currentDataKind = pendingViewState.dataKind;
+    if (els.startDaySel) {
+      els.startDaySel.addEventListener("change", () => {
+        if (MODE === "embed") return;
+        renderAll();
+      });
     }
 
-    dbg(`dataKind=${appState.currentDataKind}`);
-    dbg(`fields=${JSON.stringify(appState.fields)}`);
-    dbg(`sample=${JSON.stringify(rows[0])}`);
-
-    // ✅ dataKind ベースで Division / Device 列選択
-    appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
-    appState.colDevice = pickDeviceColumn(appState.fields, appState.currentDataKind);
-
-    if (!appState.colDivision) throw new Error("Division列がありません（DivisionAgg / Division）");
-    if (!appState.colDevice) throw new Error("Device列がありません（Device / DeviceName）");
-
-    if (badgeColDiv) badgeColDiv.textContent = appState.colDivision;
-    if (badgeColDevice) badgeColDevice.textContent = appState.colDevice;
-
-    buildColumnSelectors(appState.fields, appState.sourceData);
-
-    const divs = [...new Set(appState.sourceData.map((r) => r[appState.colDivision]).filter(Boolean))].sort();
-    if (divisionSel) {
-      divisionSel.innerHTML = divs.map((d) => `<option value="${d}">${d}</option>`).join("");
+    if (els.endDaySel) {
+      els.endDaySel.addEventListener("change", () => {
+        if (MODE === "embed") return;
+        renderAll();
+      });
     }
 
-    const tsCol = tsSel?.value;
-    const days = [...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean))].sort();
-    appState.days = days;
-    if (days.length) buildDaySelectors(days);
+    if (els.tsSel) {
+      els.tsSel.addEventListener("change", () => {
+        if (!appState.sourceData?.length) return;
 
-    appState.xMode = xModeSel?.value || "A";
-    appState.grainMin = Number(grainSel?.value || 0);
+        const prevStart = els.startDaySel?.value || null;
+        const prevEnd = els.endDaySel?.value || null;
 
-    const tpOptions = buildTpSetTempOptionsFromCsv(appState.sourceData);
-    if (tpOptions) {
-      applyTpSetTempOptions(tpOptions);
-    } else if (tpSetTempSel) {
-      tpSetTempSel.value = "ALL";
-      appState.tpSetTempOn = "ALL";
-      syncTpBadge();
-    }
+        const tsCol = els.tsSel.value;
+        const days = [
+          ...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean)),
+        ].sort();
 
-    appState.colorMode = colorModeSel?.value || "day";
+        if (days.length) {
+          buildDaySelectors(days);
 
-    if (MODE !== "embed") {
-      if (divisionSel) divisionSel.onchange = updatePlot;
-      if (startDaySel) startDaySel.onchange = updatePlot;
-      if (endDaySel) endDaySel.onchange = updatePlot;
-    } else {
-      if (divisionSel) divisionSel.onchange = null;
-      if (startDaySel) startDaySel.onchange = null;
-      if (endDaySel) endDaySel.onchange = null;
-    }
-
-    if (tsSel) {
-      tsSel.onchange = () => {
-        const prevStart = startDaySel?.value || null;
-        const prevEnd = endDaySel?.value || null;
-
-        const tsCol2 = tsSel.value;
-        const days2 = [...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol2])).filter(Boolean))].sort();
-
-        if (days2.length) {
-          buildDaySelectors(days2);
-
-          if (MODE === "embed" && pendingViewState) {
-            if (pendingViewState.startDay && days2.includes(pendingViewState.startDay)) {
-              startDaySel.value = pendingViewState.startDay;
-            } else if (prevStart && days2.includes(prevStart)) {
-              startDaySel.value = prevStart;
+          const vs = appState.pendingViewState;
+          if (MODE === "embed" && vs) {
+            if (vs.startDay && days.includes(vs.startDay)) {
+              els.startDaySel.value = vs.startDay;
+            } else if (prevStart && days.includes(prevStart)) {
+              els.startDaySel.value = prevStart;
             }
 
-            if (pendingViewState.endDay && days2.includes(pendingViewState.endDay)) {
-              endDaySel.value = pendingViewState.endDay;
-            } else if (prevEnd && days2.includes(prevEnd)) {
-              endDaySel.value = prevEnd;
+            if (vs.endDay && days.includes(vs.endDay)) {
+              els.endDaySel.value = vs.endDay;
+            } else if (prevEnd && days.includes(prevEnd)) {
+              els.endDaySel.value = prevEnd;
             }
           } else {
-            if (prevStart && days2.includes(prevStart)) startDaySel.value = prevStart;
-            if (prevEnd && days2.includes(prevEnd)) endDaySel.value = prevEnd;
+            if (prevStart && days.includes(prevStart)) els.startDaySel.value = prevStart;
+            if (prevEnd && days.includes(prevEnd)) els.endDaySel.value = prevEnd;
           }
         }
 
-        updatePlot();
-      };
-    }
-
-    if (yLeft1Sel) yLeft1Sel.onchange = updatePlot;
-    if (yLeft2Sel) yLeft2Sel.onchange = updatePlot;
-    if (yRight1Sel) yRight1Sel.onchange = updatePlot;
-    if (yRight2Sel) yRight2Sel.onchange = updatePlot;
-
-    if (xModeSel) {
-      xModeSel.onchange = () => {
-        appState.xMode = xModeSel.value;
-        updatePlot();
-      };
-    }
-    if (grainSel) {
-      grainSel.onchange = () => {
-        appState.grainMin = Number(grainSel.value || 0);
-        updatePlot();
-      };
-    }
-
-    if (tpSetTempSel) {
-      tpSetTempSel.onchange = () => {
-        appState.tpSetTempOn = String(tpSetTempSel.value || "ALL");
-        syncTpBadge();
-        updatePlot();
-      };
-    }
-
-    if (colorModeSel) {
-      colorModeSel.onchange = () => {
-        appState.colorMode = colorModeSel.value || "day";
-        updatePlot();
-      };
-    }
-
-    if (replotBtn) replotBtn.onclick = updatePlot;
-
-    if (divisionSel) divisionSel.value = divs[0] || "";
-
-    const vs = viewState || pendingViewState;
-    if (vs) {
-      if (divisionSel && vs.division && divs.includes(vs.division)) divisionSel.value = vs.division;
-      if (startDaySel && vs.startDay && days.includes(vs.startDay)) startDaySel.value = vs.startDay;
-      if (endDaySel && vs.endDay && days.includes(vs.endDay)) endDaySel.value = vs.endDay;
-    }
-
-    enableControls();
-    if (MODE === "embed") applyEmbedUiLock();
-    updatePlot();
-    dbg("DONE(init)");
-  }
-
-  // =========================================================
-  // CSV 読み込み（standalone）
-  // =========================================================
-  fileInput?.addEventListener("change", () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-
-    if (MODE === "embed") {
-      dbg("INFO: embedモードのためCSV読込は無効です");
-      return;
-    }
-
-    clearDbg();
-    dbg(`file: ${file.name}`);
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const csvText = reader.result;
-
-      const parsed = Papa.parse(csvText, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (h) => String(h).trim(),
+        updateColumnBadges();
+        renderAll();
       });
+    }
 
-      const data = parsed.data || [];
-      loadRowsAndInit(data, `CSV:${file.name}`, null);
-    };
+    if (els.yLeft1Sel) els.yLeft1Sel.addEventListener("change", renderAll);
+    if (els.yLeft2Sel) els.yLeft2Sel.addEventListener("change", renderAll);
+    if (els.yRight1Sel) els.yRight1Sel.addEventListener("change", renderAll);
+    if (els.yRight2Sel) els.yRight2Sel.addEventListener("change", renderAll);
 
-    reader.readAsText(file, "utf-8");
-  });
+    if (els.xModeSel) {
+      els.xModeSel.addEventListener("change", () => {
+        appState.xMode = els.xModeSel.value || "A";
+        renderAll();
+      });
+    }
 
-  // =========================================================
-  // embed（React連携）：postMessage 受信
-  // =========================================================
-  if (MODE === "embed") {
-    window.parent.postMessage({ type: "PLOTLY_READY", version: "1" }, window.location.origin);
+    if (els.grainSel) {
+      els.grainSel.addEventListener("change", () => {
+        appState.grainMin = Number(els.grainSel.value || 0);
+        renderAll();
+      });
+    }
 
-    window.addEventListener("message", (event) => {
-      if (event.origin !== window.location.origin) return;
-      const msg = event.data;
-      if (!msg || !msg.type) return;
+    if (els.tpSetTempSel) {
+      els.tpSetTempSel.addEventListener("change", () => {
+        appState.tpSetTempOn = String(els.tpSetTempSel.value || "ALL");
+        syncTpBadge();
+        renderAll();
+      });
+    }
 
-      if (msg.type === "SET_VIEWSTATE") {
-        pendingViewState = {
-          division: msg.division ?? null,
-          startDay: msg.startDay ?? null,
-          endDay: msg.endDay ?? null,
-          // ✅ dataKind 受信
-          dataKind: msg.dataKind ?? "iot",
-        };
+    if (els.colorModeSel) {
+      els.colorModeSel.addEventListener("change", () => {
+        appState.colorMode = els.colorModeSel.value || "day";
+        renderAll();
+      });
+    }
 
-        appState.currentDataKind = pendingViewState.dataKind || "iot";
-
-        dbg(`SET_VIEWSTATE: ${JSON.stringify(pendingViewState)}`);
-        dbg(`currentDataKind=${appState.currentDataKind}`);
-
-        if (appState.sourceData && appState.days?.length) {
-          // dataKind が変わった可能性があるので列セレクタ再構築
-          buildColumnSelectors(appState.fields, appState.sourceData);
-
-          // dataKind に応じて division/device 列も再決定
-          appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
-          appState.colDevice = pickDeviceColumn(appState.fields, appState.currentDataKind);
-
-          if (badgeColDiv) badgeColDiv.textContent = appState.colDivision || "";
-          if (badgeColDevice) badgeColDevice.textContent = appState.colDevice || "";
-
-          const divs = [...new Set(appState.sourceData.map((r) => r[appState.colDivision]).filter(Boolean))].sort();
-          if (divisionSel) {
-            divisionSel.innerHTML = divs.map((d) => `<option value="${d}">${d}</option>`).join("");
-          }
-
-          const tsCol = tsSel?.value;
-          const days = [...new Set(appState.sourceData.map((r) => getDayFromTs(r[tsCol])).filter(Boolean))].sort();
-          appState.days = days;
-          if (days.length) buildDaySelectors(days);
-
-          if (divisionSel && pendingViewState.division && divs.includes(pendingViewState.division)) {
-            divisionSel.value = pendingViewState.division;
-          }
-          if (startDaySel && pendingViewState.startDay && days.includes(pendingViewState.startDay)) {
-            startDaySel.value = pendingViewState.startDay;
-          }
-          if (endDaySel && pendingViewState.endDay && days.includes(pendingViewState.endDay)) {
-            endDaySel.value = pendingViewState.endDay;
-          }
-
-          applyEmbedUiLock();
-          updatePlot();
-        }
-      }
-
-      if (msg.type === "SET_DATA") {
-        const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
-        dbg(`SET_DATA rows=${rows.length}`);
-        if (rows.length > 0) {
-          dbg(`SET_DATA firstKeys=${JSON.stringify(Object.keys(rows[0]))}`);
-        }
-        loadRowsAndInit(rows, "EMBED:rows", pendingViewState);
-      }
-    });
+    if (els.replotBtn) {
+      els.replotBtn.addEventListener("click", () => {
+        renderAll();
+      });
+    }
   }
+
+  // =========================================================
+  // Adapter: standalone
+  // =========================================================
+  function createStandaloneAdapter() {
+    return {
+      init() {
+        if (!els.fileInput) return;
+
+        els.fileInput.addEventListener("change", () => {
+          const file = els.fileInput.files && els.fileInput.files[0];
+          if (!file) return;
+
+          clearDbg();
+          dbg(`file: ${file.name}`);
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const csvText = reader.result;
+
+            const parsed = Papa.parse(csvText, {
+              header: true,
+              skipEmptyLines: true,
+              transformHeader: (h) => String(h).trim(),
+            });
+
+            const data = parsed.data || [];
+            onRowsLoaded(data, { label: `CSV:${file.name}` });
+          };
+
+          reader.readAsText(file, "utf-8");
+        });
+      },
+
+      applyUiLock() {
+        // standalone ではロックしない
+      },
+    };
+  }
+
+  // =========================================================
+  // Adapter: embed
+  // =========================================================
+  function createEmbedAdapter() {
+    return {
+      init() {
+        window.parent.postMessage({ type: "PLOTLY_READY", version: "1" }, window.location.origin);
+
+        window.addEventListener("message", (event) => {
+          if (event.origin !== window.location.origin) return;
+
+          const msg = event.data;
+          if (!msg || !msg.type) return;
+
+          if (msg.type === "SET_VIEWSTATE") {
+            onViewStateChanged({
+              division: msg.division ?? null,
+              startDay: msg.startDay ?? null,
+              endDay: msg.endDay ?? null,
+              dataKind: msg.dataKind ?? "iot",
+            });
+          }
+
+          if (msg.type === "SET_DATA") {
+            const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
+            dbg(`SET_DATA rows=${rows.length}`);
+            if (rows.length > 0) {
+              dbg(`SET_DATA firstKeys=${JSON.stringify(Object.keys(rows[0]))}`);
+            }
+            onRowsLoaded(rows, {
+              label: "EMBED:rows",
+              viewState: appState.pendingViewState,
+            });
+          }
+        });
+      },
+
+      applyUiLock() {
+        if (els.divisionSel) els.divisionSel.disabled = true;
+        if (els.startDaySel) els.startDaySel.disabled = true;
+        if (els.endDaySel) els.endDaySel.disabled = true;
+      },
+    };
+  }
+
+  function createAdapter(mode) {
+    return mode === "embed" ? createEmbedAdapter() : createStandaloneAdapter();
+  }
+
+  // =========================================================
+  // Init
+  // =========================================================
+  const adapter = createAdapter(MODE);
+
+  function init() {
+    if (MODE === "embed") {
+      els.body?.classList.add("embed");
+    }
+
+    bindUiEventsOnce();
+    adapter.init();
+    adapter.applyUiLock();
+
+    dbg(`INIT mode=${MODE}`);
+  }
+
+  init();
 })();

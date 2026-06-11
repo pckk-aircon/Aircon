@@ -19,7 +19,7 @@
     select, input[type="file"] { padding: 6px; }
     .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f1f1; font-size:12px; }
     .badge b { font-weight:700; }
-    .colbox { min-width: 260px; }
+    .colbox { min-width: 200px; }
 
     /* embedモードでCSV UIを隠す用（JSで付与） */
     body.embed .csv-ui { display: none !important; }
@@ -73,9 +73,6 @@
         <b>① CSVファイル（1行目ヘッダ）</b><br/>
         <input id="fileInput" type="file" accept=".csv,text/csv" />
         <span class="note">※ローカルCSVを選択すると読み込みます（FileReader方式）</span>
-      </div>
-      <div>
-        <button id="replotBtn" disabled>② 再描画</button>
       </div>
     </div>
 
