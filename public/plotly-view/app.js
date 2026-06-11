@@ -1372,40 +1372,17 @@
 
   function renderAll() {
     if (!appState.sourceData) return;
-      // キャッシュキー生成（状態が変わったら再計算）
-      const key = JSON.stringify({
-        division: els.divisionSel?.value,
-        start: els.startDaySel?.value,
-        end: els.endDaySel?.value,
-        left1: getSelectedValues(els.yLeft1Sel),
-        left2: getSelectedValues(els.yLeft2Sel),
-        right1: getSelectedValues(els.yRight1Sel),
-        right2: getSelectedValues(els.yRight2Sel),
-        ts: pickTsColumnByDataKind(appState.fields, appState.currentDataKind),
-        dataKind: appState.currentDataKind,
-        tp: els.tpSetTempSel?.value,
-      });
 
-      // キャッシュが無い or 条件が変わったときだけ再計算
-      if (!appState.cachedRows || appState.cacheKey !== key) {
-
-        const result = buildRowsAndAirconCaches(appState.sourceData);
-
-        appState.cachedRows = result;
-        appState.cacheKey = key;
-
-      }
-
-      // キャッシュ利用
-      const {
-        rows: rows0,
-        left1,
-        left2,
-        right1,
-        right2,
-        colTs,
-      } = appState.cachedRows;
-
+    console.time("buildRowsAndAirconCaches");
+    const {
+      rows: rows0,
+      left1,
+      left2,
+      right1,
+      right2,
+      colTs,
+    } = buildRowsAndAirconCaches(appState.sourceData);
+    console.timeEnd("buildRowsAndAirconCaches");
 
     if (els.badgeColTs) els.badgeColTs.textContent = colTs || "";
 
