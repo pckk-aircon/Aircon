@@ -705,7 +705,7 @@
     const divCol = appState.colDivision;
     const devCol = appState.colDevice;
 
-    const colTs = els.tsSel?.value || "";
+    const colTs = els.tsSel?.value || pickTsColumnByDataKind(appState.fields, appState.currentDataKind);
     const left1 = getSelectedValues(els.yLeft1Sel);
     const left2 = getSelectedValues(els.yLeft2Sel);
     const right1 = getSelectedValues(els.yRight1Sel);
