@@ -31,7 +31,6 @@
     endDaySel: document.getElementById("endDaySel"),
 
     fileInput: document.getElementById("fileInput"),
-    replotBtn: document.getElementById("replotBtn"),
 
     tsSel: document.getElementById("tsSel"),
     yLeft1Sel: document.getElementById("yLeft1Sel"),
@@ -691,7 +690,6 @@
     if (els.divisionSel) els.divisionSel.disabled = false;
     if (els.startDaySel) els.startDaySel.disabled = false;
     if (els.endDaySel) els.endDaySel.disabled = false;
-    if (els.replotBtn) els.replotBtn.disabled = false;
     if (els.xModeSel) els.xModeSel.disabled = false;
     if (els.grainSel) els.grainSel.disabled = false;
     if (els.tpSetTempSel) els.tpSetTempSel.disabled = false;
@@ -1375,8 +1373,6 @@
   function renderAll() {
     if (!appState.sourceData) return;
 
-    console.time("renderAll_total");
-
     console.time("buildRowsAndAirconCaches");
     const {
       rows: rows0,
@@ -1390,11 +1386,11 @@
 
     if (els.badgeColTs) els.badgeColTs.textContent = colTs || "";
 
-    console.time("aggregateRows");
-    const rows = aggregateRows(rows0, appState.grainMin);
-    console.timeEnd("aggregateRows");
+    const rows =
+      appState.currentDataKind === "agg"
+        ? rows0
+        : aggregateRows(rows0, appState.grainMin);
 
-    console.time("buildViewCaches");
     const daySet = new Set();
     const tempSet = new Set();
     const valueMap = new Map();
@@ -1415,7 +1411,6 @@
       lastRight1: right1,
       valueMap,
     });
-    console.timeEnd("buildViewCaches");
 
     dbg(`dataKind=${appState.currentDataKind}`);
     dbg(`TS列=${colTs}`);
@@ -1423,17 +1418,11 @@
     dbg(`Device列=${appState.colDevice}`);
     dbg(`rows(raw)=${rows0.length}, rows(agg)=${rows.length}`);
 
-    console.time("render_line");
     renderLine(rows, left1, left2, right1, right2, colTs);
-    console.timeEnd("render_line");
-
-    console.time("render_scatter");
     renderScatter(rows, left1, right1);
-    console.timeEnd("render_scatter");
 
     bindScatterToLineHover();
 
-    console.timeEnd("renderAll_total");
   }
 
   // =========================================================
@@ -1533,12 +1522,6 @@
     if (els.colorModeSel) {
       els.colorModeSel.addEventListener("change", () => {
         appState.colorMode = els.colorModeSel.value || "day";
-        renderAll();
-      });
-    }
-
-    if (els.replotBtn) {
-      els.replotBtn.addEventListener("click", () => {
         renderAll();
       });
     }
