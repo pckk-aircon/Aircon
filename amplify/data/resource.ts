@@ -7,7 +7,6 @@ const schema = a.schema({
 
   // ＊＊＊＊ Device ＊＊＊＊
 
-  // データを設定。
   Device: a.customType({
     Device: a.id().required(),
     DeviceName: a.string(),
@@ -22,11 +21,10 @@ const schema = a.schema({
     model: a.string(),
   }),
 
-  // add
   addDevice: a
     .mutation()
     .arguments({
-      Device: a.id(), // page.tsxでのエラーを防ぐため.required()をはずす。
+      Device: a.id(),
       DeviceName: a.string(),
       Controller: a.string(),
       DeviceType: a.string(),
@@ -47,7 +45,6 @@ const schema = a.schema({
       })
     ),
 
-  // list
   listDevice: a
     .query()
     .arguments({
@@ -67,12 +64,11 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "DeviceDataSource", // ★★★変更。
+        dataSource: "DeviceDataSource",
         entry: "./listPostByController.js",
       })
     ),
 
-  // カスタムサブスクリプション
   receiveDevice: a
     .subscription()
     .for(a.ref("addDevice"))
@@ -85,7 +81,6 @@ const schema = a.schema({
 
   // ＊＊＊＊ Division ＊＊＊＊
 
-  // データを設定。
   Division: a.customType({
     Division: a.id().required(),
     DivisionName: a.string(),
@@ -93,11 +88,10 @@ const schema = a.schema({
     Controller: a.string(),
   }),
 
-  // add
   addDivision: a
     .mutation()
     .arguments({
-      Division: a.id(), // page.tsxでのエラーを防ぐため.required()をはずす。
+      Division: a.id(),
       DivisionName: a.string(),
       Geojson: a.string(),
       Controller: a.string(),
@@ -111,7 +105,6 @@ const schema = a.schema({
       })
     ),
 
-  // list
   listDivision: a
     .query()
     .arguments({
@@ -124,12 +117,11 @@ const schema = a.schema({
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "DivisionDataSource", // ★★★変更。
+        dataSource: "DivisionDataSource",
         entry: "./listPostByController.js",
       })
     ),
 
-  // カスタムサブスクリプション
   receiveDivision: a
     .subscription()
     .for(a.ref("addDivision"))
@@ -142,7 +134,6 @@ const schema = a.schema({
 
   // ＊＊＊＊ Iot ＊＊＊＊
 
-  // データを設定。
   IotData: a.customType({
     Device: a.id().required(),
     DeviceDatetime: a.string(),
@@ -166,31 +157,78 @@ const schema = a.schema({
     Division: a.string(),
   }),
 
-  // ★追加：ページング用の返却型
   IotDataPage: a.customType({
     items: a.ref("IotData").array(),
     nextToken: a.string(),
   }),
 
-  // list
   listIot: a
     .query()
     .arguments({
       Controller: a.string(),
-      Division: a.string(),   // ★追加
+      Division: a.string(),
       StartDatetime: a.string(),
       EndDatetime: a.string(),
-      nextToken: a.string(), // ★追加
+      nextToken: a.string(),
     })
-    .returns(a.ref("IotDataPage")) // ★変更：配列ではなくページ型
+    .returns(a.ref("IotDataPage"))
     .authorization(allow => [allow.publicApiKey()])
     .handler(
       a.handler.custom({
-        dataSource: "IotDataSource", // ★★★変更。
+        dataSource: "IotDataSource",
         entry: "./listIot.js",
       })
     ),
 
+  // ＊＊＊＊ IotAgg ＊＊＊＊
+
+  IotDataAgg: a.customType({
+    Device: a.id().required(),
+    DatetimeAgg: a.string(),
+    DeviceType: a.string(),
+    Controller: a.string(),
+    Division: a.string(),
+
+    // 集計値（例）
+    AvgActualTemp: a.string(),
+    AvgActualHumidity: a.string(),
+    AvgActivePower: a.string(),
+    SumCumulativeEnergy: a.string(),
+    EnergyDeltaPerEffectiveMinute: a.string(),
+    WtTemp: a.string(),
+
+    // 必要なら粒度列なども追加
+    AggUnit: a.string(),      // 例: "hour", "day"
+    AggKey: a.string(),       // 例: "2026-06-01 10:00:00+09:00"
+  }),
+
+  IotDataAggPage: a.customType({
+    items: a.ref("IotDataAgg").array(),
+    nextToken: a.string(),
+  }),
+
+  listIotAgg: a
+    .query()
+    .arguments({
+      Controller: a.string(),
+      Division: a.string(),
+      StartDatetime: a.string(),
+      EndDatetime: a.string(),
+      nextToken: a.string(),
+
+      // 必要なら追加
+      AggUnit: a.string(),
+    })
+    .returns(a.ref("IotDataAggPage"))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(
+      a.handler.custom({
+        dataSource: "IotDataAggSource",
+        entry: "./listIotAgg.js",
+      })
+    ),
+
+  // ★追加ここまで
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -200,7 +238,7 @@ export const data = defineData({
   authorizationModes: {
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
-      expiresInDays: 365, // apikeyの有効期限を365日に設定。
+      expiresInDays: 365,
     },
   },
 });
@@ -387,7 +425,6 @@ const schema = a.schema({
     ),
 
   // ＊＊＊＊ IotAgg ＊＊＊＊
-  // ★追加ここから
 
   IotDataAgg: a.customType({
     Device: a.id().required(),
@@ -396,17 +433,17 @@ const schema = a.schema({
     Controller: a.string(),
     Division: a.string(),
 
-    // 集計値（例）
+    // 集計値
     AvgActualTemp: a.string(),
     AvgActualHumidity: a.string(),
     AvgActivePower: a.string(),
     SumCumulativeEnergy: a.string(),
+    EnergyDelta: a.string(),
     EnergyDeltaPerEffectiveMinute: a.string(),
     WtTemp: a.string(),
+    TpSetTempDivAvg: a.string(),
+    TpSetTempAvgOn: a.string(),
 
-    // 必要なら粒度列なども追加
-    AggUnit: a.string(),      // 例: "hour", "day"
-    AggKey: a.string(),       // 例: "2026-06-01 10:00:00+09:00"
   }),
 
   IotDataAggPage: a.customType({

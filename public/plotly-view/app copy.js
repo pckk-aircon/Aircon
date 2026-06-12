@@ -945,10 +945,7 @@
     const hit = cache.aggregatedRows.get(aggKey);
     if (hit) return hit;
 
-    const rows =
-      appState.currentDataKind === "agg"
-        ? expanded.rows
-        : aggregateRows(expanded.rows, grainMin);
+    const rows = aggregateRows(expanded.rows, grainMin);
 
     const result = {
       aggKey,
@@ -1343,17 +1340,12 @@
     );
 
     if (!normalized.length) {
-      clearDbg();
-      dbg(`WARNING: ${options.label || "rows"} が空です`);
       setAppState({
         sourceData: [],
         fields: [],
       });
       return false;
     }
-
-    clearDbg();
-    dbg(`LOAD: ${options.label || "rows"} count=${normalized.length}`);
 
     const fields = Object.keys(normalized[0] || {});
     let dataKind = appState.currentDataKind;
@@ -1381,9 +1373,6 @@
     });
 
     resetAllCaches();
-
-    dbg(`dataKind=${appState.currentDataKind}`);
-    dbg(`fields=${JSON.stringify(fields)}`);
 
     return true;
   }
@@ -1463,7 +1452,6 @@
     applyPendingViewStateIfAny();
     adapter.applyUiLock();
     renderAll();
-    dbg("DONE(init)");
   }
 
   function onViewStateChanged(viewState) {
@@ -1475,8 +1463,6 @@
         dataKind: viewState?.dataKind ?? "iot",
       },
     });
-
-    dbg(`SET_VIEWSTATE: ${JSON.stringify(appState.pendingViewState)}`);
 
     if (appState.pendingViewState?.dataKind) {
       appState.currentDataKind = appState.pendingViewState.dataKind;
@@ -1535,12 +1521,6 @@
       lastRight1: right1,
       valueMap,
     });
-
-    dbg(`dataKind=${appState.currentDataKind}`);
-    dbg(`TS列=${colTs}`);
-    dbg(`Division列=${appState.colDivision}`);
-    dbg(`Device列=${appState.colDevice}`);
-    dbg(`rows(render)=${rows.length}`);
 
     renderLine(rows, left1, left2, right1, right2, colTs);
     renderScatter(rows, left1, right1);
@@ -1688,9 +1668,6 @@
           const file = els.fileInput.files && els.fileInput.files[0];
           if (!file) return;
 
-          clearDbg();
-          dbg(`file: ${file.name}`);
-
           const reader = new FileReader();
           reader.onload = () => {
             const csvText = reader.result;
@@ -1740,7 +1717,6 @@
 
           if (msg.type === "SET_DATA") {
             const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
-            dbg(`SET_DATA rows=${rows.length}`);
             onRowsLoaded(rows, {
               label: "EMBED:rows",
               viewState: appState.pendingViewState,
@@ -1774,8 +1750,6 @@
     bindUiEventsOnce();
     adapter.init();
     adapter.applyUiLock();
-
-    dbg(`INIT mode=${MODE}`);
   }
 
   init();
