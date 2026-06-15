@@ -1454,6 +1454,11 @@
     const ok = setSourceData(rows, options);
     if (!ok) return;
 
+    
+    // ✅ ここに入れる
+    console.log("sample row:", appState.sourceData[0]);
+
+
     rebuildUiFromState();
     applyPendingViewStateIfAny();
     adapter.applyUiLock();
