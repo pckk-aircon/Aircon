@@ -19,6 +19,14 @@ type DivisionRow = {
   DivisionName: string;
 };
 
+type DeviceRow = {
+  Device: string;
+  DeviceName?: string | null;
+  Controller?: string | null;
+  DeviceType?: string | null;
+  Division?: string | null;
+};
+
 type IotRow = Record<string, unknown>;
 
 type DataKind = "iot" | "agg";
@@ -64,6 +72,12 @@ export default function Page() {
   const [iframeReady, setIframeReady] = useState(false);
   const [allRows, setAllRows] = useState<IotRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Deviceマスタ取得完了フラグ
+  const [deviceMasterReady, setDeviceMasterReady] = useState(false);
+
+  // Device -> DeviceName のJOIN用マップ
+  const deviceNameMapRef = useRef<Map<string, string>>(new Map());
 
   // 進捗表示用
   const [progress, setProgress] = useState(0); // 0-100
@@ -166,6 +180,70 @@ export default function Page() {
   }, [allRows, selectedDivision]);
 
   // =========================================================
+  // Device master fetch（Device -> DeviceName JOIN用）
+  // =========================================================
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setDeviceMasterReady(false);
+
+        const { data, errors } = await client.queries.listDevice({
+          Controller: controller,
+        });
+
+        if (errors?.length) {
+          console.error("listDevice errors:", errors);
+          if (!cancelled) {
+            deviceNameMapRef.current = new Map();
+          }
+          return;
+        }
+
+        if (cancelled) return;
+
+        const list = (data || []) as DeviceRow[];
+        const mp = new Map<string, string>();
+
+        for (const row of list) {
+          const device =
+            typeof row.Device === "string" ? row.Device.trim() : "";
+          const deviceName =
+            typeof row.DeviceName === "string" ? row.DeviceName.trim() : "";
+
+          if (!device) continue;
+          // DeviceName が空なら deviceコードをそのまま入れておく
+          mp.set(device, deviceName || device);
+        }
+
+        deviceNameMapRef.current = mp;
+        console.log("listDevice loaded:", list.length, "device master rows");
+        console.log(
+          "deviceNameMap sample:",
+          Array.from(mp.entries()).slice(0, 5)
+        );
+
+        // Deviceマスタが変わったらキャッシュはクリア
+        rangeCacheRef.current.clear();
+      } catch (err) {
+        console.error("listDevice error:", err);
+        if (!cancelled) {
+          deviceNameMapRef.current = new Map();
+        }
+      } finally {
+        if (!cancelled) {
+          setDeviceMasterReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [controller]);
+
+  // =========================================================
   // normalize 共通ユーティリティ
   // =========================================================
   const normalizeRows = useCallback((rows: IotRow[], kind: DataKind): IotRow[] => {
@@ -233,6 +311,19 @@ export default function Page() {
       }
     };
 
+    const resolveDeviceNameFromMaster = (
+      deviceValue: unknown
+    ): string | null => {
+      if (typeof deviceValue !== "string") return null;
+      const device = deviceValue.trim();
+      if (!device) return null;
+
+      const hit = deviceNameMapRef.current.get(device);
+      if (typeof hit === "string" && hit.trim() !== "") return hit.trim();
+
+      return null;
+    };
+
     const finalizeFirstRowKeys = (normalized: IotRow[]): IotRow[] => {
       if (normalized.length === 0) return normalized;
 
@@ -287,6 +378,15 @@ export default function Page() {
           fillIfEmpty(out, "DeviceName", "Device");
           fillIfEmpty(out, "DivisionAgg", "Division");
           fillIfEmpty(out, "Division", "DivisionAgg");
+
+          // ✅ Device master JOIN
+          const joinedDeviceName = resolveDeviceNameFromMaster(out["Device"]);
+          if (!isNilLike(joinedDeviceName)) {
+            out["DeviceName"] = joinedDeviceName;
+          } else if (isNilLike(out["DeviceName"]) && !isNilLike(out["Device"])) {
+            // masterに無ければ最低限 Device を入れる
+            out["DeviceName"] = out["Device"];
+          }
 
           // iot は DeviceDatetime 優先
           const primaryTs =
@@ -343,6 +443,15 @@ export default function Page() {
             if (!(k in out)) {
               out[k] = null;
             }
+          }
+
+          // 念のため最後に再補完
+          if (isNilLike(out["DeviceName"]) && !isNilLike(out["Device"])) {
+            const fallbackJoin = resolveDeviceNameFromMaster(out["Device"]);
+            out["DeviceName"] =
+              fallbackJoin && fallbackJoin.trim() !== ""
+                ? fallbackJoin
+                : out["Device"];
           }
 
           return out;
@@ -436,6 +545,14 @@ export default function Page() {
           if (isNilLike(out["DeviceName"])) out["DeviceName"] = out["Device"];
 
           if (isNilLike(out["DeviceType"])) out["DeviceType"] = out["Type"];
+
+          // ✅ Device master JOIN
+          const joinedDeviceName = resolveDeviceNameFromMaster(out["Device"]);
+          if (!isNilLike(joinedDeviceName)) {
+            out["DeviceName"] = joinedDeviceName;
+          } else if (isNilLike(out["DeviceName"]) && !isNilLike(out["Device"])) {
+            out["DeviceName"] = out["Device"];
+          }
 
           // =========================
           // ③ 集計列 → 通常列マッピング（重要）
@@ -538,6 +655,15 @@ export default function Page() {
 
           for (const k of mustHaveKeys) {
             if (!(k in out)) out[k] = null;
+          }
+
+          // 念のため最後に再補完
+          if (isNilLike(out["DeviceName"]) && !isNilLike(out["Device"])) {
+            const fallbackJoin = resolveDeviceNameFromMaster(out["Device"]);
+            out["DeviceName"] =
+              fallbackJoin && fallbackJoin.trim() !== ""
+                ? fallbackJoin
+                : out["Device"];
           }
 
           return out;
@@ -643,6 +769,10 @@ export default function Page() {
           rowsForView[0]["DivisionAgg"]
         );
         console.log("[postMessage] first row Device=", rowsForView[0]["Device"]);
+        console.log(
+          "[postMessage] first row DeviceName=",
+          rowsForView[0]["DeviceName"]
+        );
       }
 
       // app.js の想定どおり、先に viewState、そのあと rows
@@ -731,18 +861,11 @@ export default function Page() {
         if (cancelled) return;
 
         const list = (data || []) as DivisionRow[];
+        setDivisions(list);
 
-        // ✅ ここでソート
-        const sorted = [...list].sort((a, b) =>
-          a.DivisionName.localeCompare(b.DivisionName, "ja")
-        );
-
-        setDivisions(sorted);
-
-        if (sorted.length > 0) {
-          setSelectedDivision((prev) => prev || sorted[0].Division);
+        if (list.length > 0) {
+          setSelectedDivision((prev) => prev || list[0].Division);
         }
-
       } catch (err) {
         console.error("listDivision error:", err);
       }
@@ -1070,8 +1193,11 @@ export default function Page() {
   /**
    * 日付範囲変更時 / dataKind変更時:
    * 全Division分を取得（キャッシュあり）
+   *
+   * ✅ Deviceマスタ取得完了後に開始
    */
   useEffect(() => {
+    if (!deviceMasterReady) return;
     if (divisions.length === 0) return;
     if (!selectedDivision) return;
 
@@ -1191,6 +1317,7 @@ export default function Page() {
       cancelled = true;
     };
   }, [
+    deviceMasterReady,
     startDate,
     endDate,
     divisions,
@@ -1321,7 +1448,8 @@ export default function Page() {
         <span>
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} / totalRows=
           {allRows.length} / iframeReady={String(iframeReady)} / loading=
-          {String(loading)} / division={viewState.division}
+          {String(loading)} / deviceMasterReady={String(deviceMasterReady)} / division=
+          {viewState.division}
         </span>
       </div>
 
@@ -1366,12 +1494,7 @@ export default function Page() {
         </div>
       )}
 
-      <iframe
-        ref={iframeRef}
-        src="/plotly-view/index.html?mode=embed"
-        style={{ width: "100%", height: "900px", border: "none" }}
-        title="plotly-view"
-      />
+      /plotly-view/index.html?mode=embed
     </main>
   );
 }

@@ -731,10 +731,16 @@ export default function Page() {
         if (cancelled) return;
 
         const list = (data || []) as DivisionRow[];
-        setDivisions(list);
 
-        if (list.length > 0) {
-          setSelectedDivision((prev) => prev || list[0].Division);
+        // ✅ ここでソート
+        const sorted = [...list].sort((a, b) =>
+          a.DivisionName.localeCompare(b.DivisionName, "ja")
+        );
+
+        setDivisions(sorted);
+
+        if (sorted.length > 0) {
+          setSelectedDivision((prev) => prev || sorted[0].Division);
         }
 
       } catch (err) {
