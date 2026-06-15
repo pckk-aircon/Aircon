@@ -1,0 +1,2205 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Babylon.js Multiple Models on MapLibre</title>
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css' />
+  <script src='https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js'></script>
+  <script src='https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js'></script>
+
+  <!-- deck.gl core -->
+  <script src="https://unpkg.com/deck.gl@8.9.24/dist.min.js"></script>
+
+  <!-- deck.gl mapbox bridge -->
+  <script src="https://unpkg.com/@deck.gl/mapbox@8.9.24/dist.min.js"></script>
+
+  <!-- deck.gl geo-layers (for Tile3DLayer) -->
+  <script src="https://unpkg.com/@deck.gl/geo-layers@8.9.24/dist.min.js"></script>
+
+  <style>
+    html, body, #map { margin: 0; padding: 0; height: 100%; }
+  </style>
+</head>
+<body>
+<script src="https://unpkg.com/babylonjs@5.42.2/babylon.js"></script>
+<script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
+
+
+<style>
+  html, body, #map {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  #controls {
+    position: absolute;
+    top: 10px;
+    left: 10px; z-index: 10;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  #controls select {
+    font-size: 14px;
+    padding: 2px 4px;
+  }
+</style>
+
+
+<div id="controls">
+  <label for="area">エリア:</label>
+  <select id="area">
+    <option value="mutsuzawa">むつざわ</option>
+    <option value="jinbocho">神保町</option>
+    <option value="fujisan">富士山五合目</option>
+  </select>
+</div>
+
+<div id="map"></div>
+
+<button id="flightAnimation" style="position: absolute; top: 50px; left: 10px; z-index: 10;">
+  空クル
+</button>
+
+<button id="startAgent" style="position: absolute; top: 80px; left: 10px; z-index: 10;">
+  バス・乗用車
+</button>
+
+<button id="startAgentPedestrian" style="position: absolute; top: 110px; left: 10px; z-index: 10;">
+  歩行者
+</button>
+
+<button id="toggleRoutes" style="position: absolute; top: 140px; left: 10px; z-index: 10;">
+  経路表示
+</button>
+
+<button id="startAnimation" style="position: absolute; top: 170px; left: 10px; z-index: 10;">
+  ロケット発射
+</button>
+
+<button id="toggleUnderground" style="position: absolute; top: 200px; left: 10px; z-index: 10;">
+  地中モデル表示
+</button>
+
+<button id="toggleSphereGrid" style="position: absolute; top: 230px; left: 10px; z-index: 10;">
+  球体グリッド表示
+</button>
+
+<button id="toggleFollowFlyCam" style="position: absolute; top: 260px; left: 10px; z-index: 10;">
+  空クル追従カメラ
+</button>
+
+<div id="tooltip" style="
+    position: absolute;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+    display: none;
+    font-size: 12px;
+    z-index: 10;
+"></div>
+
+<script>
+
+// S3上のtileset.jsonのURLを指定
+
+const tileLayer = new deck.Tile3DLayer({
+  id: 'zinboutyou-3dtiles-layer',
+  //data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/Zinboutyou3DTilesModel/tileset.json',
+  data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/Zinboutyou3DTilesModel_2/tileset.json',
+  //data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/Zinboutyou3DTilesModel_1_tran/tileset.json',
+  pickable: true,
+
+  onTilesetLoad: tileset => {
+    const rootTransform = tileset.root.transform.slice();
+    rootTransform[14] -= 50; // Z軸方向に補正
+    tileset.root.transform = rootTransform;
+  }
+
+});
+
+
+// GeoJSONライン（緯度経度＋高さ）
+const geojson1 = {
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [140.303464, 35.353598, 0],//始点。      
+      [140.303860, 35.353879, 0],//道路に出る。
+      [140.304028, 35.353051, 0],//交差点。
+      [140.305045, 35.353814, 0],//左折地点。
+      [140.304734, 35.354101, 0],//終点。
+    ]
+  }
+};
+
+const geojson2 = {
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [140.303194, 35.353398, 0],//始点。
+      [140.303300, 35.353473, 0],//上昇開始。
+      [140.303300, 35.353473, 40],//上昇地点。
+      [140.303867, 35.354275, 50],//道路上。
+      [140.304720, 35.354498, 65],//右旋回位置。
+      [140.304965, 35.354289, 65],//下降開始。
+      [140.304965, 35.354289, 60],//終点。
+    ]
+  }
+};
+
+const geojson3 = {
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [140.300762, 35.350857, 0],//始点。
+      [140.301294, 35.351067, 0],//くの字。
+      [140.304028, 35.353051, 0],//交差点。
+      [140.305045, 35.353814, 0],//バス左折地点。
+      [140.307499, 35.355638, 0],//終点。
+    ]
+  }
+};
+
+const geojson4 = {
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [140.303613, 35.353605, 0],//始点。
+      [140.303772, 35.353727, 0],//横断前。
+      [140.303965, 35.353871, 0],//横断後。
+      [140.304333, 35.354773, 0],//終点。
+    ]
+  }
+};
+
+
+// 片側1.5m → buffer の距離は「帯幅の半分」を指定
+const CROSSWALK_HALF_WIDTH_M = 2.0;
+// geojson4 はご提示の LineString（横断中心線）
+const bufferedCrosswalk = turf.buffer(geojson4, CROSSWALK_HALF_WIDTH_M, { units: 'meters' });
+
+
+
+// === グローバル定義（ページロード前に有効） ===
+
+// 交差帯ID → 車両系統の対応（必要に応じて入れ替え）
+const crossingToRoadType = {
+  crossing_A: "side",  // 横断帯Aは side 系統
+  crossing_B: "main"   // 横断帯Bは main 系統
+};
+
+// 歩行者信号関数（車両信号を流用）
+function getPedSignal(crossingId) {
+  if (!crossingId) return "walk";          // 横断なしは歩行可
+  const rt = crossingToRoadType[crossingId];
+  if (!rt) return "dontWalk";              // 未定義IDは安全側
+  const s  = signalStates[rt];             // "green" / "red"
+  return s === "green" ? "walk" : "dontWalk";
+}
+
+
+const BABYLON = window.BABYLON;
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN',
+  //style: 'https://maps.gsi.go.jp/styles/gsivectortile/style.json',
+  //style: 'style.json', // ローカルまたはホストしたスタイルJSON
+  zoom: 18,
+  center: [140.303872, 35.353847],
+  pitch: 60, // 初期ピッチ
+  maxPitch: 89, // ← これを追加
+  canvasContextAttributes: { antialias: true }
+});
+
+// テーマごとの設定値
+const themes = {
+  mutsuzawa: {
+    center: [140.303872, 35.353847],
+    zoom: 18,
+    pitch: 60,
+    maxPitch: 89
+  },
+  jinbocho: {
+    center: [139.75798, 35.69556],
+    zoom: 15,
+    pitch: 45,
+    maxPitch: 89
+  },
+  fujisan: {
+    center: [138.732575, 35.394352],
+    zoom: 18,
+    pitch: 45,
+    maxPitch: 89
+  }  
+};
+
+
+map.addControl(
+    new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showZoom: true,
+        showCompass: true
+    })
+);
+
+const worldOrigin = [140.303475, 35.35359];
+
+const worldAltitude = 0;
+const worldRotate = [Math.PI / 2, 0, 0];
+
+const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+
+const worldMatrix = BABYLON.Matrix.Compose(
+  new BABYLON.Vector3(worldScale, worldScale, worldScale),
+  BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+  new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+);
+
+const rawDeviceData = [
+  ["Pedestrian", 140.303613, 35.353605, 0, 3.97, "歩行者"],
+  ["Carbus", 140.303464, 35.353598, 0, 3.97, "バス"],
+  ["Carflying", 140.303194, 35.353398, 0, 0.83, "空クル"],
+  ["Carpassenger", 140.300762, 35.350857, 0, 0.83, "乗用車"],
+  ["LargeRectangularprism", 140.304973, 35.354275, 0, 0.83, "ロケット格納庫"],
+  ["kamaboko", 140.303502, 35.353367, 0, 0.83, "倉庫１"],
+  ["kamaboko", 140.3032686, 35.3531758, 0, 0.83, "倉庫２"],
+  ["kamaboko", 140.3030349, 35.3529852, 0, 0.83, "倉庫３"],
+  ["Rocket", 140.304352, 35.353853, 0, 0.83, "ロケット"],
+  ["Launchpad", 140.304352, 35.353853, 0, 0.83, "発射台"],
+  ["kamaboko", 140.3034657819844, 35.353977034387654, -20, 0.83, "むつざわ地中"],
+  ["Hemisphere", 138.732575, 35.394352, 0, 0.83, "観測所"], // 富士山五合目
+  //["Floor", 140.3034657819844, 35.353977034387654, -0, 0.83, "むつざわ床"],
+  ["Aircon", 140.30340102220504, 35.353987950514636, 7, Math.PI * 2.1 / 8, "室内機１"],
+  ["Aircon", 140.30346602165832, 35.354036292938815, 7, Math.PI * 2.1 / 8, "室内機２"],
+  ["Aircon", 140.30353190435733, 35.35397756547854, 7, Math.PI * 2.1 / 8, "室内機３"],
+  ["Aircon", 140.30346638009925, 35.35392972695351, 7, Math.PI * 2.1 / 8, "室内機４"],
+  ["Temp", 140.30348309112077, 35.35404722681922, 1, Math.PI * 2.1 / 8, "センサ１", 24],
+  ["Temp", 140.3034995038862, 35.35395210193434, 1, Math.PI * 2.1 / 8, "センサ２", 10],
+  ["Temp", 140.30343539942157, 35.3540140575746, 1, Math.PI * 2.1 / 8, "センサ３", 23],
+  ["Temp", 140.3034093278839, 35.35396468276288, 1, Math.PI * 2.1 / 8, "センサ４", 10],
+  ["Temp", 140.30345724383943, 35.35391946748078, 1, Math.PI * 2.1 / 8, "センサ５", 10],
+  ["Temp", 140.30350520291523, 35.35399877641619, 1, Math.PI * 2.1 / 8, "センサ６", 25],
+  ["Temp", 140.30354689864186, 35.353988054431554, 1, Math.PI * 2.1 / 8, "センサ７", 26],
+];
+
+const sensorData = rawDeviceData
+  .filter(([type]) => type === "Temp")
+  .map(([type, lon, lat, height, rot, temp]) => [lon, lat, height, temp]);
+
+console.log('sensorData:::::', sensorData);
+
+//補完関数
+function interpolateTemperature(x, y, z, sensors, k = 6) {
+  const distances = sensors.map(([sx, sy, sz, temp]) => {
+    const dx = sx - x;
+    const dy = sy - y;
+    const dz = sz - z;
+    return { temp, dist: Math.sqrt(dx * dx + dy * dy + dz * dz) + 1e-6 };
+  });
+
+  distances.sort((a, b) => a.dist - b.dist);
+  const nearest = distances.slice(0, k);
+
+  const totalWeight = nearest.reduce((sum, d) => sum + 1 / d.dist, 0);
+  return nearest.reduce((sum, d) => sum + (d.temp / d.dist) / totalWeight, 0);
+}
+
+function temperatureToColor(temp, minTemp = 5, maxTemp = 30) {
+  const t = Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
+  return new BABYLON.Color3(t, 0, 1 - t); // 赤〜青グラデーション
+}
+
+
+// ✅ DeviceType → モデルファイル名の対応表
+const deviceTypeToModel = {
+  "Pedestrian": "PedestrianModel.glb",
+  "Carflying": "CarflyingModel.glb",
+  "Carbus": "CarbusModel.glb", 
+  "Carpassenger": "CarpassengerModel.glb",
+  "Tower": "TowerModel.glb",
+  "LargeRectangularprism": "LargeRectangularprismModel.glb",
+  "Hemisphere": "HemisphereModel.glb",
+  "Warehouse": "WarehouseModel.glb",
+  "kamaboko": "kamabokoModel.glb",
+  "Launchpad": "LaunchpadModel.glb",
+  "Rocket": "RocketModel.glb",
+  "Warehouse": "WarehouseModel.glb",
+  "Floor": "FloorModel.glb",
+  "Aircon": "AirconModel.glb",
+  "Temp": "TempModel.glb",
+  "Distribution": "DistributionModel.glb",
+};
+
+const trafficLightTypeToModel = {
+  "TrafficLight_green": "TrafficLightGreenModel.glb",
+  "TrafficLight_red": "TrafficLightRedModel.glb",
+}
+
+// ✅ modelConfigs 形式に変換
+const modelConfigs = Object.values(
+  rawDeviceData.reduce((acc, [type, lon, lat, height, rot]) => {
+    const url = deviceTypeToModel[type];
+    if (!acc[url]) acc[url] = { url, positions: [] };
+    acc[url].positions.push([lon, lat, height, rot]);
+    return acc;
+  }, {})
+);
+
+const rocketMeshes = []; // アニメーション対象を後でまとめて処理
+// エージェントを格納する配列
+// グローバル定義
+
+// 交差点全体で共有するフラグ
+let rightTurnCarIsCrossing = false;
+
+let pathPoints1 = [];
+let pathPoints2 = [];
+let pathPoints3 = [];
+let pathPoints4 = [];
+let lanePaths = []; 
+const agents = [];
+// 信号状態を道路ごとに管理
+let signalStates = {
+  main: "green",
+  side: "red"
+};
+
+
+
+
+//＊カメラ追従共通ユーティリティ
+// 追従有効フラグ
+let followFlyCamEnabled = false;
+
+// 直前の有効 bearing を保持（垂直区間で使う）
+// ★★★ registerBeforeRender の外（グローバル）に設定 ★★★
+let lastBearing = 0;
+
+// 垂直区間で使用する「最後に有効だった水平向き」と「前フレーム位置」
+let lastFlatForward = new BABYLON.Vector3(1, 0, 0); // 東向き初期値
+let lastFlyPos = null;
+
+// Babylon → MercatorCoordinate
+function babylonToMercator(vec3) {
+  const mx = worldOriginMercator.x + vec3.x * worldScale;
+  const my = worldOriginMercator.y + (-vec3.z) * worldScale;
+  const mz = worldAltitude + vec3.y;
+  return new maplibregl.MercatorCoordinate(mx, my, mz);
+}
+
+// Babylon → LngLat
+function babylonPosToLngLat(vec3) {
+  return babylonToMercator(vec3).toLngLat();
+}
+
+// 水平ヘッディング（x,z）を安全に算出：ゼロ近傍なら直前値でフォールバック
+function computeSafeFlatForward(flyAgent) {
+  const cur = flyAgent.mesh.position.clone();
+
+  // 速度ベクトルを優先（“今まさにどちらへ動いているか”）
+  let vel = BABYLON.Vector3.Zero();
+  if (lastFlyPos) {
+    vel = cur.subtract(lastFlyPos);
+  } else {
+    // 初期フレームは次ウェイポイントから推定
+    const idx = Math.min(flyAgent.currentIndex, (flyAgent.pathPoints?.length ?? 1) - 1);
+    vel = flyAgent.pathPoints[idx].subtract(cur);
+  }
+  lastFlyPos = cur.clone();
+
+  // 正規化した forward
+  let fwd = vel.length() > 1e-6 ? vel.normalize() : BABYLON.Axis.Z.clone();
+
+  // 水平成分
+  let flat = new BABYLON.Vector3(fwd.x, 0, fwd.z);
+
+  // 水平長さが極小なら「直前の水平向き」を使う（垂直上昇フォールバック）
+  if (flat.length() < 1e-3) {
+    flat = lastFlatForward.clone();
+  } else {
+    flat.normalize();
+    lastFlatForward.copyFrom(flat);
+  }
+  return flat;
+}
+
+// MapLibre 方位（0=北、時計回り）
+function forwardToBearing(flatForward) {
+  const dx = flatForward.x;     // 東(+)
+  const dy = -flatForward.z;    // 北(+)
+  return (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+}
+
+
+
+
+
+const undergroundMeshes =[]; //
+const customLayer = {
+  id: '3d-mixed-models',
+  type: 'custom',
+  renderingMode: '3d',
+
+  onAdd(map, gl) {
+    this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+    this.scene = new BABYLON.Scene(this.engine);
+
+    // GeoJSONからBabylon座標に変換
+    pathPoints1 = convertGeoJSONToPathPoints(geojson1);
+    pathPoints2 = convertGeoJSONToPathPoints(geojson2);
+    pathPoints3 = convertGeoJSONToPathPoints(geojson3);
+    pathPoints4 = convertGeoJSONToPathPoints(geojson4);
+
+
+    // ▼ レーンを生成（例：6レーン、間隔0.7m）
+    lanePaths = makeParallelLanes(pathPoints4, /*laneCount=*/6, /*laneSpacing=*/0.7);
+
+
+
+    // XZ平面上の折れ線に沿って、法線方向に並列パスを生成する
+    function makeParallelLanes(points, laneCount = 4, laneSpacing = 0.7) {
+      if (!points || points.length < 2) return [];
+
+      // 各頂点の「方向ベクトル（tangent）」を計算
+      const tangents = [];
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const prev = points[Math.max(0, i - 1)];
+        const next = points[Math.min(points.length - 1, i + 1)];
+        const dir = next.subtract(prev);
+        // XZ成分だけ
+        const t = new BABYLON.Vector3(dir.x, 0, dir.z);
+        if (t.length() > 1e-6) {
+          tangents.push(t.normalize());
+        } else {
+          tangents.push(new BABYLON.Vector3(1, 0, 0)); // デフォルト
+        }
+      }
+
+      // 法線ベクトル（左側にオフセット）: n = (-t.z, 0, t.x)
+      const normals = tangents.map(t => new BABYLON.Vector3(-t.z, 0, t.x));
+
+      const lanes = [];
+      // レーン番号を左右に振り分け（中央基準）
+      const centerIndex = (laneCount - 1) / 2;
+      for (let laneIdx = 0; laneIdx < laneCount; laneIdx++) {
+        const offset = (laneIdx - centerIndex) * laneSpacing;
+        const lane = points.map((p, i) => p.add(normals[i].scale(offset)));
+        lanes.push(lane);
+      }
+      return lanes;
+    }
+
+
+
+    // ✅ 信号機の位置をGeoJSONの座標インデックスで指定
+    const intersectionPos = pathPoints1[2]; // 交差点（geojson1の3番目）
+    console.log("信号機位置:", intersectionPos);
+
+    // 信号機メッシュを保持
+    let trafficLightMainMesh = null;
+    let trafficLightSideMesh = null;
+
+    // 信号機の位置情報（複数対応）
+    const mainLightLngLat = [
+      [140.303852, 35.353015, "上之郷_main"],
+      [140.303934, 35.353986, "道の駅_main"]
+    ];
+
+    const sideLightLngLat = [
+      [140.304062, 35.353267, "上之郷_side"],
+      [140.303784, 35.353885, "道の駅_side"]
+    ];
+
+    // Babylon座標への変換
+    const mainCoords = mainLightLngLat.map(([lng, lat]) =>
+      maplibregl.MercatorCoordinate.fromLngLat([lng, lat], worldAltitude)
+    );
+    const sideCoords = sideLightLngLat.map(([lng, lat]) =>
+      maplibregl.MercatorCoordinate.fromLngLat([lng, lat], worldAltitude)
+    );
+
+    // Babylon座標系での位置計算
+    const mainPositions = mainCoords.map(coord => [
+      (coord.x - worldOriginMercator.x) / worldScale,
+      (coord.y - worldOriginMercator.y) / worldScale
+    ]);
+    const sidePositions = sideCoords.map(coord => [
+      (coord.x - worldOriginMercator.x) / worldScale,
+      (coord.y - worldOriginMercator.y) / worldScale
+    ]);
+
+    // 信号機メッシュ管理用オブジェクト
+    const trafficLightMeshes = {
+      main: [],
+      side: []
+    };
+
+    Promise.all([
+      BABYLON.SceneLoader.ImportMeshAsync("", "https://pckk-device.s3.ap-southeast-2.amazonaws.com/", trafficLightTypeToModel["TrafficLight_green"], customLayer.scene),
+      BABYLON.SceneLoader.ImportMeshAsync("", "https://pckk-device.s3.ap-southeast-2.amazonaws.com/", trafficLightTypeToModel["TrafficLight_red"], customLayer.scene)
+    ]).then(([greenResult, redResult]) => {
+      const baseGreen = greenResult.meshes[0];
+      const baseRed = redResult.meshes[0];
+
+      // 幹線側の信号機を配置
+      mainPositions.forEach(([dx, dz], i) => {
+        const greenMesh = baseGreen.clone(`MainGreen_${i}`);
+        const redMesh = baseRed.clone(`MainRed_${i}`);
+        greenMesh.position.set(dx, 0, -dz);
+        redMesh.position.set(dx, 0, -dz);
+        redMesh.setEnabled(false);
+
+
+        // ✅ 初期状態を signalStates に合わせる
+        greenMesh.setEnabled(signalStates.main === "green");
+        redMesh.setEnabled(signalStates.main === "red");
+
+
+
+        trafficLightMeshes.main.push({ green: greenMesh, red: redMesh });
+      });
+
+      // 支線側の信号機を配置
+      sidePositions.forEach(([dx, dz], i) => {
+        const greenMesh = baseGreen.clone(`SideGreen_${i}`);
+        const redMesh = baseRed.clone(`SideRed_${i}`);
+        greenMesh.position.set(dx, 0, -dz);
+        redMesh.position.set(dx, 0, -dz);
+        redMesh.setEnabled(false);
+
+        // ✅ 初期状態を signalStates に合わせる
+        greenMesh.setEnabled(signalStates.side === "green");
+        redMesh.setEnabled(signalStates.side === "red");
+
+        trafficLightMeshes.side.push({ green: greenMesh, red: redMesh });
+      });
+
+
+
+      // 既存の車両信号オブジェクト（main/side）を流用
+      //交差点ID → 車両系統の対応（歩行者はこの系統の色を見る）
+      const crossingToRoadType = {
+        crossing_A: "main",
+        crossing_B: "side",
+      };
+
+      const getPedSignal = (crossingId) => {
+        if (!crossingId) return "walk"; // 横断なしなら常に歩行可
+        const roadType = crossingToRoadType[crossingId]; // 交差点IDから系統を取得
+        if (!roadType) return "dontWalk"; // 未定義IDは安全側
+        // 車両の信号 "green"/"red" を歩行者側 "walk"/"dontWalk" にマップ
+        const s = signalStates[roadType];
+        return s === "green" ? "walk" : "dontWalk";
+      };
+
+      // 元メッシュを削除する（バスの位置に信号が表示されるのを消去）
+      baseGreen.dispose();
+      baseRed.dispose();
+
+      // 信号状態
+      signalStates.main = "green";
+      signalStates.side = "red";
+
+      // 時間設定
+      const SIGNAL_TIMES = {
+        green: 6000,
+        yellow: 4000,
+        red: 10000
+      };
+
+      // main の状態遷移
+      function updateMain() {
+        let next;
+
+        if (signalStates.main === "green") next = "yellow";
+        else if (signalStates.main === "yellow") next = "red";
+        else if (signalStates.main === "red") next = "green";
+
+        signalStates.main = next;
+        updateMainLights();
+
+        console.log(`main → ${next}`);
+
+        // main が red になった瞬間に side のサイクルを開始
+        if (next === "red") {
+          startSideCycle();
+        }
+
+        setTimeout(updateMain, SIGNAL_TIMES[next]);
+      }
+
+      // side のサイクル（main.red の間だけ動く）
+      function startSideCycle() {
+        // side.green
+        signalStates.side = "green";
+        updateSideLights();
+        console.log("side → green");
+
+        setTimeout(() => {
+          // side.yellow
+          signalStates.side = "yellow";
+          updateSideLights();
+          console.log("side → yellow");
+
+          setTimeout(() => {
+            // side.red
+            signalStates.side = "red";
+            updateSideLights();
+            console.log("side → red");
+
+          }, SIGNAL_TIMES.yellow);
+
+        }, SIGNAL_TIMES.green);
+      }
+
+      // メッシュ更新
+
+      function updateMainLights() {
+        const isGreenOrYellow = (signalStates.main === "green" || signalStates.main === "yellow");
+        trafficLightMeshes.main.forEach(light => {
+          // 黄色の間も緑を表示（暫定措置）
+          light.green.setEnabled(isGreenOrYellow);
+          // もし yellow メッシュがないならオフのままでOK（将来導入時のみ使用）
+          light.yellow?.setEnabled(false);
+          light.red.setEnabled(signalStates.main === "red");
+        });
+      }
+
+      function updateSideLights() {
+        const isGreenOrYellow = (signalStates.side === "green" || signalStates.side === "yellow");
+        trafficLightMeshes.side.forEach(light => {
+          // 黄色の間も緑を表示（暫定措置）
+          light.green.setEnabled(isGreenOrYellow);
+          // もし yellow メッシュがないならオフのままでOK（将来導入時のみ使用）
+          light.yellow?.setEnabled(false);
+          light.red.setEnabled(signalStates.side === "red");
+        });
+      }
+
+      // モデルロード後に開始
+      updateMain();
+
+    });
+
+    // 毎フレーム更新
+
+    // 飛行車の現在の「代表」エージェントを見つける（単体なら最初の1件）
+    function getFirstFlyingAgent() {
+      for (const a of agents) {
+        if (a?.mesh?.metadata?.agentType === "flying") return a;
+      }
+      return null;
+    }
+
+    let lastTime = performance.now();
+
+    customLayer.scene.registerBeforeRender(() => {
+      const now = performance.now();
+      const deltaTime = now - lastTime;
+      lastTime = now;
+
+      agents.forEach(agent => {
+        agent.update(deltaTime, agents); // ← 全エージェントを渡す
+        //console.log(agent.mesh.metadata.label, agent.mesh.position); // ← 動き確認
+      });
+
+
+
+      // 呼び出し部分
+      if (followFlyCamEnabled) {
+        const fly = agents.find(a => a?.mesh?.metadata?.agentType === "flying");
+        if (fly) updateFollowCameraStandard(fly);
+      }
+
+
+      function updateFollowCameraStandard(fly) {
+        const flatForward = computeSafeFlatForward(fly);     // ← 水平ゼロは前フレームフォールバック
+        const bearing = forwardToBearing(flatForward);
+
+        // 垂直判定（水平長が極小）
+        const isVertical = flatForward.length() < 1e-3;
+
+        // 機体の「高度」と「直近の垂直速度」を取得
+        const curPos = fly.mesh.position;
+        const prevPosY = (lastFlyPos?.y ?? curPos.y);
+        const vertSpeed = Math.abs(curPos.y - prevPosY); // frame間のΔy（任意係数でpxに換算）
+        // 高度によるオフセット増加（係数は環境で微調整）
+        const baseOffsetY = 300;                 // 通常時の下寄せ
+        const kPerMeter   = 3.0;                 // 1m あたり +3px 下寄せ（推奨の開始値）
+        const extraOffsetY = Math.min(320, curPos.y * kPerMeter);            // 高度に比例
+        const speedBonus   = Math.min(100, vertSpeed * 50);                  // 急上昇時の追随強化
+        const offsetPx     = [0, baseOffsetY + extraOffsetY + speedBonus];   // 動的下寄せ
+
+        // ピッチは垂直中は抑える（地面の占有を減らす）
+        const pitch = isVertical ? 50 : 60;      // 45〜55 で調整
+
+        // ズームは近接感を維持（垂直中は少し上げる方が見失いにくい）
+        const zoom = isVertical ? 18.5 : 18.5;
+
+        // 垂直中は bearing を「直前値」で固定（破綻防止）
+        const bearingToUse = isVertical ? lastBearing : bearing;
+        lastBearing = bearingToUse;
+
+        // 追従中はパディングの副作用を避ける（必要なら固定値に）
+        map.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
+
+        // 中心は「機体の現在位置」（標準カメラは高度を持たない前提）
+        const center = babylonPosToLngLat(curPos);
+
+        map.easeTo({
+          center,
+          bearing: bearingToUse,
+          pitch,
+          zoom,
+          offset: offsetPx,
+          duration: 0,
+          essential: true
+        });
+      }
+
+
+
+
+    });
+
+
+      // ツールチップ表示用のイベント処理
+      const tooltip = document.getElementById('tooltip');
+
+      this.scene.onPointerObservable.add((pointerInfo) => {
+        switch (pointerInfo.type) {
+          case BABYLON.PointerEventTypes.POINTERMOVE:
+            const pickResult = this.scene.pick(
+              this.scene.pointerX,
+              this.scene.pointerY
+            );
+            if (pickResult.hit && pickResult.pickedMesh) {
+              const label = pickResult.pickedMesh.metadata?.label || "ラベル未設定";
+              tooltip.style.display = 'block';
+              //tooltip.innerText = `ラベル: ${label}`;
+              tooltip.innerText = `${label}`;
+              tooltip.style.left = pointerInfo.event.clientX + 10 + 'px';
+              tooltip.style.top = pointerInfo.event.clientY + 10 + 'px';
+            } else {
+              tooltip.style.display = 'none';
+            }
+          break;
+        }
+      });
+      //ここまでがツールチップ表示用のイベント処理
+
+    this.scene.autoClear = false;
+    this.scene.preventDefaultOnPointerDown = false; //Babylon.js のポインタイベントを↓
+    this.scene.preventDefaultOnPointerUp = false; //MapLibre 側にバブリング（伝播）させるための設定。
+
+    this.scene.beforeRender = () => {
+      this.engine.wipeCaches(true);
+    };
+
+    this.camera = new BABYLON.Camera('Camera', new BABYLON.Vector3(0, 0, 0), this.scene);
+
+    const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 0, 100), this.scene);
+    light.intensity = 0.7;
+
+ 
+    // ✅ 各モデルを個別にロードして配置
+    modelConfigs.forEach(({ url, positions }, modelIndex) => {
+      BABYLON.SceneLoader.LoadAssetContainerAsync(
+        'https://pckk-device.s3.ap-southeast-2.amazonaws.com/', url, this.scene
+      ).then((container) => {
+        //container.addAllToScene();
+        const rootMesh = container.createRootMesh();
+
+        positions.forEach(([lon, lat, height, rot], i) => {
+          const offset = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], worldAltitude);
+          const dx = (offset.x - worldOriginMercator.x) / worldScale;
+          const dz = (offset.y - worldOriginMercator.y) / worldScale;
+
+          const mesh = rootMesh.clone(`model-${modelIndex}-instance-${i}`);
+          mesh.position.set(dx, height, -dz);
+          mesh.rotation.y = rot;
+
+          // ラベルを rawDeviceData から取得（誤差を許容）
+          const match = rawDeviceData.find(d =>
+            Math.abs(d[1] - lon) < 1e-6 &&
+            Math.abs(d[2] - lat) < 1e-6 &&
+            Math.abs(d[3] - height) < 1e-6 &&
+            Math.abs(d[4] - rot) < 1e-6
+          );
+
+          const label = match?.[5] ?? "ラベル未設定";
+          mesh.metadata = { label };
+
+          console.log(`設定されたラベル: ${label}`); // ← 確認用ログ
+
+          mesh.getChildMeshes().forEach(child => {
+            child.metadata = { label }; // 子メッシュにも同じラベルを設定←これで表示できた。なぜ？
+          });
+
+          if (height < 0) {
+            undergroundMeshes.push(mesh);
+            mesh.setEnabled(false);
+          }
+
+          if (url === "RocketModel.glb") {
+            rocketMeshes.push(mesh);
+          }
+
+          // 起動時はメッシュだけ保持
+          if (mesh.metadata.label === "バス") {
+            mesh.metadata.agentType = "bus"; // 種別だけ記録
+          }
+          if (mesh.metadata.label === "乗用車") {
+            mesh.metadata.agentType = "passenger"; // 種別だけ記録
+          }
+          if (mesh.metadata.label === "歩行者") {
+            mesh.metadata.agentType = "pedestrian"; // 種別だけ記録
+          }
+          if (mesh.metadata.label === "空クル") {
+            mesh.metadata.agentType = "flying"; // 種別だけ記録
+          }
+
+        });
+
+      });
+    });
+
+
+
+    // ✅ FlowerRoomの中心座標を取得してグリッド原点に設定
+    fetch('https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/skeleton.geojson')
+      .then(res => res.json())
+      .then(geojson => {
+        const flowerRoomFeature = geojson.features.find(
+          f => f.properties.name === 'FlowerRoom' && f.geometry.type === 'MultiPolygon'
+        );
+
+        if (!flowerRoomFeature) {
+          console.warn('FlowerRoom not found');
+          return;
+        }
+
+        const centerLngLat = getMultiPolygonCentroid(flowerRoomFeature);
+        const centerCoord = maplibregl.MercatorCoordinate.fromLngLat(centerLngLat, worldAltitude);
+        const gridOrigin = new BABYLON.Vector3(
+          (centerCoord.x - worldOriginMercator.x) / worldScale,
+          0,
+          -(centerCoord.y - worldOriginMercator.y) / worldScale
+        );
+
+        // グリッド配置関数の呼び出し。
+        placeSphereGrid(gridOrigin);
+
+    });
+    //グリッドここまで
+   
+    this.map = map;
+  },
+
+  render(gl, args) {
+
+    const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+    const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+    this.camera.freezeProjectionMatrix(wvpMatrix);
+    this.scene.render(false);
+    this.map.triggerRepaint();
+  }
+};
+
+map.on('load', () => {
+
+  console.log("✅ map load event fired");
+
+  if (!geojson1 || !geojson2) {
+    console.error("geojson が未定義です");
+    return;
+  }
+
+
+  map.addSource('floorplan', {
+    type: 'geojson',
+    data: 'https://pckk-geojson.s3.ap-southeast-2.amazonaws.com/skeleton2.geojson'
+  });
+
+  map.addLayer({
+    id: 'room-extrusion',
+    type: 'fill-extrusion',
+    source: 'floorplan',
+    paint: {
+      'fill-extrusion-color': ['get', 'color'],
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'base_height'],
+      'fill-extrusion-opacity': 0.5
+    }
+  });
+
+  map.addLayer(customLayer);
+
+  const deckOverlay = new deck.MapboxOverlay({
+    interleaved: true,
+    layers: [tileLayer]
+  });
+
+  map.addControl(deckOverlay);// 3D Tilesレイヤー
+
+  // ✅ ラインメッシュ追加
+  const line1 = BABYLON.MeshBuilder.CreateLines("line1", { points: pathPoints1 }, customLayer.scene);
+  line1.color = new BABYLON.Color3(1, 0, 0); // 赤
+  line1.setEnabled(false); // 初期は非表示
+
+  const line2 = BABYLON.MeshBuilder.CreateLines("line2", { points: pathPoints2 }, customLayer.scene);
+  line2.color = new BABYLON.Color3(0, 0, 1); // 青
+  line2.setEnabled(false); // 初期は非表示
+
+  const line3 = BABYLON.MeshBuilder.CreateLines("line3", { points: pathPoints3 }, customLayer.scene);
+  line3.color = new BABYLON.Color3(1, 0, 0); // 赤
+  line3.setEnabled(false); // 初期は非表示 
+
+  const line4 = BABYLON.MeshBuilder.CreateLines("line4", { points: pathPoints4 }, customLayer.scene);  
+  line4.color = new BABYLON.Color3(0, 1, 0); // 緑
+  line4.setEnabled(false); // 初期は非表示 
+
+
+
+  // === 2点間に幅mの長方形を作る（依存なし・完全な矩形） ===
+  function rectangleBetweenTwoLngLat(p1, p2, widthM) {
+    const latToM = 111320;                                  // m/deg（緯度）
+    const latAvg = (p1[1] + p2[1]) / 2.0;
+    const lonToM = 111320 * Math.cos(latAvg * Math.PI/180); // m/deg（経度）
+
+    const dx_m = (p2[0] - p1[0]) * lonToM;
+    const dy_m = (p2[1] - p1[1]) * latToM;
+    const len  = Math.sqrt(dx_m*dx_m + dy_m*dy_m);
+    if (len < 1e-6) throw new Error('p1とp2が同一点に近いです');
+
+    // 線分の法線（左側）方向の単位ベクトル
+    const nx = -dy_m / len;
+    const ny =  dx_m / len;
+
+    const half = widthM / 2;
+
+    const p1_left  = [ p1[0] + (nx*half)/lonToM, p1[1] + (ny*half)/latToM ];
+    const p1_right = [ p1[0] - (nx*half)/lonToM, p1[1] - (ny*half)/latToM ];
+    const p2_left  = [ p2[0] + (nx*half)/lonToM, p2[1] + (ny*half)/latToM ];
+    const p2_right = [ p2[0] - (nx*half)/lonToM, p2[1] - (ny*half)/latToM ];
+
+    return {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          p1_left,
+          p2_left,
+          p2_right,
+          p1_right,
+          p1_left // close ring
+        ]]
+      },
+      properties: { name: "CrosswalkRectangle", width_m: widthM }
+    };
+  }
+
+  // === 入力（geojson4 から横断前/後の2点を抽出） ===
+  const P1 = geojson4.geometry.coordinates[1].slice(0, 2); // 横断前
+  const P2 = geojson4.geometry.coordinates[2].slice(0, 2); // 横断後
+  const BAND_WIDTH_M = 5;                                   // 合計幅 5m
+
+  // ★ ここで「長方形」GeoJSONを得る
+  const crosswalkRect = rectangleBetweenTwoLngLat(P1, P2, BAND_WIDTH_M);
+
+  // === Babylon XZ へ変換（既存の toBabylonXZPolygonFromBuffered を一般化） ===
+  function polygonLngLatToBabylonXZ(polygonFeature) {
+    const outer = polygonFeature.geometry.coordinates[0] || [];
+    return outer.map(([lng, lat]) => {
+      const mc = maplibregl.MercatorCoordinate.fromLngLat([lng, lat], worldAltitude);
+      return new BABYLON.Vector3(
+        (mc.x - worldOriginMercator.x) / worldScale,
+        0,
+        -(mc.y - worldOriginMercator.y) / worldScale
+      );
+    });
+  }
+
+  // ★ 交差帯（長方形）→ Babylon のXZ頂点列
+  const crosswalkPolygonXZ = polygonLngLatToBabylonXZ(crosswalkRect);
+
+  // ★ 可視化ライン（閉ループ）
+  const crosswalkLoopPoints = crosswalkPolygonXZ.length
+    ? [...crosswalkPolygonXZ, crosswalkPolygonXZ[0]]
+    : [];
+
+  const crosswalkLines = BABYLON.MeshBuilder.CreateLines("crosswalkBelt", {
+    points: crosswalkLoopPoints
+  }, customLayer.scene);
+
+  crosswalkLines.color = new BABYLON.Color3(1, 1, 0);
+  crosswalkLines.alpha = 0.9;
+  crosswalkLines.isPickable = false;
+  crosswalkLines.setEnabled(false);
+
+
+  //空クルエージェントの生成
+  document.getElementById("flightAnimation").addEventListener("click", () => {
+    
+
+    // 1. 既存の「車両」エージェントだけを agents から除去（歩行者は維持）
+    for (let i = agents.length - 1; i >= 0; i--) {
+      const t = agents[i]?.mesh?.metadata?.agentType;
+      if (t === "flying") {
+        agents.splice(i, 1);
+      }
+    }
+
+    // 3. 新しいエージェントを生成
+    customLayer.scene.meshes.forEach(mesh => {
+      // 空クルの生成
+      if (mesh.metadata?.agentType === "flying") {
+        const intersections2 = [];
+        //const busAgent = new VehicleAgent(
+        const flyingAgent = new FlyingVehicleAgent(
+          mesh, pathPoints2, 0.2,
+          (roadType) => signalStates[roadType],
+          "side",
+          intersections2
+        );
+        agents.push(flyingAgent);
+      }
+
+    });
+
+    console.log("空クルAgent を再生成しました:", agents);
+  });
+
+
+  document.getElementById("toggleFollowFlyCam").addEventListener("click", () => {
+    followFlyCamEnabled = !followFlyCamEnabled;
+    // UIの表示を更新
+    document.getElementById("toggleFollowFlyCam").textContent =
+      followFlyCamEnabled ? "空クル追従カメラ（ON）" : "空クル追従カメラ";
+  });
+
+
+
+  document.getElementById("startAgentPedestrian").addEventListener("click", () => {
+    // 既存の歩行者エージェント削除
+    for (let i = agents.length - 1; i >= 0; i--) {
+      if (agents[i]?.mesh?.metadata?.agentType === "pedestrian") {
+        agents.splice(i, 1);
+      }
+    }
+    // 前回クローンを削除
+    customLayer.scene.meshes
+      .filter(m => m.name.startsWith("pedClone"))
+      .forEach(m => m.dispose());
+
+    // ベース歩行者メッシュの取得
+    const basePedMesh = customLayer.scene.meshes.find(m => m.metadata?.agentType === "pedestrian");
+    if (!basePedMesh) {
+      console.warn("歩行者のベースメッシュが見つかりません。'agentType: pedestrian' のメッシュを1体配置してください。");
+      return;
+    }
+
+    // lanePaths が未生成なら作る（例：緑ルート pathPoints4 を基準、6レーン・0.7m間隔）
+    if (!lanePaths || lanePaths.length === 0) {
+      lanePaths = makeParallelLanes(pathPoints4, 6, 0.7);
+    }
+
+    // 車両信号を歩行者が流用するための対応
+    //const crossingToRoadType = { crossing_A: "main", crossing_B: "side" };
+    const crossingToRoadType = { crossing_A: "side", crossing_B: "main" };
+
+    // 歩行者信号関数（車両信号の流用）
+    const getPedSignal = (crossingId) => {
+      if (!crossingId) return "walk";             // 横断なし
+      const rt = crossingToRoadType[crossingId];  // ID→系統
+      const s  = rt ? signalStates[rt] : "red";
+      return s === "green" ? "walk" : "dontWalk";
+    };
+
+    // 近傍クエリとクランプ（必要なら差し替え）
+    const worldQuery     = (pos, r) => agents.filter(a => BABYLON.Vector3.Distance(a.mesh.position, pos) < r);
+    const clampToPolygon = (p) => p;
+
+    // スピード（開発中は遅め推奨）
+    //const baseSpeedRand = () => 0.8 + (Math.random() - 0.5) * 0.4; // 0.6〜1.0 m/s
+    const baseSpeedRand  = () => 0.3 + (Math.random() - 0.5) * 0.1; // 0.3〜0.5 m/s
+    //const baseSpeedRand  = () => 0.2 + (Math.random() - 0.5) * 0.1; // 0.15〜0.25 m/s
+
+    const pedCount = 100;
+    const spawnIntervalMs = 1000;
+
+    for (let i = 0; i < pedCount; i++) {
+      setTimeout(() => {
+        // ★★★ ここからが「1人分」の安全な順序 ★★★
+        const laneIdx    = i % lanePaths.length;      // 0..(レーン数-1)
+        const lanePoints = lanePaths[laneIdx];        // ← まず lanePoints を取得
+
+        // 交差点ID配列を lanePoints と同じ長さで作る
+        // 例： lanePoints[1] を 横断開始点 crossing_A にする
+        const crossingIdsAtWaypoints = lanePoints.map((_, idx) => (idx === 1 ? "crossing_A" : null));
+
+        // メッシュ複製と配置
+        const pedMesh = basePedMesh.clone("pedClone" + i);
+        pedMesh.metadata = { agentType: "pedestrian" };
+        customLayer.scene.addMesh(pedMesh);
+
+        // 若干の横ぶれ
+        const lateralJitter = (Math.random() - 0.5) * 0.4;
+        pedMesh.position.addInPlace(new BABYLON.Vector3(lateralJitter, 0, 0));
+
+        // エージェント生成（lanePoints を先に決めてから crossingIdsAtWaypoints を渡すのが重要）
+        const agent = new PedestrianLaneAgent(
+          pedMesh,
+          lanePoints,
+          baseSpeedRand(),
+          getPedSignal,
+          crossingIdsAtWaypoints,
+          worldQuery,
+          clampToPolygon,
+          /* laneCenteringStrength */ 0.25
+        );
+
+        agents.push(agent);
+      }, i * spawnIntervalMs);
+    }
+
+    console.log("歩行者Agent を複数生成しました:", agents);
+  });
+
+
+
+
+
+  //自動車エージェントの生成
+  document.getElementById("startAgent").addEventListener("click", () => {
+
+
+    // 1. 既存の「車両」エージェントだけを agents から除去（歩行者は維持）
+    for (let i = agents.length - 1; i >= 0; i--) {
+      const t = agents[i]?.mesh?.metadata?.agentType;
+      if (t === "bus" || t === "passenger") {
+        agents.splice(i, 1);
+      }
+    }
+
+
+    // 2. 前回生成した複製メッシュを削除
+    customLayer.scene.meshes
+      .filter(m => m.name.startsWith("carClone")) // 複製した乗用車のみ対象
+      .forEach(m => {
+        m.dispose(); // Babylon.jsのメッシュ削除
+      });
+ 
+
+    // 3. 新しいエージェントを生成
+    customLayer.scene.meshes.forEach(mesh => {
+
+      // バスの生成（右折する場合）
+      if (mesh.metadata?.agentType === "bus") {
+        const intersections1 = [pathPoints1[1], pathPoints1[2]];
+
+        const busAgent = new VehicleAgent(
+          mesh, pathPoints1, 0.2,
+          (roadType) => signalStates[roadType],
+          "side",
+          intersections1,
+          // ← options なし
+          {
+            isTurningRight: true,              // ★右折するので true
+            turningCrossingId: "crossing_A",   // ★横断帯ID（あなたの設定に合わせる）
+            getPedSignal: getPedSignal,              // ※マッピングは1か所に統一
+            conflictZonePolygon: crosswalkPolygonXZ  // ← ここを差し替え（交差点クリップ後でも可）
+          }
+       );
+
+        agents.push(busAgent);
+      }
+
+
+      // 乗用車の複数生成
+      if (mesh.metadata?.agentType === "passenger") {
+        const carCount = 5;
+        for (let i = 0; i < carCount; i++) {
+          setTimeout(() => {
+            const baseMesh = customLayer.scene.meshes.find(m => m.metadata?.agentType === "passenger");
+            if (!baseMesh) return;
+
+            // 複製メッシュ作成
+            const carMesh = baseMesh.clone("carClone" + i);
+            //carMesh.position.copyFrom(pathPoints3[0].add(new BABYLON.Vector3(0, 0, -i * 5))); // 後方にずらす
+            carMesh.metadata = { agentType: "passenger" };
+            customLayer.scene.addMesh(carMesh); // シーンに追加
+
+            // TrafficAgent生成
+            const intersections3 = [pathPoints3[2]];
+            //const carAgent = new TrafficAgent(
+            const carAgent = new VehicleAgent(
+            
+              carMesh, pathPoints3, 0.5,
+              (roadType) => signalStates[roadType],
+              "main",
+              intersections3
+            );
+
+            // ★ 車間オフセットは「reset後」に適用（始点から相対でズラす）
+            carAgent.mesh.position.addInPlace(new BABYLON.Vector3(0, 0, -i * 5));
+
+            agents.push(carAgent);
+
+            console.log(`自動車Agent ${i} を生成しました`);
+          }, i * 2000); // 2秒間隔で投入
+        }
+      }
+    });
+
+    console.log("VehiclAgent を再生成しました:", agents);
+  });
+
+
+  let routesVisible = false;
+  document.getElementById("toggleRoutes").addEventListener("click", () => {
+    routesVisible = !routesVisible;
+    line1.setEnabled(routesVisible);
+    line2.setEnabled(routesVisible);
+    line3.setEnabled(routesVisible);
+    line4.setEnabled(routesVisible);
+
+    // ★ 横断歩道帯ラインも連動表示（crosswalkLines は前段で作成済み）
+    crosswalkLines.setEnabled(routesVisible);
+
+    document.getElementById("toggleRoutes").textContent =
+      routesVisible ? "経路非表示" : "経路表示";
+  });
+
+
+  // 切り替え対象ボタンのID一覧
+  const TOGGLE_BUTTON_IDS = [
+    'flightAnimation',
+    'startAgent',
+    'startAgentPedestrian',
+    'toggleRoutes',
+    'startAnimation',
+    'toggleUnderground',
+    'toggleSphereGrid',
+    'toggleFollowFlyCam' // ★ 追加
+  ];
+
+  // 選択値に応じてボタン表示/非表示を更新
+  function updateButtonsVisibilityByArea(areaValue) {
+    const show = (areaValue === 'mutsuzawa'); // むつざわのみ表示
+    TOGGLE_BUTTON_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = show ? 'block' : 'none';
+    });
+  }
+
+  // 既存の change ハンドラに追記（map 操作はそのまま）
+  document.getElementById('area').addEventListener('change', (e) => {
+    const areaValue = e.target.value;
+
+    // 既存処理（地図テーマ切り替え）
+    const t = themes[areaValue];
+    map.setCenter(t.center);
+    map.setZoom(t.zoom);
+    map.setPitch(t.pitch);
+    map.setMaxPitch(t.maxPitch);
+
+    // 追加：ボタン表示切り替え
+    updateButtonsVisibilityByArea(areaValue);
+  });
+
+  // 初期化：ページロード時の表示状態を揃える
+  document.addEventListener('DOMContentLoaded', () => {
+    const areaSelect = document.getElementById('area');
+    updateButtonsVisibilityByArea(areaSelect.value);
+  });
+
+
+  // ✅ ボタンイベントリスナーの登録
+  document.getElementById("startAnimation").addEventListener("click", () => {
+    rocketMeshes.forEach(mesh => {
+      // ① 先に大噴射の煙を表示
+      //applyPreLaunchSmoke(mesh, customLayer.scene, () => {
+        // ② 煙が終わったらロケット上昇と炎の噴射を開始
+      applyRocketAnimation(mesh, customLayer.scene);
+      //});
+    });
+  });
+
+
+  let undergroundVisible = false; // 初期状態：非表示
+
+  document.getElementById("toggleUnderground").addEventListener("click", () => {
+    undergroundVisible = !undergroundVisible; // 状態を反転
+    toggleUndergroundVisibility(undergroundVisible);
+
+    // ボタンの表示テキストを更新
+    document.getElementById("toggleUnderground").textContent =
+      undergroundVisible ? "地中モデル非表示" : "地中モデル表示";
+  });
+
+  //toggleSphereGridVisibility(false);
+  let sphereGridVisible = false;
+
+  document.getElementById("toggleSphereGrid").addEventListener("click", () => {
+    sphereGridVisible = !sphereGridVisible;
+    toggleSphereGridVisibility(sphereGridVisible);
+
+    document.getElementById("toggleSphereGrid").textContent =
+      sphereGridVisible ? "球体グリッド非表示" : "球体グリッド表示";
+  });
+
+
+});
+
+//＊＊＊＊＊＊これより関数＊＊＊＊＊＊
+
+//pointInPolygonXZ関数
+function pointInPolygonXZ(p, polygonXZ) {
+  let inside = false;
+  for (let i = 0, j = polygonXZ.length - 1; i < polygonXZ.length; j = i++) {
+    const xi = polygonXZ[i].x, zi = polygonXZ[i].z;
+    const xj = polygonXZ[j].x, zj = polygonXZ[j].z;
+    const intersect = ((zi > p.z) !== (zj > p.z)) &&
+                      (p.x < (xj - xi) * (p.z - zi) / (zj - zi + 1e-9) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+
+//帯内歩行者を数える関数
+function countWalkingPedsInZone(zonePolygonXZ) {
+  const peds = agents.filter(a => a?.mesh?.metadata?.agentType === "pedestrian");
+  let count = 0;
+  for (const ped of peds) {
+    if (pointInPolygonXZ(ped.mesh.position, zonePolygonXZ)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+
+// 交差点への接近判定（停止線より手前＆半径内）
+function isApproachingIntersectionXZ(agentPos, forward, intersectionPos, stopLineOffset = 10, approachRadius = 25) {
+  // 停止線の位置（交差点中心の手前）
+  const stopPos = intersectionPos.subtract(forward.scale(stopLineOffset));
+  const aheadOfStopLine = BABYLON.Vector3.Dot(
+    forward,
+    stopPos.subtract(agentPos)
+  ) > 0;
+  const distToCenter = BABYLON.Vector3.Distance(agentPos, intersectionPos);
+  return aheadOfStopLine && distToCenter < approachRadius;
+}
+
+
+// 横断帯内にいる歩行者の最短距離（視覚的に近い歩行者を評価するため）
+function nearestPedDistanceInZone(zonePolygonXZ) {
+  const peds = agents.filter(a => a?.mesh?.metadata?.agentType === "pedestrian");
+  let dmin = Infinity;
+  for (const ped of peds) {
+    const pos = ped.mesh.position;
+    if (pointInPolygonXZ(pos, zonePolygonXZ)) {
+      // 距離は車の現在位置基準でなく、帯の重心でもOK
+      dmin = 0; // 帯内にいるなら 0 を返す設計でもよい（簡略）
+      break;
+    }
+  }
+  return dmin;
+}
+
+
+// Polygon の重心（デバッグ可視化用）
+function centroidXZ(poly) {
+  let cx = 0, cz = 0;
+  for (const p of poly) { cx += p.x; cz += p.z; }
+  const n = Math.max(1, poly.length);
+  return new BABYLON.Vector3(cx/n, 0, cz/n);
+}
+
+
+//＊＊＊＊＊＊交通（マルチエージェント）クラス＊＊＊＊＊＊
+
+// --- 基底クラス ---
+
+class AgentBase {
+  constructor(mesh, pathPoints, speed = 1.5) {
+    this.mesh = mesh;
+    this.pathPoints = pathPoints;
+    this.baseSpeed = speed;
+    this.speed = speed;
+    this.currentIndex = 0;
+    this.state = "moving";
+  }
+
+  // ★ 共通初期化：位置・向き・状態を始点へ
+  reset() {
+    this.currentIndex = 0;
+    this.state = "moving";
+    this.speed = this.baseSpeed;
+
+    if (this.pathPoints && this.pathPoints.length > 0) {
+      // 始点へ配置
+      const p0 = this.pathPoints[0];
+      this.mesh.position.copyFrom(p0);
+
+      // 初期向き（2点以上なら p0→p1、1点なら「適当な前方」）
+      let lookTarget;
+      if (this.pathPoints.length > 1) {
+        lookTarget = this.pathPoints[1];
+      } else {
+        lookTarget = p0.add(BABYLON.Axis.Z);
+      }
+      const dir = lookTarget.subtract(p0);
+      const len = dir.length();
+      const forward = (len > 1e-6) ? dir.normalize() : BABYLON.Axis.Z;
+
+      // ★ 姿勢を「前を向く」ように
+      this.mesh.rotationQuaternion =
+        BABYLON.Quaternion.FromLookDirectionLH(forward, BABYLON.Axis.Y);
+    } else {
+      this.mesh.rotationQuaternion = BABYLON.Quaternion.Identity();
+    }
+  }
+}
+
+
+
+
+class PedestrianLaneAgent extends AgentBase {
+  constructor(
+    mesh,
+    lanePath,
+    speed = 1.0,
+    getPedSignal = (_)=>"walk",
+    crossingIdsAtWaypoints = [],
+    worldQuery = null,
+    clampToPolygon = null,
+    laneCenteringStrength = 0.25
+  ){
+    super(mesh, lanePath, speed);
+
+    this.getPedSignal = getPedSignal;
+    this.crossingIdsAtWaypoints = crossingIdsAtWaypoints;
+    this.worldQuery = worldQuery;
+
+    this.rand = (Math.random() - 0.5) * 0.4;
+    this.lastForward = BABYLON.Axis.Z.clone();
+    this.clampToPolygon = clampToPolygon;
+    this.laneCenteringStrength = laneCenteringStrength;
+
+    this.reset();
+
+    if (this.pathPoints && this.pathPoints.length > 1) {
+      this.currentIndex = 1;
+      const toNext = this.pathPoints[1].subtract(this.mesh.position).normalize();
+      this.mesh.rotationQuaternion = BABYLON.Quaternion.FromLookDirectionLH(toNext, BABYLON.Axis.Y);
+    }
+
+    this.speed = 0.001;
+    this.state = "walking";
+    this._stillFrames = 0;
+  }
+
+  getSpeedLerpFactor(){ return 0.15; }
+  getWaypointThreshold(){ return 0.30; }
+
+
+  update(deltaTime, allAgents) {
+
+    if (!this.pathPoints || this.currentIndex >= this.pathPoints.length) {
+      this.state = "finished";
+      return;
+    }
+
+    const target = this.pathPoints[this.currentIndex];
+    const crossingId = this.crossingIdsAtWaypoints
+      ? this.crossingIdsAtWaypoints[this.currentIndex]
+      : null;
+
+    const pedSignal = this.getPedSignal ? this.getPedSignal(crossingId) : "walk";
+
+    const neighborsAll = this.worldQuery ? this.worldQuery(this.mesh.position, 2.5) : [];
+    const neighbors = neighborsAll.filter(n => n?.mesh?.metadata?.agentType === "pedestrian");
+
+    // ★ 速度目標 v（直接 speed=0 にしない）
+    let v = Math.max(0, this.baseSpeed + this.rand);
+
+    for (const n of neighbors) {
+      if (n === this) continue;
+      const d = BABYLON.Vector3.Distance(this.mesh.position, n.mesh.position);
+
+      // 旧：強すぎる
+      // if (d < 0.6)       v = 0;
+      // else if (d < 2.5)  v = Math.min(v, v * 0.60);
+
+      // 新：自然な群衆挙動（停止しない）
+      if (d < 0.5) {
+        v = Math.min(v, 0.2);  // 完全停止しない
+      } else if (d < 1.5) {
+        v = Math.min(v, v * 0.85); // 減速は 15% 程度に
+      }
+
+    }
+
+    // ★ スムージング
+    this.speed = BABYLON.Scalar.Lerp(this.speed, v, this.getSpeedLerpFactor());
+
+    // --- 方向計算 ---
+    let goalForward = target.subtract(this.mesh.position);
+    const glen = goalForward.length();
+    if (glen < 1e-6) {
+      goalForward = this.lastForward.clone();
+    } else {
+      goalForward.normalize();
+      this.lastForward = goalForward.clone();
+    }
+
+    // --- レーン中心復帰 ---
+    let laneCenterForce = BABYLON.Vector3.Zero();
+    if (this.pathPoints.length > 1) {
+      const i = this.currentIndex;
+      const prev = this.pathPoints[Math.max(i - 1, 0)];
+      const next = this.pathPoints[Math.min(i, this.pathPoints.length - 1)];
+      const tangent = next.subtract(prev);
+      if (tangent.length() > 1e-6) {
+        const tdir = tangent.normalize();
+        const left = new BABYLON.Vector3(-tdir.z, 0, tdir.x);
+        const toCenter = target.subtract(this.mesh.position);
+        const lateral = left.scale(BABYLON.Vector3.Dot(toCenter, left));
+        laneCenterForce = lateral.scale(this.laneCenteringStrength);
+      }
+    }
+
+    let dir = goalForward.add(laneCenterForce);
+    if (dir.length() > 1e-6) dir.normalize();
+
+    // --- 回避 ---
+    const forwardDotMin = 0.25;
+    for (const n of neighbors) {
+      if (n === this) continue;
+
+      const toNeighbor = n.mesh.position.subtract(this.mesh.position);
+      const toLen = toNeighbor.length(); if (toLen < 1e-6) continue;
+      const toDir = toNeighbor.scale(1 / toLen);
+
+      if (BABYLON.Vector3.Dot(goalForward, toDir) < forwardDotMin) continue;
+
+      const away = this.mesh.position.subtract(n.mesh.position);
+      const d = away.length(); if (d < 1e-6) continue;
+      away.normalize();
+
+      let weight = Math.max(0, 3.0 - d) * 0.08;
+      weight = Math.min(weight, 0.20);
+
+      const forwardComp = BABYLON.Vector3.Dot(away, goalForward);
+      const lateral = away.subtract(goalForward.scale(forwardComp));
+
+      dir = dir.add(lateral.scale(weight));
+    }
+
+    if (dir.length() > 1e-6) dir.normalize();
+
+    // --- 後退禁止 ---
+    if (goalForward.length() > 1e-6 && BABYLON.Vector3.Dot(dir, goalForward) < 0) {
+      const dirForwardComp = BABYLON.Vector3.Dot(dir, goalForward);
+      const dirLateral = dir.subtract(goalForward.scale(dirForwardComp));
+      dir = goalForward.scale(0.7).add(dirLateral.scale(0.3));
+      if (dir.length() > 1e-6) dir.normalize();
+    }
+
+    // --- 停止線ロジック（赤信号のときだけ） ---
+    const curbOffset = 1.0;
+    const curbDetect = 1.5;
+    const stopPos = target.subtract(goalForward.scale(curbOffset));
+    const distToStop = BABYLON.Vector3.Distance(this.mesh.position, stopPos);
+    const aheadOfStop = BABYLON.Vector3.Dot(goalForward, stopPos.subtract(this.mesh.position)) > 0;
+
+    /*
+    // ★ 右折車が交差点にいる場合は歩行者を停止
+    if (rightTurnCarIsCrossing) {
+      if (aheadOfStop && distToStop < curbDetect) {
+
+        console.log(
+          "[PedYield] 歩行者停止: 右折車優先のため停止線で待機",
+          "pos=", this.mesh.position.toString(),
+          "crossingId=", crossingId
+        );
+
+        this.state = "waitingAtCurb";
+        v = 0;
+      }
+    }
+    */
+
+    const dt = Math.min(deltaTime, 33);
+    const speedScale = 0.90;
+
+    // ★ 信号が赤のときも停止
+    if (crossingId && pedSignal === "dontWalk") {
+      if (aheadOfStop && distToStop < curbDetect) {
+        this.state = "waitingAtCurb";
+        v = 0;  // ★ speed=0 にしない
+      }
+    } else {
+      // ★ 青信号になった瞬間の初速ブースト
+      if (this.state === "waitingAtCurb") {
+        this.speed = Math.max(this.speed, 0.25);
+      }
+      this.state = "walking";
+    }
+
+    // --- 位置更新 ---
+    if (this.speed > 0.001) {
+      this.mesh.position.addInPlace(dir.scale(this.speed * dt / 16 * speedScale));
+    }
+
+    if (this.clampToPolygon) {
+      this.mesh.position.copyFrom(this.clampToPolygon(this.mesh.position));
+    }
+
+    // --- 姿勢更新 ---
+    const q = BABYLON.Quaternion.FromLookDirectionLH(dir, BABYLON.Axis.Y);
+    this.mesh.rotationQuaternion = BABYLON.Quaternion.Slerp(
+      this.mesh.rotationQuaternion || BABYLON.Quaternion.Identity(), q, 0.10
+    );
+
+    // --- 最低巡航速度 ---
+    const minCruise = 0.05;
+    if (v > 0 && this.speed < minCruise) {
+      this.speed = minCruise;
+    }
+
+    // --- 停止キック（goalForward 方向に限定） ---
+    if (this.speed < 0.02) this._stillFrames++; else this._stillFrames = 0;
+    if (this._stillFrames > 60) {
+      this.mesh.position.addInPlace(goalForward.scale(0.05));
+      this._stillFrames = 0;
+    }
+
+    // --- 経路点到達 ---
+    if (BABYLON.Vector3.Distance(this.mesh.position, target) < this.getWaypointThreshold()) {
+      if (!crossingId || pedSignal === "walk") {
+        this.currentIndex++;
+        if (this.currentIndex < this.pathPoints.length) {
+          const toNext = this.pathPoints[this.currentIndex].subtract(this.mesh.position).normalize();
+          this.mesh.rotationQuaternion = BABYLON.Quaternion.FromLookDirectionLH(toNext, BABYLON.Axis.Y);
+        } else {
+          this.state = "finished";
+        }
+      } else {
+        this.state = "waitingAtCurb";
+      }
+    }
+  }
+}
+
+
+
+
+// --- VehicleAgent（自動車） ---
+class VehicleAgent extends AgentBase {
+  /**
+   * @param {BABYLON.Mesh} mesh                表示メッシュ（車両）
+   * @param {BABYLON.Vector3[]} pathPoints     経路の折れ点（ワールド座標）
+   * @param {number} speed                     基本速度（m/s相当。deltaTimeで16ms換算）
+   * @param {(roadType:string)=>"red"|"green"} getSignalState 信号状態取得関数
+   * @param {string} roadType                  "main" / "side" など（信号の系統）
+   * @param {BABYLON.Vector3[]} intersectionPositions 交差点中心（複数可）
+   * @param {Object} [options]                 右折時歩行者優先のためのオプション（任意）
+   *   - isTurningRight: boolean
+   *   - turningCrossingId: string | null
+   *   - getPedSignal: (crossingId:string)=>"walk"|"dontWalk"
+   *   - conflictZonePolygon: BABYLON.Vector3[]（横断帯ポリゴン頂点列（XZ））
+   */
+  constructor(
+    mesh,
+    pathPoints,
+    speed = 1.5,
+    getSignalState,
+    roadType,
+    intersectionPositions,
+    options = {} // ← 重要：未指定でも動く
+  ) {
+    super(mesh, pathPoints, speed);
+
+    this.getSignalState = getSignalState;
+    this.roadType = roadType;
+    this.intersectionPositions = intersectionPositions || [];
+
+    // === 歩行者優先のための追加プロパティ（すべて安全なデフォルト） ===
+    this.isTurningRight      = !!options.isTurningRight;
+    this.turningCrossingId   = options.turningCrossingId || null;
+    this.getPedSignal        = options.getPedSignal || null;
+    this.conflictZonePolygon = options.conflictZonePolygon || null;
+
+    // ===== チューニング用パラメータ =====
+    this.stopLineOffset = 10.0;          // 停止ラインの手前オフセット [m]
+    this.waitingOffset = 0.0;            // 右折待ち位置 [m]
+    this.stopDetectDist = 15.0;          // 停止判定距離（ラインまでの）[m]
+    this.commitRadius   = 8.0;           // 交差点中心に「進入」したと見なす半径 [m]
+    this.clearRadius    = 20.0;          // 交差点通過完了（コミット解除）半径 [m]
+    this.commitMinSpeed = 0.25;          // コミット中の最低速度 [m/s]
+    this.carFollowDist  = 20.0;          // 前走車への追従開始距離 [m]
+    this.hardStopDist   = 8.0;           // ほぼ停止する距離 [m]
+    this.speedFollowAlpha    = 0.2;      // 速度追従率（Lerp係数）
+    this.rotationFollowAlpha = 0.1;      // 向き追従率（Slerp係数）
+    this.waypointEpsilon     = 0.5;      // 次目標点到達判定 [m]
+
+    // 歩行者信号が dontWalk になった時刻（ms）
+    this.pedDontWalkTimestamp = null;
+
+    // 交差点通過コミットフラグ（緑で進入したら抜け切るまで赤無視）
+    this.committedThroughIntersection = false;
+
+    // 前走車（追従対象）
+    this.frontAgent = null;
+
+    // 初期化（始点位置・向き）
+    this.reset();
+
+    // 任意：右折車の可視化（黄色）
+    if (this.isTurningRight === true) {
+      const mat = new BABYLON.StandardMaterial("rightTurnMat", mesh.getScene());
+      mat.diffuseColor = new BABYLON.Color3(1, 1, 0);
+      mesh.material = mat;
+    }
+  }
+
+  /** 明示的に前走車を設定したい場合に使用（オプション） */
+  setFrontAgent(agent) {
+    this.frontAgent = agent;
+  }
+
+  /** 前走車探索（バス・乗用車のみ対象／同方向・横ずれ小の車両） */
+  findFrontAgent(allAgents) {
+    if (this.currentIndex >= this.pathPoints.length) {
+      this.frontAgent = null;
+      return;
+    }
+
+    const targetPoint = this.pathPoints[this.currentIndex];
+    if (!targetPoint) {
+      this.frontAgent = null;
+      return;
+    }
+
+    let nearest = null;
+    let nearestDist = Infinity;
+
+    allAgents.forEach(agent => {
+      if (agent === this) return;
+
+      // 歩行者は除外
+      const t = agent.mesh?.metadata?.agentType;
+      if (t !== "bus" && t !== "passenger") return;
+
+      const dist = BABYLON.Vector3.Distance(this.mesh.position, agent.mesh.position);
+
+      // 自車の進行方向（次ウェイポイント基準）
+      const dir = targetPoint.subtract(this.mesh.position).normalize();
+      const toOtherVec = agent.mesh.position.subtract(this.mesh.position);
+
+      // 前方判定（約45度以内：dot > 0.7）
+      const dot = BABYLON.Vector3.Dot(dir, toOtherVec.normalize());
+
+      // 横ずれ量（垂直距離）
+      const forwardComponent = BABYLON.Vector3.Dot(dir, toOtherVec);
+      const lateralOffset = Math.sqrt(
+        toOtherVec.lengthSquared() - forwardComponent * forwardComponent
+      );
+
+      if (dot > 0.7 && dist < nearestDist && lateralOffset < 2.0) {
+        nearest = agent;
+        nearestDist = dist;
+      }
+    });
+
+    this.frontAgent = nearest;
+  }
+
+  /**
+   * 毎フレーム更新
+   * @param {number} deltaTime  経過時間 [ms]
+   * @param {VehicleAgent[]|AgentBase[]} allAgents  全エージェント（前走車探索に使用）
+   */
+  update(deltaTime, allAgents) {
+    if (!this.pathPoints || this.pathPoints.length === 0) return;
+
+    // 終点チェック
+    if (this.currentIndex >= this.pathPoints.length) {
+      this.state = "finished";
+      return;
+    }
+
+    // 毎フレーム：前走車探索
+    this.findFrontAgent(allAgents);
+
+    // 次の目標点と進行方向
+    const target = this.pathPoints[this.currentIndex];
+    if (!target) return;
+
+    let direction = target.subtract(this.mesh.position);
+    const distToTarget = direction.length();
+    const forward = (distToTarget > 1e-6) ? direction.normalize() : BABYLON.Axis.Z;
+
+    // ---- 信号判定（停止ラインの符号付き距離＋コミット）----
+    let mustStopForSignal = false;
+    const currentSignal = this.getSignalState(this.roadType);
+
+    for (const intersectionPos of this.intersectionPositions) {
+      // 停止ラインの位置（交差点中心の手前）
+      const stopPos = intersectionPos.subtract(forward.scale(this.stopLineOffset));
+
+      // 「停止ラインが前方にあるか」
+      const aheadOfStopLine = BABYLON.Vector3.Dot(forward, stopPos.subtract(this.mesh.position)) > 0;
+
+      // 停止ラインまでの距離
+      const distToStopLine = BABYLON.Vector3.Distance(this.mesh.position, stopPos);
+
+      // ラインを「越えたか」の判定（符号付き距離）
+      const signedToStop = BABYLON.Vector3.Dot(this.mesh.position.subtract(stopPos), forward);
+      const passedStopLine = (signedToStop >= 0);
+
+      // 交差点中心からの距離（コミット用）
+      const distToCenter = BABYLON.Vector3.Distance(this.mesh.position, intersectionPos);
+
+      // 緑または黄で半径に入ったらコミット（抜けるまで赤無視）
+      if (!this.committedThroughIntersection &&
+          distToCenter < this.commitRadius &&
+          (currentSignal === "green" || currentSignal === "yellow")) {
+        this.committedThroughIntersection = true;
+
+        if (this.isTurningRight) {
+          rightTurnCarIsCrossing = true;
+        }
+      }
+
+      // コミット解除（十分に抜けた）
+      if (this.committedThroughIntersection &&
+          distToCenter > this.clearRadius) {
+        this.committedThroughIntersection = false;
+        /*
+        // ★交差点侵入フラグ→ここで false に戻す
+        if (this.isTurningRight) {
+          rightTurnCarIsCrossing = false;
+        }
+        */
+      }
+
+
+      // 停止すべき条件：コミットしていない ＆ 前方 ＆ 近い ＆ 赤 ＆ 未通過
+      if (!this.committedThroughIntersection &&
+          aheadOfStopLine &&
+          distToStopLine < this.stopDetectDist &&
+          currentSignal === "red" &&
+          !passedStopLine) {
+        mustStopForSignal = true;
+      }
+    }
+
+
+    // ---- 追加：歩行者優先（右折時のみ有効） ----
+
+    let mustYieldForPed = false;
+
+    if (this.isTurningRight === true &&
+        this.conflictZonePolygon && this.getPedSignal && this.turningCrossingId) {
+
+      const intersectionPos = this.intersectionPositions?.[0] || null;
+      const approaching = intersectionPos
+        ? isApproachingIntersectionXZ(this.mesh.position, forward, intersectionPos, this.waitingOffset, 10)
+        : true;
+
+      if (approaching) {
+        const pedSignal = this.getPedSignal(this.turningCrossingId); // "walk" / "dontWalk"
+        const pedsInZone = countWalkingPedsInZone(this.conflictZonePolygon);
+
+        const now = performance.now(); // ms
+
+        // --- 歩行者が歩行中なら即停止 ---
+        if (pedSignal === "walk" && pedsInZone > 0) {
+          mustYieldForPed = true;
+          this.pedDontWalkTimestamp = null; // リセット
+        }
+
+        // --- 歩行者信号が dontWalk に変わった瞬間を検出 ---
+        if (pedSignal === "dontWalk") {
+          if (this.pedDontWalkTimestamp === null) {
+            // 初回だけ記録
+            this.pedDontWalkTimestamp = now;
+          }
+
+          // 1秒経過するまでは待つ
+          if (now - this.pedDontWalkTimestamp < 1000) {
+            mustYieldForPed = true;
+          }
+        }
+      }
+    }
+    // 右折歩行者優先中はコミット無効化（交差点突入抑止）
+    if (mustYieldForPed === true) {
+      this.committedThroughIntersection = false;
+    }
+
+    // ---- 目標速度の決定（信号＋前走車追従＋歩行者優先）----
+    let targetSpeed = (mustStopForSignal || mustYieldForPed === true) ? 0 : this.baseSpeed;
+
+    if (this.frontAgent) {
+      const distToFront = BABYLON.Vector3.Distance(
+        this.mesh.position,
+        this.frontAgent.mesh.position
+      );
+      if (distToFront < this.hardStopDist) {
+        targetSpeed = 0; // ほぼ停止
+      } else if (distToFront < this.carFollowDist) {
+        // 前走車の速度以下に制限（急減速を避けるため最小値で）
+        targetSpeed = Math.min(this.frontAgent.speed, targetSpeed);
+      }
+    }
+
+    // コミット中は最低クリープ速度を保証して交差点を抜ける
+    if (this.committedThroughIntersection) {
+      targetSpeed = Math.max(targetSpeed, this.commitMinSpeed);
+    }
+
+    // 速度スムージング
+    this.speed = BABYLON.Scalar.Lerp(this.speed, targetSpeed, this.speedFollowAlpha);
+
+    // ---- 通常の移動処理 ----
+    if (distToTarget < this.waypointEpsilon) {
+      this.currentIndex++;
+      return;
+    }
+
+    // 位置更新（deltaTime は ms、16ms を1フレーム基準に）
+    this.mesh.position.addInPlace(forward.scale(this.speed * deltaTime / 16));
+
+    // 向き更新（スムーズに追従）
+    this.updateRotation(forward);
+  }
+
+  // 経路に沿って向きを更新するメソッド
+  updateRotation(forward) { // xyz回転。
+    const quaternion = BABYLON.Quaternion.FromLookDirectionLH(forward, BABYLON.Axis.Y);
+    this.mesh.rotationQuaternion = BABYLON.Quaternion.Slerp(
+      this.mesh.rotationQuaternion || BABYLON.Quaternion.Identity(),
+      quaternion,
+      this.rotationFollowAlpha
+    );
+  }
+}
+
+
+
+
+// --- FlyingVehicleAgent（空クル：水平向き制御） ---
+class FlyingVehicleAgent extends VehicleAgent {
+  updateRotation(forward) {
+    // Y成分をゼロにして水平ベクトルに
+    let flatForward = new BABYLON.Vector3(forward.x, 0, forward.z);
+
+    if (flatForward.lengthSquared() > 1e-6) {
+      flatForward = flatForward.normalize();
+    }
+
+    const q = BABYLON.Quaternion.FromLookDirectionLH(flatForward, BABYLON.Axis.Y);
+
+    this.mesh.rotationQuaternion = BABYLON.Quaternion.Slerp(
+      this.mesh.rotationQuaternion || BABYLON.Quaternion.Identity(),
+      q,
+      this.rotationFollowAlpha
+    );
+  }
+}
+
+
+
+function applyPreLaunchSmoke(mesh, scene, onComplete) {
+  const smokeSystem = new BABYLON.ParticleSystem("preLaunchSmoke", 5000, scene);
+  smokeSystem.particleTexture = new BABYLON.Texture("textures/smoke.png", scene);
+
+  smokeSystem.emitter = mesh;
+  smokeSystem.minEmitBox = new BABYLON.Vector3(-2, -1.5, -2);
+  smokeSystem.maxEmitBox = new BABYLON.Vector3(2, -1.5, 2);
+
+  // より白く濃い煙
+  smokeSystem.color1 = new BABYLON.Color4(1, 1, 1, 1.0);
+  smokeSystem.color2 = new BABYLON.Color4(0.95, 0.95, 0.95, 0.8);
+  smokeSystem.colorDead = new BABYLON.Color4(0.8, 0.8, 0.8, 0.0);
+
+  smokeSystem.minSize = 4.0;
+  smokeSystem.maxSize = 8.0;
+  smokeSystem.minLifeTime = 1.5;
+  smokeSystem.maxLifeTime = 3.0;
+
+  smokeSystem.emitRate = 4000;
+
+  // 横方向への強い噴射
+  smokeSystem.direction1 = new BABYLON.Vector3(-6, 1, -6);
+  smokeSystem.direction2 = new BABYLON.Vector3(6, 2, 6);
+
+  smokeSystem.gravity = new BABYLON.Vector3(0, 0.2, 0);
+  smokeSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
+  smokeSystem.updateSpeed = 0.02;
+
+  smokeSystem.start();
+
+  setTimeout(() => {
+    smokeSystem.stop();
+    if (onComplete) onComplete();
+  }, 3000); // 3秒間煙を出してから打ち上げ
+}
+
+
+
+function applyRocketAnimation(mesh, scene) {
+  const speed = 0.5;
+
+  // パーティクルシステムの作成
+  const particleSystem = new BABYLON.ParticleSystem("rocketThrust", 5000, scene);
+  particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
+
+  // 噴射位置（ロケットの底部）
+  particleSystem.emitter = mesh;
+  particleSystem.minEmitBox = new BABYLON.Vector3(0, -1.2, 0);
+  particleSystem.maxEmitBox = new BABYLON.Vector3(0, -1.2, 0);
+
+  // 色と透明度
+  particleSystem.color1 = new BABYLON.Color4(1, 0.6, 0.1, 1.0); // 明るいオレンジ
+  particleSystem.color2 = new BABYLON.Color4(1, 0.2, 0, 1.0);   // 赤
+  particleSystem.colorDead = new BABYLON.Color4(0.2, 0.2, 0.2, 0.0); // 黒っぽい煙
+
+  // サイズと寿命
+  particleSystem.minSize = 0.4; //0.2
+  particleSystem.maxSize = 1.2; //0.6
+  particleSystem.minLifeTime = 0.6; //0.3
+  particleSystem.maxLifeTime = 1.2; //0.6
+
+  // 発生速度と方向
+  particleSystem.emitRate = 3000;
+  //particleSystem.direction1 = new BABYLON.Vector3(0, -2, 0);
+  //particleSystem.direction2 = new BABYLON.Vector3(0.2, -2.5, 0.2);
+  particleSystem.direction1 = new BABYLON.Vector3(-3.5, -2, -3.5);
+  particleSystem.direction2 = new BABYLON.Vector3(3.5, -2.5, 3.5);
+
+  // 重力と加速度
+  particleSystem.gravity = new BABYLON.Vector3(0, -1, 0);
+  particleSystem.minAngularSpeed = 0;
+  particleSystem.maxAngularSpeed = Math.PI;
+
+  // ブレンドモードと更新速度
+  particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+  particleSystem.updateSpeed = 0.1;//0.01
+
+  // 開始
+  particleSystem.start();
+
+  // ロケットの上昇
+  scene.registerBeforeRender(() => {
+    mesh.position.y += speed;
+  });
+}
+
+
+
+//球体グリッド
+//function placeSphereGrid(gridOrigin) {  
+function placeSphereGrid(gridOrigin, polygonHeight = 7) {
+
+  toggleSphereGridVisibility(false);
+
+  const gridSize = 7;
+  const spacing = 1;
+  const rotationAngle = 0.83 // 100度
+  const rotationMatrix = BABYLON.Matrix.RotationY(rotationAngle);
+  const verticalSteps = Math.floor(polygonHeight); // 7m → 7段
+
+  for (let x = -gridSize; x <= gridSize; x++) {
+    for (let y = 1; y <= 5; y++) {
+      for (let z = -gridSize; z <= gridSize; z++) {
+        const localPos = new BABYLON.Vector3(x * spacing, y, z * spacing);
+        const rotatedPos = BABYLON.Vector3.TransformCoordinates(localPos, rotationMatrix);
+        const sphere = BABYLON.MeshBuilder.CreateSphere(`sphere-${x}-${y}-${z}`, { diameter: 0.5 }, customLayer.scene);
+        sphere.setEnabled(false); // ← これを追加して初期状態で非表示にする
+        sphereGridMeshes.push(sphere); // ← ここを追加
+
+        sphere.position.set(
+          gridOrigin.x + rotatedPos.x,
+          gridOrigin.y + rotatedPos.y,
+          gridOrigin.z + rotatedPos.z
+        );
+
+        // 温度補間
+        const interpolatedTemp = interpolateTemperature(
+          sphere.position.x, sphere.position.z, sphere.position.y,
+          sensorData.map(([lon, lat, h, temp]) => {
+            const coord = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], worldAltitude);
+            const dx = (coord.x - worldOriginMercator.x) / worldScale;
+            const dz = (coord.y - worldOriginMercator.y) / worldScale;
+            return [dx, dz, h, temp];
+          })
+        );
+
+        const mat = new BABYLON.StandardMaterial(`mat-${x}-${y}-${z}`, customLayer.scene);
+        mat.diffuseColor = temperatureToColor(interpolatedTemp);
+        sphere.material = mat;
+      }
+    }
+  }
+}
+
+function getMultiPolygonCentroid(multiPolygonGeoJSON) {
+  const center = turf.centerOfMass(multiPolygonGeoJSON);
+  return center.geometry.coordinates; // [longitude, latitude]
+}
+
+//地中表示
+function toggleUndergroundVisibility(show) {
+  undergroundMeshes.forEach(mesh => {
+    mesh.setEnabled(show);
+  });
+}
+
+// 球体グリッド表示
+const sphereGridMeshes = [];
+function toggleSphereGridVisibility(show) {
+  sphereGridMeshes.forEach(mesh => {
+    mesh.setEnabled(show);
+  });
+}
+
+
+
+// GeoJSONからBabylon座標に変換
+function convertGeoJSONToPathPoints(geojson) {
+  return geojson.geometry.coordinates.map(([lon, lat, height]) => {
+    const coord = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], worldAltitude);
+    const dx = (coord.x - worldOriginMercator.x) / worldScale;
+    const dz = (coord.y - worldOriginMercator.y) / worldScale;
+    return new BABYLON.Vector3(dx, height, -dz);
+  });
+}
+
+</script>
+</body>
+</html>
