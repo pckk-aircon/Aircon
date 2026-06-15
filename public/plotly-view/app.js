@@ -352,9 +352,9 @@
   }
 
   function pickDeviceColumn(fields) {
-    if (fields.includes("DeviceName")) return "DeviceName"; // ←優先
-    if (fields.includes("Device")) return "Device";
-    return null;
+    if (fields.includes("Device")) return "Device";  // ←優先はコード
+    if (fields.includes("DeviceName")) return "DeviceName";
+   return null;
   }
 
   function pickTsColumnByDataKind(fields, dataKind) {
@@ -1453,11 +1453,6 @@
   function onRowsLoaded(rows, options = {}) {
     const ok = setSourceData(rows, options);
     if (!ok) return;
-
-    
-    // ✅ ここに入れる
-    console.log("sample row:", appState.sourceData[0]);
-
 
     rebuildUiFromState();
     applyPendingViewStateIfAny();
