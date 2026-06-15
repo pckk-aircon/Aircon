@@ -352,8 +352,8 @@
   }
 
   function pickDeviceColumn(fields) {
+    if (fields.includes("DeviceName")) return "DeviceName"; // ←優先
     if (fields.includes("Device")) return "Device";
-    if (fields.includes("DeviceName")) return "DeviceName";
     return null;
   }
 

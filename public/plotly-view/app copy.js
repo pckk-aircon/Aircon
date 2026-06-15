@@ -75,13 +75,13 @@
 
   const DEFAULT_SELECTIONS = {
     iot: {
-      left1: ["ActivePower", "ApparentPower", "EnergyDeltaPerEffectiveMinute"],
+      left1: ["ActivePower", "ApparentPower"],
       left2: ["ActualTemp"],
-      right1: ["CumulativeEnergy", "WtTemp"],
+      right1: ["CumulativeEnergy"],
       right2: ["ActualHumidity"],
     },
     agg: {
-      left1: ["EnergyDeltaPerEffectiveMinute"],
+      left1: ["EnergyDelta"],
       left2: [],
       right1: ["WtTemp"],
       right2: [],
@@ -97,8 +97,10 @@
     DeviceDatetime: "日時",
     DatetimeAgg: "日時(集約)",
     DeviceTimestamp: "タイムスタンプ",
-    EnergyDeltaPerEffectiveMinute: "積算電力量（分単位補正）",
+    EnergyDelta: "消費電力量増分",
+    EnergyDeltaPerEffectiveMinute: "消費電力量増分（分単位補正）",
     WtTemp: "外気温",
+    TpSetTempDivAvg: "設定温度（power行全空調）",
     TpSetTempAvgOn: "設定温度(On平均)",
   };
 
