@@ -683,51 +683,6 @@ export default function Page() {
         payload.viewState.division
       );
 
-      console.log("[postMessage] SET_VIEWSTATE", payload.viewState);
-      console.log("[postMessage] SET_DATA filtered rows=", rowsForView.length);
-      if (rowsForView.length > 0) {
-        
-        console.log(
-          "[postMessage] first row DivisionPolygon=",
-          rowsForView[0]["DivisionPolygon"]
-        );
-        console.log("[postMessage] first row keys=", Object.keys(rowsForView[0]));
-        console.log("[postMessage] first row=", rowsForView[0]);
-        console.log(
-          "[postMessage] first row DatetimeAgg=",
-          rowsForView[0]["DatetimeAgg"]
-        );
-        console.log(
-          "[postMessage] first row DeviceDatetime=",
-          rowsForView[0]["DeviceDatetime"]
-        );
-        console.log(
-          "[postMessage] first row DeviceTimestamp=",
-          rowsForView[0]["DeviceTimestamp"]
-        );
-        console.log(
-          "[postMessage] first row DivisionAgg=",
-          rowsForView[0]["DivisionAgg"]
-        );
-        console.log("[postMessage] first row Device=", rowsForView[0]["Device"]);
-        console.log(
-          "[postMessage] first row DeviceName=",
-          rowsForView[0]["DeviceName"]
-        );
-        console.log(
-          "[postMessage] first row DivisionLat=",
-          rowsForView[0]["DivisionLat"]
-        );
-        console.log(
-          "[postMessage] first row DivisionLon=",
-          rowsForView[0]["DivisionLon"]
-        );
-        console.log(
-          "[postMessage] first row DivisionHeight=",
-          rowsForView[0]["DivisionHeight"]
-        );
-      }
-
       // app.js の想定どおり、先に viewState、そのあと rows
       win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
       win.postMessage({ type: "SET_DATA", rows: rowsForView }, origin);
