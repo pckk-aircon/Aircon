@@ -17,6 +17,9 @@ const client = generateClient<Schema>();
 type DivisionRow = {
   Division: string;
   DivisionName: string;
+  // ★ 追加: Division空間情報（listDivision が返す前提）
+  DivisionPolygon?: number[][][] | null;
+  Height?: number | null;
 };
 
 type DeviceRow = {
@@ -68,6 +71,10 @@ export default function Page() {
 
   // Device マスタ由来の DeviceCode -> DeviceName map
   const [deviceNameMap, setDeviceNameMap] = useState<Map<string, string>>(new Map());
+
+  // ★ 追加: Division マスタ由来の DivisionCode -> Division情報 map
+  const [divisionGeomMap, setDivisionGeomMap] =
+    useState<Map<string, DivisionRow>>(new Map());
 
   // IotData / IotDataAgg の切替
   const [dataKind, setDataKind] = useState<DataKind>("iot");
@@ -462,6 +469,23 @@ export default function Page() {
             }
 
             // =========================
+            // ★ 追加: Division座標のJoin（aggのみ）
+            // =========================
+            const divCode = String(out["Division"] ?? "").trim();
+            if (divCode) {
+              const geom = divisionGeomMap.get(divCode);
+
+              if (geom) {
+                if (isNilLikeLocal(out["DivisionName"])) {
+                  out["DivisionName"] = geom.DivisionName ?? null;
+                }
+
+                out["DivisionPolygon"] = geom.DivisionPolygon ?? null;
+                out["DivisionHeight"] = geom.Height ?? null;
+              }
+            }
+
+            // =========================
             // ③ 集計列 → 通常列マッピング（重要）
             // =========================
             if (!isNilLikeLocal(out["AvgActivePower"]) && isNilLikeLocal(out["ActivePower"])) {
@@ -554,6 +578,11 @@ export default function Page() {
               "DivisionAgg",
               "Division",
               "DivisionName",
+
+              // ★ 追加
+              "DivisionPolygon",
+              "DivisionHeight",
+
               "Device",
               "DeviceName",
               "DeviceType",
@@ -585,7 +614,7 @@ export default function Page() {
       }
       return normalizeIotRows(rows);
     },
-    [deviceNameMap]
+    [deviceNameMap, divisionGeomMap]
   );
 
   /**
@@ -679,6 +708,18 @@ export default function Page() {
         console.log(
           "[postMessage] first row DeviceName=",
           rowsForView[0]["DeviceName"]
+        );
+        console.log(
+          "[postMessage] first row DivisionLat=",
+          rowsForView[0]["DivisionLat"]
+        );
+        console.log(
+          "[postMessage] first row DivisionLon=",
+          rowsForView[0]["DivisionLon"]
+        );
+        console.log(
+          "[postMessage] first row DivisionHeight=",
+          rowsForView[0]["DivisionHeight"]
         );
       }
 
@@ -774,6 +815,16 @@ export default function Page() {
 
         setDivisions(sorted);
 
+        // ★ 追加: Division情報を map 化
+        const map = new Map<string, DivisionRow>();
+        for (const d of sorted) {
+          const code = String(d.Division ?? "").trim();
+          if (code) {
+            map.set(code, d);
+          }
+        }
+        setDivisionGeomMap(map);
+
         if (sorted.length > 0) {
           setSelectedDivision((prev) => prev || sorted[0].Division);
         }
@@ -830,11 +881,12 @@ export default function Page() {
   }, [controller]);
 
   /**
-   * deviceNameMap 更新時、既存 rows / cache を再normalizeして再送
-   * （先にIotDataが来て、後からDeviceマスタが来るケース対策）
+   * マスタ更新時、既存 rows / cache を再normalizeして再送
+   * - deviceNameMap
+   * - divisionGeomMap
    */
   useEffect(() => {
-    if (deviceNameMap.size === 0) return;
+    if (deviceNameMap.size === 0 && divisionGeomMap.size === 0) return;
 
     // cache の再normalize
     if (rangeCacheRef.current.size > 0) {
@@ -877,6 +929,7 @@ export default function Page() {
     }
   }, [
     deviceNameMap,
+    divisionGeomMap,
     allRows,
     dataKind,
     selectedDivision,
@@ -1465,7 +1518,7 @@ export default function Page() {
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} / totalRows=
           {allRows.length} / iframeReady={String(iframeReady)} / loading=
           {String(loading)} / division={viewState.division} / deviceNameMap=
-          {deviceNameMap.size}
+          {deviceNameMap.size} / divisionGeomMap={divisionGeomMap.size}
         </span>
       </div>
 

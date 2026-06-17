@@ -686,6 +686,11 @@ export default function Page() {
       console.log("[postMessage] SET_VIEWSTATE", payload.viewState);
       console.log("[postMessage] SET_DATA filtered rows=", rowsForView.length);
       if (rowsForView.length > 0) {
+        
+        console.log(
+          "[postMessage] first row DivisionPolygon=",
+          rowsForView[0]["DivisionPolygon"]
+        );
         console.log("[postMessage] first row keys=", Object.keys(rowsForView[0]));
         console.log("[postMessage] first row=", rowsForView[0]);
         console.log(
