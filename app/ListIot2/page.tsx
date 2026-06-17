@@ -17,10 +17,8 @@ const client = generateClient<Schema>();
 type DivisionRow = {
   Division: string;
   DivisionName: string;
-
   // ★ 追加: Division空間情報（listDivision が返す前提）
-  Lat?: number | null;
-  Lon?: number | null;
+  DivisionPolygon?: number[][][] | null;
   Height?: number | null;
 };
 
@@ -482,8 +480,7 @@ export default function Page() {
                   out["DivisionName"] = geom.DivisionName ?? null;
                 }
 
-                out["DivisionLat"] = geom.Lat ?? null;
-                out["DivisionLon"] = geom.Lon ?? null;
+                out["DivisionPolygon"] = geom.DivisionPolygon ?? null;
                 out["DivisionHeight"] = geom.Height ?? null;
               }
             }
@@ -583,8 +580,7 @@ export default function Page() {
               "DivisionName",
 
               // ★ 追加
-              "DivisionLat",
-              "DivisionLon",
+              "DivisionPolygon",
               "DivisionHeight",
 
               "Device",

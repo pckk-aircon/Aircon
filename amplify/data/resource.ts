@@ -329,6 +329,7 @@ const schema = a.schema({
     Division: a.id().required(),
     DivisionName: a.string(),
     Geojson: a.string(),
+    DivisionPolygon: a.json(),
     Controller: a.string(),
   }),
 
