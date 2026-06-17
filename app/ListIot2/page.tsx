@@ -473,16 +473,28 @@ export default function Page() {
             // =========================
             const divCode = String(out["Division"] ?? "").trim();
             if (divCode) {
+
               const geom = divisionGeomMap.get(divCode);
 
               if (geom) {
+                console.log("JOIN geom", divCode, geom);
+
                 if (isNilLikeLocal(out["DivisionName"])) {
                   out["DivisionName"] = geom.DivisionName ?? null;
                 }
 
                 out["DivisionPolygon"] = geom.DivisionPolygon ?? null;
                 out["DivisionHeight"] = geom.Height ?? null;
+
+                console.log("after JOIN", {
+                  Division: divCode,
+                  polygon: out["DivisionPolygon"],
+                  height: out["DivisionHeight"],
+                });
+              } else {
+                console.log("geom NOT FOUND for", divCode);
               }
+
             }
 
             // =========================
@@ -769,6 +781,9 @@ export default function Page() {
 
         const list = (data || []) as DivisionRow[];
 
+        console.log("=== Division raw data ===", list);
+        console.log("sample Division:", list[0]);
+
         const sorted = [...list].sort((a, b) =>
           a.DivisionName.localeCompare(b.DivisionName, "ja")
         );
@@ -783,6 +798,20 @@ export default function Page() {
             map.set(code, d);
           }
         }
+
+
+
+        console.log("=== divisionGeomMap ===");
+        console.log("size:", map.size);
+
+        // サンプル1件
+        const firstKey = map.keys().next().value;
+        console.log("sample key:", firstKey);
+
+
+
+
+
         setDivisionGeomMap(map);
 
         if (sorted.length > 0) {
