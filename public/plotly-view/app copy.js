@@ -352,9 +352,9 @@
   }
 
   function pickDeviceColumn(fields) {
-    if (fields.includes("Device")) return "Device";
+    if (fields.includes("Device")) return "Device";  // ←優先はコード
     if (fields.includes("DeviceName")) return "DeviceName";
-    return null;
+   return null;
   }
 
   function pickTsColumnByDataKind(fields, dataKind) {
@@ -788,7 +788,11 @@
     for (const r of appState.sourceData || []) {
       if (selectedDivision && r[appState.colDivision] !== selectedDivision) continue;
 
-      const dev = r[appState.colDevice];
+      const dev =
+        r.DeviceName && String(r.DeviceName).trim() !== ""
+          ? r.DeviceName
+          : r.Device;
+
       if (!dev) continue;
 
       const dtAggRaw = hasDatetimeAgg ? r.DatetimeAgg : null;
