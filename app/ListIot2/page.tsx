@@ -1037,14 +1037,7 @@ export default function Page() {
 
         console.timeEnd(timerLabel);
 
-        if (cancelled || seq !== requestSeqRef.current) {
-          console.log("SKIP outdated selectedDivision result", {
-            seq,
-            dataKind,
-            selectedDivision,
-          });
-          return;
-        }
+        if (cancelled) return;
 
         rangeCacheRef.current.set(rangeKey, rows);
         setAllRows(rows);
