@@ -756,6 +756,7 @@ export default function Page() {
   /**
    * Deviceマスタ更新時、既存 rows / cache を再normalizeして再送
    */
+
   useEffect(() => {
     if (deviceNameMap.size === 0) return;
 
@@ -775,6 +776,7 @@ export default function Page() {
     // 現在 rows の再normalize
     if (allRows.length > 0 && selectedDivision) {
       const renormalized = normalizeRows(allRows, dataKind);
+
       setAllRows(renormalized);
 
       const currentViewState = buildViewState(
@@ -796,24 +798,13 @@ export default function Page() {
       };
 
       latestFullPayloadRef.current = payload;
-
-      console.log("[SEND DATA]", payload.rows.length);
-
       sendFullPayloadToIframe(payload, iframeDataKey);
-
     }
-  }, [
-    deviceNameMap,
-    allRows,
-    dataKind,
-    selectedDivision,
-    startDate,
-    endDate,
-    normalizeRows,
-    buildViewState,
-    makeIframeDataKey,
-    sendFullPayloadToIframe,
-  ]);
+
+    // deviceNameMap が更新されたときだけ再実行したい
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceNameMap]);
+
 
   /**
    * res.data の形を吸収
