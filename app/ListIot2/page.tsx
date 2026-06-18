@@ -594,11 +594,27 @@ export default function Page() {
       latestFullPayloadRef.current = payload;
       latestViewStateRef.current = payload.viewState;
 
-      if (!iframeReady) return;
+      console.log("[SEND ENTRY]", {
+        dataKey,
+        rows: payload.rows.length,
+        iframeReady,
+        hasWindow: !!iframeRef.current?.contentWindow,
+        viewState: payload.viewState,
+      });
+
       const win = iframeRef.current?.contentWindow;
-      if (!win) return;
+      if (!iframeReady) {
+        console.log("[SEND SKIP] iframeReady=false");
+        return;
+      }
+      if (!win) {
+        console.log("[SEND SKIP] contentWindow not found");
+        return;
+      }
 
       const origin = getTargetOrigin();
+
+      console.log("[SEND DATA]", payload.rows.length);
 
       win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
       win.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
