@@ -40,47 +40,6 @@
   <script>
     const BABYLON = window.BABYLON;
 
-    // =========================================================
-    // 親(page.tsx)から受け取る状態（最小対応）
-    // =========================================================
-    const embeddedState = {
-      viewState: null,
-      rows: [],
-    };
-
-    function updateDevicesFromRows(rows) {
-      // 最小対応版：
-      // ここでは rows を保持するだけにして既存表示は壊さない。
-      // 今後、Deviceごとの最新値抽出・色変更・tooltip更新をここに足せます。
-      embeddedState.rows = Array.isArray(rows) ? rows : [];
-      console.log("[MAP] updateDevicesFromRows rows=", embeddedState.rows.length);
-    }
-
-    window.addEventListener("message", (event) => {
-      if (event.origin !== window.location.origin) return;
-
-      const msg = event.data;
-      if (!msg || !msg.type) return;
-
-      if (msg.type === "SET_VIEWSTATE") {
-        embeddedState.viewState = {
-          division: msg.division ?? "",
-          startDay: msg.startDay ?? "",
-          endDay: msg.endDay ?? "",
-          dataKind: msg.dataKind ?? "iot",
-        };
-        console.log("[MAP] SET_VIEWSTATE", embeddedState.viewState);
-      }
-
-      if (msg.type === "SET_DATA") {
-        console.log("[MAP] SET_DATA rows=", Array.isArray(msg.rows) ? msg.rows.length : 0);
-        updateDevicesFromRows(msg.rows);
-      }
-    });
-
-    // 親へ ready 通知
-    window.parent.postMessage({ type: "MAP_READY" }, window.location.origin);
-
     // =========================
     // 1) Map 初期化
     // =========================
@@ -118,7 +77,8 @@
       new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
     );
 
-    const geojson = {
+    const geojson =
+    {
       type: "FeatureCollection",
       features: [{
         type: "Feature",
@@ -127,15 +87,18 @@
         geometry: {
           type: "Polygon",
           coordinates: [[
-            [140.303346018325897, 35.35398247488471],
-            [140.303472747451622, 35.354079333598698],
-            [140.30359127846674, 35.353974209850065],
-            [140.303463524577268, 35.353878001069745],
-            [140.303346018325897, 35.35398247488471]
+
+            [ 140.303346018325897, 35.35398247488471 ],
+            [ 140.303472747451622, 35.354079333598698 ],
+            [ 140.30359127846674, 35.353974209850065 ],
+            [ 140.303463524577268, 35.353878001069745 ],
+            [ 140.303346018325897, 35.35398247488471 ]
+
           ]]
         }
       }]
     };
+
 
     // =========================
     // 3) Temp / Aircon のみ
@@ -202,11 +165,20 @@
         );
         light.intensity = 0.9;
 
+
+
+        // GeoJSONをBabylon用に変換してBoxを作る
+
+
+
+
+
         // =========================
         // ツールチップ表示（MapLibre座標ベース）
         // =========================
         const tooltip = document.getElementById("tooltip");
         const hoverRadiusPx = 60; // ホバーの条件を少し甘くする。
+
 
         function findHoveredDevice(point) {
           let nearest = null;
@@ -217,7 +189,7 @@
 
             const screen = map.project([lon, lat]);
 
-            // 高さ分だけ画面Yを補正
+            // ✅ 高さ分だけ画面Yを補正（ここが重要）
             const adjustedY = screen.y - height * 5;
 
             const dx = screen.x - point.x;
@@ -236,6 +208,9 @@
 
           return nearest;
         }
+
+
+
 
         map.on("mousemove", (e) => {
           const hit = findHoveredDevice(e.point);
@@ -257,6 +232,7 @@
         map.on("mouseout", () => {
           tooltip.style.display = "none";
         });
+      
 
         // =========================
         // glTF モデル配置
@@ -302,9 +278,11 @@
           });
         });
 
+
         // MapLibre の canvas を Babylon に紐付ける（超重要）
         this.scene.attachControl(map.getCanvas(), true);
         this.map = map;
+
       },
 
       render(gl, args) {
@@ -317,6 +295,8 @@
       }
     };
 
+
+
     // =========================
     // 5) map load
     // =========================
@@ -324,6 +304,7 @@
       console.log("✅ map load event fired");
 
       // 室内 GeoJSON（押し出し）
+
       map.addSource("floorplan", {
         type: "geojson",
         data: geojson
@@ -334,10 +315,10 @@
         type: "fill-extrusion",
         source: "floorplan",
         paint: {
-          "fill-extrusion-color": "#66aaff",
+          "fill-extrusion-color": "#66aaff",  // 少し濃い青
           "fill-extrusion-height": ["get", "height"],
           "fill-extrusion-base": 0,
-          "fill-extrusion-opacity": 0.15
+          "fill-extrusion-opacity": 0.15  // ★これが重要
         }
       });
 
