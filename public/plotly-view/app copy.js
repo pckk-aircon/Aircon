@@ -1542,10 +1542,26 @@
 
     if (els.divisionSel) {
       els.divisionSel.addEventListener("change", () => {
+        const nextDivision = els.divisionSel.value;
+
+        // ★ 追加（これが最重要）
+        if (MODE === "embed") {
+          window.parent.postMessage(
+            {
+              type: "DIVISION_CHANGED",
+              division: nextDivision,
+            },
+            window.location.origin
+          );
+          // ★ embedでは即描画しない
+          return;
+        }
+        // standalone時だけ描画
         clearRenderCachesOnly();
         renderAll();
       });
     }
+
 
     if (els.startDaySel) {
       els.startDaySel.addEventListener("change", () => {
@@ -1723,6 +1739,9 @@
 
           if (msg.type === "SET_DATA") {
             const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
+
+            console.log("[RECV DATA]", rows.length);
+
             onRowsLoaded(rows, {
               label: "EMBED:rows",
               viewState: appState.pendingViewState,
