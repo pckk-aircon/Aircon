@@ -1193,7 +1193,21 @@ export default function Page() {
         </div>
       )}
 
-      /plotly-view/index.html?mode=embed
+
+      <iframe
+        ref={iframeRef}
+        src="/plotly-view/index.html?mode=embed"
+        style={{ width: "100%", height: "900px", border: "none" }}
+        title="plotly-view"
+        onLoad={() => {
+          console.log("[iframe onLoad] loaded");
+          console.log(
+            "[iframe onLoad] contentWindow=",
+            !!iframeRef.current?.contentWindow
+          );
+        }}
+      />
+
     </main>
   );
 }
