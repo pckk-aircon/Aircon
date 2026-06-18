@@ -17,9 +17,6 @@ const client = generateClient<Schema>();
 type DivisionRow = {
   Division: string;
   DivisionName: string;
-  // ★ 追加: Division空間情報（listDivision が返す前提）
-  DivisionPolygon?: number[][][] | null;
-  Height?: number | null;
 };
 
 type DeviceRow = {
@@ -70,11 +67,9 @@ export default function Page() {
   const [selectedDivision, setSelectedDivision] = useState("");
 
   // Device マスタ由来の DeviceCode -> DeviceName map
-  const [deviceNameMap, setDeviceNameMap] = useState<Map<string, string>>(new Map());
-
-  // ★ 追加: Division マスタ由来の DivisionCode -> Division情報 map
-  const [divisionGeomMap, setDivisionGeomMap] =
-    useState<Map<string, DivisionRow>>(new Map());
+  const [deviceNameMap, setDeviceNameMap] = useState<Map<string, string>>(
+    new Map()
+  );
 
   // IotData / IotDataAgg の切替
   const [dataKind, setDataKind] = useState<DataKind>("iot");
@@ -83,22 +78,11 @@ export default function Page() {
   const [allRows, setAllRows] = useState<IotRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 進捗表示用
-  const [progress, setProgress] = useState(0); // 0-100
-  const [progressCompleted, setProgressCompleted] = useState(0);
-  const [progressTotal, setProgressTotal] = useState(0);
-
   const controller = "Mutsu01";
 
   /**
-   * 同時取得数の上限
-   */
-  const MAX_CONCURRENT_FETCHES = 3;
-
-  /**
-   * 日付範囲単位のキャッシュ
-   * key = controller|dataKind|yyyy-MM-dd|yyyy-MM-dd
-   * Divisionは含めない
+   * Division単位のキャッシュ
+   * key = controller|division|dataKind|yyyy-MM-dd|yyyy-MM-dd
    */
   const rangeCacheRef = useRef<Map<string, IotRow[]>>(new Map());
 
@@ -118,11 +102,6 @@ export default function Page() {
    */
   const lastSentDataKeyRef = useRef<string>("");
 
-  /**
-   * Division変更だけを検出するため
-   */
-  const prevViewStateRef = useRef<ViewState | null>(null);
-
   const buildViewState = useCallback(
     (division: string, start: Date, end: Date, kind: DataKind): ViewState => ({
       division,
@@ -133,10 +112,14 @@ export default function Page() {
     []
   );
 
+  /**
+   * キャッシュキー（Division込み）
+   */
   const makeRangeCacheKey = useCallback(
-    (start: Date, end: Date, kind: DataKind) =>
+    (start: Date, end: Date, kind: DataKind, division: string) =>
       [
         controller,
+        division,
         kind,
         format(startOfDay(start), "yyyy-MM-dd"),
         format(startOfDay(end), "yyyy-MM-dd"),
@@ -146,42 +129,24 @@ export default function Page() {
 
   /**
    * iframeへ送ったデータを識別するキー
-   * range cache key と違い division も含める
    */
   const makeIframeDataKey = useCallback(
     (start: Date, end: Date, kind: DataKind, division: string) =>
       [
         controller,
+        division,
         kind,
         format(startOfDay(start), "yyyy-MM-dd"),
         format(startOfDay(end), "yyyy-MM-dd"),
-        division,
       ].join("|"),
     [controller]
   );
 
   /**
-   * 表示用 progress（10%刻みに丸める）
-   * 例: 14 -> 10, 29 -> 20, 100 -> 100
-   */
-  const displayProgress = useMemo(() => {
-    if (progress >= 100) return 100;
-    return Math.floor(progress / 10) * 10;
-  }, [progress]);
-
-  /**
    * UI表示用
-   * 現在選択Divisionに属する件数
+   * 今後 allRows は常に selectedDivision 分だけ保持するので件数はそのまま allRows.length
    */
-  const selectedRowsCount = useMemo(() => {
-    if (!selectedDivision || allRows.length === 0) return 0;
-
-    return allRows.filter((r) => {
-      const row = r as Record<string, unknown>;
-      const div = row.DivisionAgg ?? row.Division;
-      return div === selectedDivision;
-    }).length;
-  }, [allRows, selectedDivision]);
+  const selectedRowsCount = useMemo(() => allRows.length, [allRows]);
 
   // =========================================================
   // normalize 共通ユーティリティ
@@ -303,7 +268,7 @@ export default function Page() {
             // 共通別名
             fillIfEmpty(out, "DeviceType", "Type");
             fillIfEmpty(out, "Device", "DeviceName");
-            // ❌ DeviceName <- Device はしない
+            // DeviceName <- Device はしない
             fillIfEmpty(out, "DivisionAgg", "Division");
             fillIfEmpty(out, "Division", "DivisionAgg");
 
@@ -393,12 +358,10 @@ export default function Page() {
           let s = v.trim();
           if (!s) return null;
 
-          // "2026-05-11 00:00:00" → "2026-05-11T00:00:00"
           if (s.includes(" ") && !s.includes("T")) {
             s = s.replace(" ", "T");
           }
 
-          // タイムゾーン補完
           if (
             /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
             !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
@@ -437,9 +400,7 @@ export default function Page() {
             const src = row as Record<string, unknown>;
             const out: Record<string, unknown> = {};
 
-            // =========================
             // ① 基本コピー
-            // =========================
             for (const [rawKey, rawValue] of Object.entries(src)) {
               const key = String(rawKey).trim();
 
@@ -451,16 +412,22 @@ export default function Page() {
               out[key] = value;
             }
 
-            // =========================
             // ② 共通別名補完
-            // =========================
-            if (isNilLikeLocal(out["DivisionAgg"])) out["DivisionAgg"] = out["Division"];
-            if (isNilLikeLocal(out["Division"])) out["Division"] = out["DivisionAgg"];
+            if (isNilLikeLocal(out["DivisionAgg"])) {
+              out["DivisionAgg"] = out["Division"];
+            }
+            if (isNilLikeLocal(out["Division"])) {
+              out["Division"] = out["DivisionAgg"];
+            }
 
-            if (isNilLikeLocal(out["Device"])) out["Device"] = out["DeviceName"];
-            // ❌ DeviceName <- Device はしない
+            if (isNilLikeLocal(out["Device"])) {
+              out["Device"] = out["DeviceName"];
+            }
+            // DeviceName <- Device はしない
 
-            if (isNilLikeLocal(out["DeviceType"])) out["DeviceType"] = out["Type"];
+            if (isNilLikeLocal(out["DeviceType"])) {
+              out["DeviceType"] = out["Type"];
+            }
 
             // Deviceマスタから DeviceName を補完
             const deviceCode = String(out["Device"] ?? "").trim();
@@ -468,39 +435,11 @@ export default function Page() {
               out["DeviceName"] = deviceNameMap.get(deviceCode) ?? null;
             }
 
-            // =========================
-            // ★ 追加: Division座標のJoin（aggのみ）
-            // =========================
-            const divCode = String(out["Division"] ?? "").trim();
-            if (divCode) {
-
-              const geom = divisionGeomMap.get(divCode);
-
-              if (geom) {
-                console.log("JOIN geom", divCode, geom);
-
-                if (isNilLikeLocal(out["DivisionName"])) {
-                  out["DivisionName"] = geom.DivisionName ?? null;
-                }
-
-                out["DivisionPolygon"] = geom.DivisionPolygon ?? null;
-                out["DivisionHeight"] = geom.Height ?? null;
-
-                console.log("after JOIN", {
-                  Division: divCode,
-                  polygon: out["DivisionPolygon"],
-                  height: out["DivisionHeight"],
-                });
-              } else {
-                console.log("geom NOT FOUND for", divCode);
-              }
-
-            }
-
-            // =========================
-            // ③ 集計列 → 通常列マッピング（重要）
-            // =========================
-            if (!isNilLikeLocal(out["AvgActivePower"]) && isNilLikeLocal(out["ActivePower"])) {
+            // ③ 集計列 → 通常列マッピング
+            if (
+              !isNilLikeLocal(out["AvgActivePower"]) &&
+              isNilLikeLocal(out["ActivePower"])
+            ) {
               out["ActivePower"] = out["AvgActivePower"];
             }
 
@@ -518,7 +457,10 @@ export default function Page() {
               out["CumulativeEnergy"] = out["SumCumulativeEnergy"];
             }
 
-            if (!isNilLikeLocal(out["AvgActualTemp"]) && isNilLikeLocal(out["ActualTemp"])) {
+            if (
+              !isNilLikeLocal(out["AvgActualTemp"]) &&
+              isNilLikeLocal(out["ActualTemp"])
+            ) {
               out["ActualTemp"] = out["AvgActualTemp"];
             }
 
@@ -529,7 +471,10 @@ export default function Page() {
               out["ActualHumidity"] = out["AvgActualHumidity"];
             }
 
-            if (!isNilLikeLocal(out["AvgWtTemp"]) && isNilLikeLocal(out["WtTemp"])) {
+            if (
+              !isNilLikeLocal(out["AvgWtTemp"]) &&
+              isNilLikeLocal(out["WtTemp"])
+            ) {
               out["WtTemp"] = out["AvgWtTemp"];
             }
 
@@ -541,9 +486,7 @@ export default function Page() {
                 out["SumEnergyDeltaPerEffectiveMinute"];
             }
 
-            // =========================
             // ④ DatetimeAgg取得
-            // =========================
             let ts: string | null = null;
 
             const candidates = [
@@ -558,14 +501,12 @@ export default function Page() {
             for (const key of candidates) {
               if (!ts && !isNilLikeLocal(src[key])) {
                 ts = normalizeDateTimeStringLocal(src[key]);
-                console.log("✅ use datetime from", key, "=", src[key]);
               }
             }
 
             // fallback（DeviceDatetime）
             if (!ts && !isNilLikeLocal(src["DeviceDatetime"])) {
               ts = normalizeDateTimeStringLocal(src["DeviceDatetime"]);
-              console.log("✅ use datetime from DeviceDatetime");
             }
 
             // セット
@@ -577,24 +518,13 @@ export default function Page() {
               out["DatetimeAgg"] = null;
               out["DeviceDatetime"] = null;
               out["DeviceTimestamp"] = null;
-
-              console.warn("⚠️ agg datetime missing", {
-                row: src,
-              });
             }
 
-            // =========================
             // ⑤ 必須キー補完
-            // =========================
             const mustHaveKeys = [
               "DivisionAgg",
               "Division",
               "DivisionName",
-
-              // ★ 追加
-              "DivisionPolygon",
-              "DivisionHeight",
-
               "Device",
               "DeviceName",
               "DeviceType",
@@ -626,30 +556,11 @@ export default function Page() {
       }
       return normalizeIotRows(rows);
     },
-    [deviceNameMap, divisionGeomMap]
-  );
-
-  /**
-   * iframe に送る rows は現在選択 Division のみに絞る
-   * これで postMessage の転送量と app.js 側の処理量を減らす
-   */
-  const filterRowsForDivision = useCallback(
-    (rows: IotRow[], division: string): IotRow[] => {
-      if (!division || rows.length === 0) return [];
-
-      return rows.filter((r) => {
-        const row = r as Record<string, unknown>;
-        const div = (row.DivisionAgg ?? row.Division) as string | undefined;
-        return div === division;
-      });
-    },
-    []
+    [deviceNameMap]
   );
 
   /**
    * postMessage 送信先 origin
-   * app.js 側が event.origin === window.location.origin を見ているので、
-   * こちらも origin を明示する
    */
   const getTargetOrigin = useCallback(() => {
     return window.location.origin;
@@ -669,7 +580,6 @@ export default function Page() {
       const origin = getTargetOrigin();
 
       console.log("[postMessage] SET_VIEWSTATE", viewState);
-
       win.postMessage({ type: "SET_VIEWSTATE", ...viewState }, origin);
     },
     [iframeReady, getTargetOrigin]
@@ -677,47 +587,64 @@ export default function Page() {
 
   /**
    * iframeへ viewState + rows を送る
-   * rows は親では全Division保持、iframeへは選択Divisionのみ送る
+   * rows はすでに選択Division分のみ
    */
   const sendFullPayloadToIframe = useCallback(
     (payload: FullPayload, dataKey: string) => {
       latestFullPayloadRef.current = payload;
       latestViewStateRef.current = payload.viewState;
 
-      if (!iframeReady) return;
+      console.log("[SEND ENTRY]", {
+        dataKey,
+        rows: payload.rows.length,
+        iframeReady,
+        hasWindow: !!iframeRef.current?.contentWindow,
+        viewState: payload.viewState,
+      });
+
       const win = iframeRef.current?.contentWindow;
-      if (!win) return;
+      if (!iframeReady) {
+        console.log("[SEND SKIP] iframeReady=false");
+        return;
+      }
+      if (!win) {
+        console.log("[SEND SKIP] contentWindow not found");
+        return;
+      }
 
       const origin = getTargetOrigin();
 
-      const rowsForView = filterRowsForDivision(
-        payload.rows,
-        payload.viewState.division
-      );
+      console.log("[SEND DATA]", payload.rows.length);
 
-      // app.js の想定どおり、先に viewState、そのあと rows
       win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
-      win.postMessage({ type: "SET_DATA", rows: rowsForView }, origin);
+      win.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
 
       lastSentDataKeyRef.current = dataKey;
     },
-    [iframeReady, getTargetOrigin, filterRowsForDivision]
+    [iframeReady, getTargetOrigin]
   );
 
   /**
-   * iframe READY待ち
+   * iframe READY待ち + iframe側からのDivision変更通知を受け取る
    */
   useEffect(() => {
     const onMsg = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
-
-      if (event.origin !== window.location.origin) {
-        return;
-      }
+      if (event.origin !== window.location.origin) return;
 
       if (event.data?.type === "PLOTLY_READY") {
         console.log("[iframe] PLOTLY_READY");
         setIframeReady(true);
+        return;
+      }
+
+      if (event.data?.type === "DIVISION_CHANGED") {
+        const nextDivision = String(event.data?.division ?? "").trim();
+        if (!nextDivision) return;
+
+        console.log("[iframe] DIVISION_CHANGED", nextDivision);
+        setSelectedDivision(nextDivision);
+        return;
       }
     };
 
@@ -781,38 +708,11 @@ export default function Page() {
 
         const list = (data || []) as DivisionRow[];
 
-        console.log("=== Division raw data ===", list);
-        console.log("sample Division:", list[0]);
-
         const sorted = [...list].sort((a, b) =>
           a.DivisionName.localeCompare(b.DivisionName, "ja")
         );
 
         setDivisions(sorted);
-
-        // ★ 追加: Division情報を map 化
-        const map = new Map<string, DivisionRow>();
-        for (const d of sorted) {
-          const code = String(d.Division ?? "").trim();
-          if (code) {
-            map.set(code, d);
-          }
-        }
-
-
-
-        console.log("=== divisionGeomMap ===");
-        console.log("size:", map.size);
-
-        // サンプル1件
-        const firstKey = map.keys().next().value;
-        console.log("sample key:", firstKey);
-
-
-
-
-
-        setDivisionGeomMap(map);
 
         if (sorted.length > 0) {
           setSelectedDivision((prev) => prev || sorted[0].Division);
@@ -870,12 +770,11 @@ export default function Page() {
   }, [controller]);
 
   /**
-   * マスタ更新時、既存 rows / cache を再normalizeして再送
-   * - deviceNameMap
-   * - divisionGeomMap
+   * Deviceマスタ更新時、既存 rows / cache を再normalizeして再送
    */
+
   useEffect(() => {
-    if (deviceNameMap.size === 0 && divisionGeomMap.size === 0) return;
+    if (deviceNameMap.size === 0) return;
 
     // cache の再normalize
     if (rangeCacheRef.current.size > 0) {
@@ -883,7 +782,7 @@ export default function Page() {
 
       for (const [key, rows] of rangeCacheRef.current.entries()) {
         const parts = key.split("|");
-        const kind = (parts[1] === "agg" ? "agg" : "iot") as DataKind;
+        const kind = (parts[2] === "agg" ? "agg" : "iot") as DataKind;
         nextCache.set(key, normalizeRows(rows, kind));
       }
 
@@ -891,8 +790,9 @@ export default function Page() {
     }
 
     // 現在 rows の再normalize
-    if (allRows.length > 0) {
+    if (allRows.length > 0 && selectedDivision) {
       const renormalized = normalizeRows(allRows, dataKind);
+
       setAllRows(renormalized);
 
       const currentViewState = buildViewState(
@@ -916,19 +816,11 @@ export default function Page() {
       latestFullPayloadRef.current = payload;
       sendFullPayloadToIframe(payload, iframeDataKey);
     }
-  }, [
-    deviceNameMap,
-    divisionGeomMap,
-    allRows,
-    dataKind,
-    selectedDivision,
-    startDate,
-    endDate,
-    normalizeRows,
-    buildViewState,
-    makeIframeDataKey,
-    sendFullPayloadToIframe,
-  ]);
+
+    // deviceNameMap が更新されたときだけ再実行したい
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceNameMap]);
+
 
   /**
    * res.data の形を吸収
@@ -1084,182 +976,23 @@ export default function Page() {
   );
 
   /**
-   * 同時数制御つき並列取得
-   */
-  const fetchIotByRangeAllDivisions = useCallback(
-    async (
-      start: Date,
-      end: Date,
-      divisionList: DivisionRow[],
-      kind: DataKind,
-      seq: number
-    ): Promise<IotRow[]> => {
-      if (divisionList.length === 0) {
-        if (seq === requestSeqRef.current) {
-          setProgress(100);
-          setProgressCompleted(0);
-          setProgressTotal(0);
-        }
-        return [];
-      }
-
-      console.log("=== All Division Fetch Start (parallel) ===");
-      console.log("dataKind:", kind);
-      console.log("Division count:", divisionList.length);
-      console.log("MAX_CONCURRENT_FETCHES:", MAX_CONCURRENT_FETCHES);
-      console.log("seq:", seq);
-
-      const resultsByIndex: IotRow[][] = new Array(divisionList.length)
-        .fill(null)
-        .map(() => []);
-
-      const errors: string[] = [];
-      let cursor = 0;
-      let completed = 0;
-      const total = divisionList.length;
-
-      if (seq === requestSeqRef.current) {
-        setProgress(0);
-        setProgressCompleted(0);
-        setProgressTotal(total);
-      }
-
-      const updateProgress = () => {
-        if (seq !== requestSeqRef.current) return;
-
-        completed += 1;
-        const percent = Math.round((completed / total) * 100);
-        setProgress(percent);
-        setProgressCompleted(completed);
-        setProgressTotal(total);
-
-        console.log(`[progress][${kind}] ${completed}/${total} (${percent}%)`);
-      };
-
-      const worker = async (workerId: number) => {
-        while (true) {
-          if (seq !== requestSeqRef.current) {
-            console.log("STOP worker due to stale seq", {
-              workerId,
-              kind,
-              seq,
-            });
-            return;
-          }
-
-          const currentIndex = cursor++;
-          if (currentIndex >= divisionList.length) return;
-
-          const target = divisionList[currentIndex];
-          const division = target.Division;
-          const timerLabel = `[worker:${workerId}][${kind}][seq:${seq}] ${division}`;
-
-          try {
-            console.time(timerLabel);
-            const rows = await fetchIotByRangeForDivision(
-              start,
-              end,
-              division,
-              kind,
-              seq
-            );
-            console.timeEnd(timerLabel);
-
-            if (seq !== requestSeqRef.current) {
-              console.log("SKIP outdated worker result", {
-                workerId,
-                kind,
-                division,
-                seq,
-              });
-              return;
-            }
-
-            resultsByIndex[currentIndex] = rows;
-          } catch (err) {
-            console.error(`[worker:${workerId}][${kind}] ${division} error:`, err);
-
-            if (seq !== requestSeqRef.current) {
-              return;
-            }
-
-            errors.push(
-              `[${division}] ${err instanceof Error ? err.message : String(err)}`
-            );
-            resultsByIndex[currentIndex] = [];
-          } finally {
-            updateProgress();
-          }
-        }
-      };
-
-      const workerCount = Math.min(MAX_CONCURRENT_FETCHES, divisionList.length);
-
-      await Promise.all(
-        Array.from({ length: workerCount }, (_, i) => worker(i + 1))
-      );
-
-      if (seq !== requestSeqRef.current) {
-        console.log("SKIP outdated merged result", { kind, seq });
-        return [];
-      }
-
-      if (errors.length > 0) {
-        throw new Error(errors.join("\n"));
-      }
-
-      const merged = resultsByIndex.flat();
-
-      console.log(`[${kind}] All divisions merged rows:`, merged.length);
-
-      // 最終保険としてもう一度 normalize
-      const finalRows = normalizeRows(merged, kind);
-
-      if (finalRows.length > 0) {
-        console.log(`[${kind}] final first row keys=`, Object.keys(finalRows[0]));
-        console.log(`[${kind}] final first row=`, finalRows[0]);
-      }
-
-      const sortedDatetimes = finalRows
-        .map(
-          (r) =>
-            (r?.DeviceDatetime as string | undefined) ??
-            (r?.DatetimeAgg as string | undefined)
-        )
-        .filter(Boolean)
-        .sort() as string[];
-
-      console.log(`[${kind}] all min datetime:`, sortedDatetimes[0] ?? null);
-      console.log(
-        `[${kind}] all max datetime:`,
-        sortedDatetimes.length ? sortedDatetimes[sortedDatetimes.length - 1] : null
-      );
-      console.log("=== All Division Fetch End (parallel) ===");
-
-      if (seq === requestSeqRef.current) {
-        setProgress(100);
-        setProgressCompleted(total);
-        setProgressTotal(total);
-      }
-
-      return finalRows;
-    },
-    [fetchIotByRangeForDivision, normalizeRows]
-  );
-
-  /**
-   * 日付範囲変更時 / dataKind変更時:
-   * 全Division分を取得（キャッシュあり）
+   * 日付範囲変更時 / dataKind変更時 / Division変更時:
+   * 選択中Divisionのみ取得（キャッシュあり）
    */
   useEffect(() => {
-    if (divisions.length === 0) return;
+    if (deviceNameMap.size === 0) return;   // ★ 追加
     if (!selectedDivision) return;
 
     let cancelled = false;
     const seq = ++requestSeqRef.current;
 
     (async () => {
-      const rangeKey = makeRangeCacheKey(startDate, endDate, dataKind);
+      const rangeKey = makeRangeCacheKey(
+        startDate,
+        endDate,
+        dataKind,
+        selectedDivision
+      );
       const iframeDataKey = makeIframeDataKey(
         startDate,
         endDate,
@@ -1291,47 +1024,36 @@ export default function Page() {
         setAllRows(cached);
         setLoading(false);
 
-        setProgress(100);
-        setProgressCompleted(divisions.length);
-        setProgressTotal(divisions.length);
-
         const payload: FullPayload = {
           viewState: currentViewState,
           rows: cached,
         };
         latestFullPayloadRef.current = payload;
 
-        if (seq !== requestSeqRef.current) return;
         sendFullPayloadToIframe(payload, iframeDataKey);
         return;
       }
 
       if (seq === requestSeqRef.current) {
         setLoading(true);
-        setProgress(0);
-        setProgressCompleted(0);
-        setProgressTotal(divisions.length);
         setAllRows([]);
       }
 
       try {
-        const timerLabel = `fetchIotByRangeAllDivisions(parallel)[${dataKind}][seq:${seq}]`;
+        const timerLabel = `fetchIotByRangeForDivision[${dataKind}][${selectedDivision}][seq:${seq}]`;
         console.time(timerLabel);
 
-        const rows = await fetchIotByRangeAllDivisions(
+        const rows = await fetchIotByRangeForDivision(
           startDate,
           endDate,
-          divisions,
+          selectedDivision,
           dataKind,
           seq
         );
 
         console.timeEnd(timerLabel);
 
-        if (cancelled || seq !== requestSeqRef.current) {
-          console.log("SKIP outdated ALL result in effect", { seq, dataKind });
-          return;
-        }
+        if (cancelled) return;
 
         rangeCacheRef.current.set(rangeKey, rows);
         setAllRows(rows);
@@ -1342,13 +1064,9 @@ export default function Page() {
         };
         latestFullPayloadRef.current = payload;
 
-        if (seq !== requestSeqRef.current) return;
         sendFullPayloadToIframe(payload, iframeDataKey);
       } catch (err) {
-        console.error(
-          `fetchIotByRangeAllDivisions(parallel)[${dataKind}] error:`,
-          err
-        );
+        console.error(`fetchIotByRangeForDivision[${dataKind}] error:`, err);
 
         if (!cancelled && seq === requestSeqRef.current) {
           setAllRows([]);
@@ -1359,11 +1077,7 @@ export default function Page() {
           };
           latestFullPayloadRef.current = payload;
 
-          if (seq === requestSeqRef.current) {
-            sendFullPayloadToIframe(payload, iframeDataKey);
-          }
-
-          setProgress(100);
+          sendFullPayloadToIframe(payload, iframeDataKey);
         }
       } finally {
         if (!cancelled && seq === requestSeqRef.current) {
@@ -1378,70 +1092,13 @@ export default function Page() {
   }, [
     startDate,
     endDate,
-    divisions,
     selectedDivision,
+    divisions,
     dataKind,
     makeRangeCacheKey,
     makeIframeDataKey,
     buildViewState,
-    fetchIotByRangeAllDivisions,
-    sendFullPayloadToIframe,
-  ]);
-
-  /**
-   * Division変更時:
-   * 再取得せず、親が保持している allRows から選択Divisionの rows を iframe へ再送する
-   */
-  useEffect(() => {
-    if (!selectedDivision) return;
-    if (allRows.length === 0) return;
-
-    const nextViewState = buildViewState(
-      selectedDivision,
-      startDate,
-      endDate,
-      dataKind
-    );
-    const prevViewState = prevViewStateRef.current;
-
-    prevViewStateRef.current = nextViewState;
-    latestViewStateRef.current = nextViewState;
-
-    if (!prevViewState) return;
-
-    const dateChanged =
-      prevViewState.startDay !== nextViewState.startDay ||
-      prevViewState.endDay !== nextViewState.endDay;
-
-    const divisionChanged = prevViewState.division !== nextViewState.division;
-
-    const kindChanged = prevViewState.dataKind !== nextViewState.dataKind;
-
-    if (divisionChanged && !dateChanged && !kindChanged) {
-      const payload: FullPayload = {
-        viewState: nextViewState,
-        rows: allRows,
-      };
-
-      latestFullPayloadRef.current = payload;
-
-      const iframeDataKey = makeIframeDataKey(
-        startDate,
-        endDate,
-        dataKind,
-        selectedDivision
-      );
-
-      sendFullPayloadToIframe(payload, iframeDataKey);
-    }
-  }, [
-    selectedDivision,
-    startDate,
-    endDate,
-    dataKind,
-    allRows,
-    buildViewState,
-    makeIframeDataKey,
+    fetchIotByRangeForDivision,
     sendFullPayloadToIframe,
   ]);
 
@@ -1492,6 +1149,10 @@ export default function Page() {
           <option value="agg">IotDataAgg</option>
         </select>
 
+        {/* 
+          app.js 側のリストボックスに一本化するなら、この select は削除してOKです。
+          ただし動作確認用に残してあります。
+        */}
         <select
           value={selectedDivision}
           onChange={(e) => setSelectedDivision(e.target.value)}
@@ -1507,7 +1168,7 @@ export default function Page() {
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} / totalRows=
           {allRows.length} / iframeReady={String(iframeReady)} / loading=
           {String(loading)} / division={viewState.division} / deviceNameMap=
-          {deviceNameMap.size} / divisionGeomMap={divisionGeomMap.size}
+          {deviceNameMap.size}
         </span>
       </div>
 
@@ -1525,39 +1186,28 @@ export default function Page() {
             style={{
               fontSize: 14,
               fontWeight: 600,
-              marginBottom: 8,
             }}
           >
-            データ取得中... {displayProgress}% ({progressCompleted}/{progressTotal} divisions)
-          </div>
-
-          <div
-            style={{
-              width: "100%",
-              height: 14,
-              background: "#e5e7eb",
-              borderRadius: 9999,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                width: `${displayProgress}%`,
-                height: "100%",
-                background: "#2563eb",
-                transition: "width 0.25s ease",
-              }}
-            />
+            データ取得中...
           </div>
         </div>
       )}
+
 
       <iframe
         ref={iframeRef}
         src="/plotly-view/index.html?mode=embed"
         style={{ width: "100%", height: "900px", border: "none" }}
         title="plotly-view"
+        onLoad={() => {
+          console.log("[iframe onLoad] loaded");
+          console.log(
+            "[iframe onLoad] contentWindow=",
+            !!iframeRef.current?.contentWindow
+          );
+        }}
       />
+
     </main>
   );
 }

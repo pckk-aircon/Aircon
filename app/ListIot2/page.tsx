@@ -78,6 +78,11 @@ export default function Page() {
   const [allRows, setAllRows] = useState<IotRow[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ✅ 進捗表示用
+  const [progress, setProgress] = useState(0);
+  const [progressCompleted, setProgressCompleted] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
+
   const controller = "Mutsu01";
 
   /**
@@ -85,11 +90,6 @@ export default function Page() {
    * key = controller|division|dataKind|yyyy-MM-dd|yyyy-MM-dd
    */
   const rangeCacheRef = useRef<Map<string, IotRow[]>>(new Map());
-
-  /**
-   * 最新リクエストのみ有効にするための連番
-   */
-  const requestSeqRef = useRef(0);
 
   /**
    * iframe未準備時にあとで送る用
@@ -144,9 +144,25 @@ export default function Page() {
 
   /**
    * UI表示用
-   * 今後 allRows は常に selectedDivision 分だけ保持するので件数はそのまま allRows.length
+   * allRows は常に選択Division 分だけ保持するため、そのまま件数になる
    */
   const selectedRowsCount = useMemo(() => allRows.length, [allRows]);
+
+  /**
+   * startDate ～ endDate を 1日ずつ列挙
+   */
+  const enumerateDays = useCallback((start: Date, end: Date): Date[] => {
+    const arr: Date[] = [];
+    const d = new Date(startOfDay(start));
+    const last = new Date(startOfDay(end));
+
+    while (d <= last) {
+      arr.push(new Date(d));
+      d.setDate(d.getDate() + 1);
+    }
+
+    return arr;
+  }, []);
 
   // =========================================================
   // normalize 共通ユーティリティ
@@ -550,7 +566,6 @@ export default function Page() {
         return finalizeFirstRowKeys(normalized);
       };
 
-      // dispatcher
       if (kind === "agg") {
         return normalizeAggRows(rows);
       }
@@ -587,7 +602,6 @@ export default function Page() {
 
   /**
    * iframeへ viewState + rows を送る
-   * rows はすでに選択Division分のみ
    */
   const sendFullPayloadToIframe = useCallback(
     (payload: FullPayload, dataKey: string) => {
@@ -629,14 +643,23 @@ export default function Page() {
    */
   useEffect(() => {
     const onMsg = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
+      console.log("[PARENT RECV RAW]", {
+        origin: event.origin,
+        type: event.data?.type,
+        hasIframeWindow: !!iframeRef.current?.contentWindow,
+        sameSource: event.source === iframeRef.current?.contentWindow,
+      });
+
       if (event.origin !== window.location.origin) return;
 
+      // ★ PLOTLY_READY は source チェックより先に通す
       if (event.data?.type === "PLOTLY_READY") {
         console.log("[iframe] PLOTLY_READY");
         setIframeReady(true);
         return;
       }
+
+      if (event.source !== iframeRef.current?.contentWindow) return;
 
       if (event.data?.type === "DIVISION_CHANGED") {
         const nextDivision = String(event.data?.division ?? "").trim();
@@ -772,7 +795,6 @@ export default function Page() {
   /**
    * Deviceマスタ更新時、既存 rows / cache を再normalizeして再送
    */
-
   useEffect(() => {
     if (deviceNameMap.size === 0) return;
 
@@ -816,11 +838,8 @@ export default function Page() {
       latestFullPayloadRef.current = payload;
       sendFullPayloadToIframe(payload, iframeDataKey);
     }
-
-    // deviceNameMap が更新されたときだけ再実行したい
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceNameMap]);
-
 
   /**
    * res.data の形を吸収
@@ -852,8 +871,7 @@ export default function Page() {
       start: Date,
       end: Date,
       division: string,
-      kind: DataKind,
-      seq: number
+      kind: DataKind
     ): Promise<IotRow[]> => {
       const result: IotRow[] = [];
 
@@ -877,15 +895,6 @@ export default function Page() {
       let page = 0;
 
       do {
-        if (seq !== requestSeqRef.current) {
-          console.log("SKIP outdated division request(before query)", {
-            seq,
-            kind,
-            division,
-          });
-          return [];
-        }
-
         let data: QueryPageData;
         let errors: QueryErrors;
 
@@ -898,15 +907,6 @@ export default function Page() {
             nextToken: nextToken ?? undefined,
           });
 
-          if (seq !== requestSeqRef.current) {
-            console.log("SKIP outdated division request(after query)", {
-              seq,
-              kind,
-              division,
-            });
-            return [];
-          }
-
           data = res.data as QueryPageData;
           errors = res.errors as QueryErrors;
         } else {
@@ -917,15 +917,6 @@ export default function Page() {
             EndDatetime: endDatetime,
             nextToken: nextToken ?? undefined,
           });
-
-          if (seq !== requestSeqRef.current) {
-            console.log("SKIP outdated division request(after query)", {
-              seq,
-              kind,
-              division,
-            });
-            return [];
-          }
 
           data = res.data as QueryPageData;
           errors = res.errors as QueryErrors;
@@ -959,15 +950,6 @@ export default function Page() {
         result.push(...normalizedItems);
       } while (nextToken);
 
-      if (seq !== requestSeqRef.current) {
-        console.log("SKIP outdated division result(final)", {
-          seq,
-          kind,
-          division,
-        });
-        return [];
-      }
-
       console.log(`[${kind}][${division}] 取得総件数:`, result.length);
 
       return result;
@@ -978,13 +960,13 @@ export default function Page() {
   /**
    * 日付範囲変更時 / dataKind変更時 / Division変更時:
    * 選択中Divisionのみ取得（キャッシュあり）
+   * ✅ 日単位で取得し、進捗バーを更新
    */
   useEffect(() => {
-    if (deviceNameMap.size === 0) return;   // ★ 追加
+    if (deviceNameMap.size === 0) return;
     if (!selectedDivision) return;
 
     let cancelled = false;
-    const seq = ++requestSeqRef.current;
 
     (async () => {
       const rangeKey = makeRangeCacheKey(
@@ -1008,18 +990,18 @@ export default function Page() {
 
       latestViewStateRef.current = currentViewState;
 
+      const days = enumerateDays(startDate, endDate);
+
+      // ✅ キャッシュヒット時も progress 表示を整える
       const cached = rangeCacheRef.current.get(rangeKey);
       if (cached) {
-        console.log(
-          "[range cache hit]",
-          rangeKey,
-          "rows=",
-          cached.length,
-          "seq=",
-          seq
-        );
+        console.log("[range cache hit]", rangeKey, "rows=", cached.length);
 
-        if (cancelled || seq !== requestSeqRef.current) return;
+        if (cancelled) return;
+
+        setProgressTotal(days.length);
+        setProgressCompleted(days.length);
+        setProgress(100);
 
         setAllRows(cached);
         setLoading(false);
@@ -1034,41 +1016,55 @@ export default function Page() {
         return;
       }
 
-      if (seq === requestSeqRef.current) {
-        setLoading(true);
-        setAllRows([]);
-      }
+      setLoading(true);
+      setAllRows([]);
+
+      setProgressTotal(days.length);
+      setProgressCompleted(0);
+      setProgress(0);
+
+      const all: IotRow[] = [];
 
       try {
-        const timerLabel = `fetchIotByRangeForDivision[${dataKind}][${selectedDivision}][seq:${seq}]`;
-        console.time(timerLabel);
+        for (let i = 0; i < days.length; i++) {
+          const day = days[i];
 
-        const rows = await fetchIotByRangeForDivision(
-          startDate,
-          endDate,
-          selectedDivision,
-          dataKind,
-          seq
-        );
+          console.log("[DAY FETCH]", format(day, "yyyy-MM-dd"));
 
-        console.timeEnd(timerLabel);
+          const rows = await fetchIotByRangeForDivision(
+            day,
+            day,
+            selectedDivision,
+            dataKind
+          );
+
+          if (cancelled) return;
+
+          all.push(...rows);
+
+          const completed = i + 1;
+          const percent = Math.round((completed / days.length) * 100);
+
+          setProgressCompleted(completed);
+          setProgress(percent);
+        }
 
         if (cancelled) return;
 
-        rangeCacheRef.current.set(rangeKey, rows);
-        setAllRows(rows);
+        rangeCacheRef.current.set(rangeKey, all);
+        setAllRows(all);
 
         const payload: FullPayload = {
           viewState: currentViewState,
-          rows,
+          rows: all,
         };
         latestFullPayloadRef.current = payload;
 
         sendFullPayloadToIframe(payload, iframeDataKey);
       } catch (err) {
-        console.error(`fetchIotByRangeForDivision[${dataKind}] error:`, err);
+        console.error(`day fetch error [${dataKind}]`, err);
 
-        if (!cancelled && seq === requestSeqRef.current) {
+        if (!cancelled) {
           setAllRows([]);
 
           const payload: FullPayload = {
@@ -1080,7 +1076,7 @@ export default function Page() {
           sendFullPayloadToIframe(payload, iframeDataKey);
         }
       } finally {
-        if (!cancelled && seq === requestSeqRef.current) {
+        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -1090,11 +1086,12 @@ export default function Page() {
       cancelled = true;
     };
   }, [
+    deviceNameMap,
     startDate,
     endDate,
     selectedDivision,
-    divisions,
     dataKind,
+    enumerateDays,
     makeRangeCacheKey,
     makeIframeDataKey,
     buildViewState,
@@ -1149,10 +1146,7 @@ export default function Page() {
           <option value="agg">IotDataAgg</option>
         </select>
 
-        {/* 
-          app.js 側のリストボックスに一本化するなら、この select は削除してOKです。
-          ただし動作確認用に残してあります。
-        */}
+        {/* app.js 側のリストボックスに一本化するなら、この select は削除してOK */}
         <select
           value={selectedDivision}
           onChange={(e) => setSelectedDivision(e.target.value)}
@@ -1186,13 +1180,32 @@ export default function Page() {
             style={{
               fontSize: 14,
               fontWeight: 600,
+              marginBottom: 8,
             }}
           >
-            データ取得中...
+            データ取得中... {progress}% ({progressCompleted}/{progressTotal} days)
+          </div>
+
+          <div
+            style={{
+              width: "100%",
+              height: 14,
+              background: "#e5e7eb",
+              borderRadius: 9999,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${progress}%`,
+                height: "100%",
+                background: "#2563eb",
+                transition: "width 0.2s ease",
+              }}
+            />
           </div>
         </div>
       )}
-
 
       <iframe
         ref={iframeRef}
@@ -1207,7 +1220,6 @@ export default function Page() {
           );
         }}
       />
-
     </main>
   );
 }
