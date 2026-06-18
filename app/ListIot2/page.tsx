@@ -964,7 +964,7 @@ export default function Page() {
    * 選択中Divisionのみ取得（キャッシュあり）
    */
   useEffect(() => {
-    if (divisions.length === 0) return;
+    if (deviceNameMap.size === 0) return;   // ★ 追加
     if (!selectedDivision) return;
 
     let cancelled = false;
