@@ -1739,6 +1739,9 @@
 
           if (msg.type === "SET_DATA") {
             const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
+
+            console.log("[RECV DATA]", rows.length);
+
             onRowsLoaded(rows, {
               label: "EMBED:rows",
               viewState: appState.pendingViewState,

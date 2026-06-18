@@ -796,7 +796,11 @@ export default function Page() {
       };
 
       latestFullPayloadRef.current = payload;
+
+      console.log("[SEND DATA]", payload.rows.length);
+
       sendFullPayloadToIframe(payload, iframeDataKey);
+
     }
   }, [
     deviceNameMap,
