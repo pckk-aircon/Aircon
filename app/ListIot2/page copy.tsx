@@ -473,16 +473,28 @@ export default function Page() {
             // =========================
             const divCode = String(out["Division"] ?? "").trim();
             if (divCode) {
+
               const geom = divisionGeomMap.get(divCode);
 
               if (geom) {
+                console.log("JOIN geom", divCode, geom);
+
                 if (isNilLikeLocal(out["DivisionName"])) {
                   out["DivisionName"] = geom.DivisionName ?? null;
                 }
 
                 out["DivisionPolygon"] = geom.DivisionPolygon ?? null;
                 out["DivisionHeight"] = geom.Height ?? null;
+
+                console.log("after JOIN", {
+                  Division: divCode,
+                  polygon: out["DivisionPolygon"],
+                  height: out["DivisionHeight"],
+                });
+              } else {
+                console.log("geom NOT FOUND for", divCode);
               }
+
             }
 
             // =========================
@@ -683,51 +695,6 @@ export default function Page() {
         payload.viewState.division
       );
 
-      console.log("[postMessage] SET_VIEWSTATE", payload.viewState);
-      console.log("[postMessage] SET_DATA filtered rows=", rowsForView.length);
-      if (rowsForView.length > 0) {
-        
-        console.log(
-          "[postMessage] first row DivisionPolygon=",
-          rowsForView[0]["DivisionPolygon"]
-        );
-        console.log("[postMessage] first row keys=", Object.keys(rowsForView[0]));
-        console.log("[postMessage] first row=", rowsForView[0]);
-        console.log(
-          "[postMessage] first row DatetimeAgg=",
-          rowsForView[0]["DatetimeAgg"]
-        );
-        console.log(
-          "[postMessage] first row DeviceDatetime=",
-          rowsForView[0]["DeviceDatetime"]
-        );
-        console.log(
-          "[postMessage] first row DeviceTimestamp=",
-          rowsForView[0]["DeviceTimestamp"]
-        );
-        console.log(
-          "[postMessage] first row DivisionAgg=",
-          rowsForView[0]["DivisionAgg"]
-        );
-        console.log("[postMessage] first row Device=", rowsForView[0]["Device"]);
-        console.log(
-          "[postMessage] first row DeviceName=",
-          rowsForView[0]["DeviceName"]
-        );
-        console.log(
-          "[postMessage] first row DivisionLat=",
-          rowsForView[0]["DivisionLat"]
-        );
-        console.log(
-          "[postMessage] first row DivisionLon=",
-          rowsForView[0]["DivisionLon"]
-        );
-        console.log(
-          "[postMessage] first row DivisionHeight=",
-          rowsForView[0]["DivisionHeight"]
-        );
-      }
-
       // app.js の想定どおり、先に viewState、そのあと rows
       win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
       win.postMessage({ type: "SET_DATA", rows: rowsForView }, origin);
@@ -814,6 +781,9 @@ export default function Page() {
 
         const list = (data || []) as DivisionRow[];
 
+        console.log("=== Division raw data ===", list);
+        console.log("sample Division:", list[0]);
+
         const sorted = [...list].sort((a, b) =>
           a.DivisionName.localeCompare(b.DivisionName, "ja")
         );
@@ -828,6 +798,20 @@ export default function Page() {
             map.set(code, d);
           }
         }
+
+
+
+        console.log("=== divisionGeomMap ===");
+        console.log("size:", map.size);
+
+        // サンプル1件
+        const firstKey = map.keys().next().value;
+        console.log("sample key:", firstKey);
+
+
+
+
+
         setDivisionGeomMap(map);
 
         if (sorted.length > 0) {

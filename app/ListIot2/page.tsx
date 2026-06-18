@@ -72,10 +72,6 @@ export default function Page() {
   // Device マスタ由来の DeviceCode -> DeviceName map
   const [deviceNameMap, setDeviceNameMap] = useState<Map<string, string>>(new Map());
 
-  // ★ 追加: Division マスタ由来の DivisionCode -> Division情報 map
-  const [divisionGeomMap, setDivisionGeomMap] =
-    useState<Map<string, DivisionRow>>(new Map());
-
   // IotData / IotDataAgg の切替
   const [dataKind, setDataKind] = useState<DataKind>("iot");
 
@@ -469,35 +465,6 @@ export default function Page() {
             }
 
             // =========================
-            // ★ 追加: Division座標のJoin（aggのみ）
-            // =========================
-            const divCode = String(out["Division"] ?? "").trim();
-            if (divCode) {
-
-              const geom = divisionGeomMap.get(divCode);
-
-              if (geom) {
-                console.log("JOIN geom", divCode, geom);
-
-                if (isNilLikeLocal(out["DivisionName"])) {
-                  out["DivisionName"] = geom.DivisionName ?? null;
-                }
-
-                out["DivisionPolygon"] = geom.DivisionPolygon ?? null;
-                out["DivisionHeight"] = geom.Height ?? null;
-
-                console.log("after JOIN", {
-                  Division: divCode,
-                  polygon: out["DivisionPolygon"],
-                  height: out["DivisionHeight"],
-                });
-              } else {
-                console.log("geom NOT FOUND for", divCode);
-              }
-
-            }
-
-            // =========================
             // ③ 集計列 → 通常列マッピング（重要）
             // =========================
             if (!isNilLikeLocal(out["AvgActivePower"]) && isNilLikeLocal(out["ActivePower"])) {
@@ -592,8 +559,6 @@ export default function Page() {
               "DivisionName",
 
               // ★ 追加
-              "DivisionPolygon",
-              "DivisionHeight",
 
               "Device",
               "DeviceName",
@@ -626,7 +591,7 @@ export default function Page() {
       }
       return normalizeIotRows(rows);
     },
-    [deviceNameMap, divisionGeomMap]
+    [deviceNameMap]
   );
 
   /**
@@ -790,30 +755,6 @@ export default function Page() {
 
         setDivisions(sorted);
 
-        // ★ 追加: Division情報を map 化
-        const map = new Map<string, DivisionRow>();
-        for (const d of sorted) {
-          const code = String(d.Division ?? "").trim();
-          if (code) {
-            map.set(code, d);
-          }
-        }
-
-
-
-        console.log("=== divisionGeomMap ===");
-        console.log("size:", map.size);
-
-        // サンプル1件
-        const firstKey = map.keys().next().value;
-        console.log("sample key:", firstKey);
-
-
-
-
-
-        setDivisionGeomMap(map);
-
         if (sorted.length > 0) {
           setSelectedDivision((prev) => prev || sorted[0].Division);
         }
@@ -875,7 +816,7 @@ export default function Page() {
    * - divisionGeomMap
    */
   useEffect(() => {
-    if (deviceNameMap.size === 0 && divisionGeomMap.size === 0) return;
+    if (deviceNameMap.size === 0) return;
 
     // cache の再normalize
     if (rangeCacheRef.current.size > 0) {
@@ -918,7 +859,6 @@ export default function Page() {
     }
   }, [
     deviceNameMap,
-    divisionGeomMap,
     allRows,
     dataKind,
     selectedDivision,
@@ -1507,7 +1447,7 @@ export default function Page() {
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} / totalRows=
           {allRows.length} / iframeReady={String(iframeReady)} / loading=
           {String(loading)} / division={viewState.division} / deviceNameMap=
-          {deviceNameMap.size} / divisionGeomMap={divisionGeomMap.size}
+          {deviceNameMap.size}
         </span>
       </div>
 
