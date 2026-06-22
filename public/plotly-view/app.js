@@ -1351,12 +1351,12 @@
     const fields = Object.keys(normalized[0] || {});
     let dataKind = appState.currentDataKind;
 
-    if (MODE !== "embed") {
-      dataKind = detectDataKindFromFields(fields);
+    if (options.viewState?.dataKind) {
+      dataKind = options.viewState.dataKind;
+    } else if (appState.pendingViewState?.dataKind) {
+      dataKind = appState.pendingViewState.dataKind;
     } else {
-      if (options.viewState?.dataKind) dataKind = options.viewState.dataKind;
-      else if (appState.pendingViewState?.dataKind) dataKind = appState.pendingViewState.dataKind;
-      else dataKind = detectDataKindFromFields(fields);
+      dataKind = detectDataKindFromFields(fields);
     }
 
     const colDivision = pickDivisionColumn(fields, dataKind);
@@ -1578,7 +1578,8 @@
           buildDaySelectors(days);
 
           const vs = appState.pendingViewState;
-          if (MODE === "embed" && vs) {
+
+          if (vs) {
             if (vs.startDay && days.includes(vs.startDay)) {
               els.startDaySel.value = vs.startDay;
             } else if (prevStart && days.includes(prevStart)) {
