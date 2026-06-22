@@ -150,7 +150,6 @@
   // State
   // =========================================================
   const appState = {
-    mode: MODE,
 
     sourceData: null,
     fields: [],
