@@ -11,6 +11,12 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, startOfDay } from "date-fns";
 
+import {
+  buildDeviceNameMap,
+  buildDivisionNameMap,
+  enrichWithMasterNames,
+} from "@/app/lib/masterEnrich";
+
 Amplify.configure(outputs);
 const client = generateClient<Schema>();
 
@@ -67,8 +73,12 @@ export default function Page() {
   const [divisions, setDivisions] = useState<DivisionRow[]>([]);
   const [selectedDivision, setSelectedDivision] = useState("");
 
-  // Device マスタ由来の DeviceCode -> DeviceName map
+  // マスタ由来の DeviceCode -> DeviceName map
+
   const [deviceNameMap, setDeviceNameMap] = useState<Map<string, string>>(
+    new Map()
+  );
+  const [divisionNameMap, setDivisionNameMap] = useState<Map<string, string>>(
     new Map()
   );
 
@@ -291,11 +301,11 @@ export default function Page() {
             fillIfEmpty(out, "DivisionAgg", "Division");
             fillIfEmpty(out, "Division", "DivisionAgg");
 
-            // Deviceマスタから DeviceName を補完
-            const deviceCode = String(out["Device"] ?? "").trim();
-            if (isNilLike(out["DeviceName"]) && deviceCode) {
-              out["DeviceName"] = deviceNameMap.get(deviceCode) ?? null;
-            }
+            // マスタから DeviceName / DivisionName を補完
+            enrichWithMasterNames(out, {
+              deviceNameMap,
+              divisionNameMap,
+            });
 
             // iot は DeviceDatetime 優先
             const primaryTs =
@@ -448,11 +458,11 @@ export default function Page() {
               out["DeviceType"] = out["Type"];
             }
 
-            // Deviceマスタから DeviceName を補完
-            const deviceCode = String(out["Device"] ?? "").trim();
-            if (isNilLikeLocal(out["DeviceName"]) && deviceCode) {
-              out["DeviceName"] = deviceNameMap.get(deviceCode) ?? null;
-            }
+            // マスタから DeviceName / DivisionName を補完
+            enrichWithMasterNames(out, {
+              deviceNameMap,
+              divisionNameMap,
+            });
 
             // ③ 集計列 → 通常列マッピング
             if (
@@ -574,7 +584,7 @@ export default function Page() {
       }
       return normalizeIotRows(rows);
     },
-    [deviceNameMap]
+    [deviceNameMap, divisionNameMap]
   );
 
   /**
@@ -769,10 +779,13 @@ export default function Page() {
         );
 
         setDivisions(sorted);
+        setDivisionNameMap(buildDivisionNameMap(sorted));
 
         if (sorted.length > 0) {
           setSelectedDivision((prev) => prev || sorted[0].Division);
         }
+
+
       } catch (err) {
         console.error("listDivision error:", err);
       }
@@ -803,18 +816,11 @@ export default function Page() {
         if (cancelled) return;
 
         const list = (data || []) as DeviceRow[];
-        const map = new Map<string, string>();
-
-        for (const d of list) {
-          const code = String(d.Device ?? "").trim();
-          const name = String(d.DeviceName ?? "").trim();
-          if (code && name) {
-            map.set(code, name);
-          }
-        }
+        const map = buildDeviceNameMap(list);
 
         console.log("deviceNameMap size=", map.size);
         setDeviceNameMap(map);
+
       } catch (err) {
         console.error("listDevice error:", err);
       }
@@ -826,10 +832,12 @@ export default function Page() {
   }, [controller]);
 
   /**
-   * Deviceマスタ更新時、既存 rows / cache を再normalizeして再送
+   * マスタ更新時、既存 rows / cache を再normalizeして再送
+   * - DeviceName
+   * - DivisionName
    */
   useEffect(() => {
-    if (deviceNameMap.size === 0) return;
+    if (deviceNameMap.size === 0 && divisionNameMap.size === 0) return;
 
     // cache の再normalize
     if (rangeCacheRef.current.size > 0) {
@@ -871,8 +879,9 @@ export default function Page() {
       latestFullPayloadRef.current = payload;
       sendFullPayloadToIframe(payload, iframeDataKey);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceNameMap]);
+  }, [deviceNameMap, divisionNameMap]);
 
   /**
    * res.data の形を吸収
@@ -1258,7 +1267,7 @@ export default function Page() {
       {/* Map iframe */}
       <iframe
         ref={mapIframeRef}
-        src="/maplibre-view/division.html"
+        src="/plotly-view/index-divisionmap.html"       
         style={{
           width: "100%",
           height: "700px",

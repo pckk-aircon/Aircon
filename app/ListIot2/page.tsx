@@ -1267,7 +1267,7 @@ export default function Page() {
       {/* Map iframe */}
       <iframe
         ref={mapIframeRef}
-        src="/plotly-view/index-divisionmap.html"       
+        src="/plotly-view/map-index.html"  
         style={{
           width: "100%",
           height: "700px",
