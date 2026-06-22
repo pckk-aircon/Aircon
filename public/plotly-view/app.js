@@ -13,10 +13,6 @@
   // =========================================================
   // Boot / Mode
   // =========================================================
-  function getMode() {
-    const p = new URLSearchParams(location.search);
-    return p.get("mode") || "standalone";
-  }
 
   const MODE = getMode();
   const DEBUG = false;
@@ -1679,93 +1675,24 @@
   }
 
   // =========================================================
-  // Adapter: standalone
-  // =========================================================
-  function createStandaloneAdapter() {
-    return {
-      init() {
-        if (!els.fileInput || typeof Papa === "undefined") return;
-
-        els.fileInput.addEventListener("change", () => {
-          const file = els.fileInput.files && els.fileInput.files[0];
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = () => {
-            const csvText = reader.result;
-
-            const parsed = Papa.parse(csvText, {
-              header: true,
-              skipEmptyLines: true,
-              transformHeader: (h) => String(h).trim(),
-            });
-
-            const data = parsed.data || [];
-            onRowsLoaded(data, { label: `CSV:${file.name}` });
-          };
-
-          reader.readAsText(file, "utf-8");
-        });
-      },
-
-      applyUiLock() {
-        // standalone はロックなし
-      },
-    };
-  }
-
-  // =========================================================
-  // Adapter: embed
-  // =========================================================
-  function createEmbedAdapter() {
-    return {
-      init() {
-        window.parent.postMessage({ type: "PLOTLY_READY", version: "1" }, window.location.origin);
-
-        window.addEventListener("message", (event) => {
-          if (event.origin !== window.location.origin) return;
-
-          const msg = event.data;
-          if (!msg || !msg.type) return;
-
-          if (msg.type === "SET_VIEWSTATE") {
-            onViewStateChanged({
-              division: msg.division ?? null,
-              startDay: msg.startDay ?? null,
-              endDay: msg.endDay ?? null,
-              dataKind: msg.dataKind ?? "iot",
-            });
-          }
-
-          if (msg.type === "SET_DATA") {
-            const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
-
-            console.log("[RECV DATA]", rows.length);
-
-            onRowsLoaded(rows, {
-              label: "EMBED:rows",
-              viewState: appState.pendingViewState,
-            });
-          }
-        });
-      },
-
-      applyUiLock() {
-        if (els.divisionSel) els.divisionSel.disabled = true;
-        if (els.startDaySel) els.startDaySel.disabled = true;
-        if (els.endDaySel) els.endDaySel.disabled = true;
-      },
-    };
-  }
-
-  function createAdapter(mode) {
-    return mode === "embed" ? createEmbedAdapter() : createStandaloneAdapter();
-  }
-
-  // =========================================================
   // Init
   // =========================================================
-  const adapter = createAdapter(MODE);
+
+  const adapter = window.createViewAdapter({
+    onRowsLoaded: (rows) => {
+      console.log("[RECV DATA]", rows.length);
+
+      onRowsLoaded(rows, {
+        label: "EMBED:rows",
+        viewState: appState.pendingViewState,
+      });
+    },
+
+    onViewStateChanged: (viewState) => {
+      onViewStateChanged(viewState);
+    },
+  });
+
 
   function init() {
     if (MODE === "embed") {
