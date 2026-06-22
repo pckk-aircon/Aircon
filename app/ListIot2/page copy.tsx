@@ -58,8 +58,8 @@ type QueryPageData =
 type QueryErrors = readonly { message: string }[] | undefined;
 
 export default function Page() {
-  const iframeRef = useRef<HTMLIFrameElement>(null);       // ✅ Plotly
-  const mapIframeRef = useRef<HTMLIFrameElement>(null);    // ✅ Map追加
+  const iframeRef = useRef<HTMLIFrameElement>(null); // Plotly
+  const mapIframeRef = useRef<HTMLIFrameElement>(null); // Map
 
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -75,11 +75,13 @@ export default function Page() {
   // IotData / IotDataAgg の切替
   const [dataKind, setDataKind] = useState<DataKind>("iot");
 
-  const [iframeReady, setIframeReady] = useState(false);
+  const [iframeReady, setIframeReady] = useState(false); // Plotly ready
+  const [mapReady, setMapReady] = useState(false); // Map ready
+
   const [allRows, setAllRows] = useState<IotRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ 進捗表示用
+  // 進捗表示用
   const [progress, setProgress] = useState(0);
   const [progressCompleted, setProgressCompleted] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
@@ -584,25 +586,36 @@ export default function Page() {
 
   /**
    * iframeへ viewState だけ送る
+   * Plotly / Map 両方へ送る
    */
   const sendViewStateToIframe = useCallback(
     (viewState: ViewState) => {
       latestViewStateRef.current = viewState;
 
-      if (!iframeReady) return;
-      const win = iframeRef.current?.contentWindow;
-      if (!win) return;
-
       const origin = getTargetOrigin();
 
-      console.log("[postMessage] SET_VIEWSTATE", viewState);
-      win.postMessage({ type: "SET_VIEWSTATE", ...viewState }, origin);
+      if (iframeReady) {
+        const plotWin = iframeRef.current?.contentWindow;
+        if (plotWin) {
+          console.log("[postMessage] SET_VIEWSTATE -> plotly", viewState);
+          plotWin.postMessage({ type: "SET_VIEWSTATE", ...viewState }, origin);
+        }
+      }
+
+      if (mapReady) {
+        const mapWin = mapIframeRef.current?.contentWindow;
+        if (mapWin) {
+          console.log("[postMessage] SET_VIEWSTATE -> map", viewState);
+          mapWin.postMessage({ type: "SET_VIEWSTATE", ...viewState }, origin);
+        }
+      }
     },
-    [iframeReady, getTargetOrigin]
+    [iframeReady, mapReady, getTargetOrigin]
   );
 
   /**
    * iframeへ viewState + rows を送る
+   * Plotly / Map 両方へ送る
    */
   const sendFullPayloadToIframe = useCallback(
     (payload: FullPayload, dataKey: string) => {
@@ -613,30 +626,36 @@ export default function Page() {
         dataKey,
         rows: payload.rows.length,
         iframeReady,
-        hasWindow: !!iframeRef.current?.contentWindow,
+        mapReady,
+        hasPlotWindow: !!iframeRef.current?.contentWindow,
+        hasMapWindow: !!mapIframeRef.current?.contentWindow,
         viewState: payload.viewState,
       });
 
-      const win = iframeRef.current?.contentWindow;
-      if (!iframeReady) {
-        console.log("[SEND SKIP] iframeReady=false");
-        return;
-      }
-      if (!win) {
-        console.log("[SEND SKIP] contentWindow not found");
-        return;
-      }
-
       const origin = getTargetOrigin();
 
-      console.log("[SEND DATA]", payload.rows.length);
+      if (!iframeReady && !mapReady) {
+        console.log("[SEND SKIP] both iframes are not ready");
+        return;
+      }
 
-      win.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
-      win.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
+      const plotWin = iframeRef.current?.contentWindow;
+      if (iframeReady && plotWin) {
+        plotWin.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
+        plotWin.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
+        console.log("[SEND DATA] -> plotly", payload.rows.length);
+      }
+
+      const mapWin = mapIframeRef.current?.contentWindow;
+      if (mapReady && mapWin) {
+        mapWin.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
+        mapWin.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
+        console.log("[SEND DATA] -> map", payload.rows.length);
+      }
 
       lastSentDataKeyRef.current = dataKey;
     },
-    [iframeReady, getTargetOrigin]
+    [iframeReady, mapReady, getTargetOrigin]
   );
 
   /**
@@ -647,21 +666,35 @@ export default function Page() {
       console.log("[PARENT RECV RAW]", {
         origin: event.origin,
         type: event.data?.type,
-        hasIframeWindow: !!iframeRef.current?.contentWindow,
-        sameSource: event.source === iframeRef.current?.contentWindow,
+        hasPlotIframeWindow: !!iframeRef.current?.contentWindow,
+        hasMapIframeWindow: !!mapIframeRef.current?.contentWindow,
+        samePlotSource: event.source === iframeRef.current?.contentWindow,
+        sameMapSource: event.source === mapIframeRef.current?.contentWindow,
       });
 
       if (event.origin !== window.location.origin) return;
 
-      // ★ PLOTLY_READY は source チェックより先に通す
+      // PLOTLY_READY
       if (event.data?.type === "PLOTLY_READY") {
         console.log("[iframe] PLOTLY_READY");
         setIframeReady(true);
         return;
       }
 
-      if (event.source !== iframeRef.current?.contentWindow) return;
+      // MAP_READY（division.html 側で postMessage している場合）
+      if (event.data?.type === "MAP_READY") {
+        console.log("[iframe] MAP_READY");
+        setMapReady(true);
+        return;
+      }
 
+      // sourceチェックは READY 以外で行う
+      const isPlotSource = event.source === iframeRef.current?.contentWindow;
+      const isMapSource = event.source === mapIframeRef.current?.contentWindow;
+
+      if (!isPlotSource && !isMapSource) return;
+
+      // Division変更通知は現状 Plotly 側想定
       if (event.data?.type === "DIVISION_CHANGED") {
         const nextDivision = String(event.data?.division ?? "").trim();
         if (!nextDivision) return;
@@ -678,9 +711,10 @@ export default function Page() {
 
   /**
    * iframe readyになったら最新状態を流す
+   * Plotly ready / Map ready のどちらかが変化したら最新payloadを再送
    */
   useEffect(() => {
-    if (!iframeReady) return;
+    if (!iframeReady && !mapReady) return;
 
     const iframeDataKey = makeIframeDataKey(
       startDate,
@@ -689,10 +723,7 @@ export default function Page() {
       selectedDivision
     );
 
-    if (
-      latestFullPayloadRef.current &&
-      lastSentDataKeyRef.current !== iframeDataKey
-    ) {
+    if (latestFullPayloadRef.current) {
       sendFullPayloadToIframe(latestFullPayloadRef.current, iframeDataKey);
       return;
     }
@@ -702,6 +733,7 @@ export default function Page() {
     }
   }, [
     iframeReady,
+    mapReady,
     startDate,
     endDate,
     dataKind,
@@ -961,7 +993,7 @@ export default function Page() {
   /**
    * 日付範囲変更時 / dataKind変更時 / Division変更時:
    * 選択中Divisionのみ取得（キャッシュあり）
-   * ✅ 日単位で取得し、進捗バーを更新
+   * 日単位で取得し、進捗バーを更新
    */
   useEffect(() => {
     if (deviceNameMap.size === 0) return;
@@ -993,7 +1025,7 @@ export default function Page() {
 
       const days = enumerateDays(startDate, endDate);
 
-      // ✅ キャッシュヒット時も progress 表示を整える
+      // キャッシュヒット時も progress 表示を整える
       const cached = rangeCacheRef.current.get(rangeKey);
       if (cached) {
         console.log("[range cache hit]", rangeKey, "rows=", cached.length);
@@ -1160,10 +1192,10 @@ export default function Page() {
         </select>
 
         <span>
-          dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} / totalRows=
-          {allRows.length} / iframeReady={String(iframeReady)} / loading=
-          {String(loading)} / division={viewState.division} / deviceNameMap=
-          {deviceNameMap.size}
+          dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} /
+          totalRows={allRows.length} / iframeReady={String(iframeReady)} /
+          mapReady={String(mapReady)} / loading={String(loading)} /
+          division={viewState.division} / deviceNameMap={deviceNameMap.size}
         </span>
       </div>
 
@@ -1208,17 +1240,42 @@ export default function Page() {
         </div>
       )}
 
+      {/* Plotly iframe */}
       <iframe
         ref={iframeRef}
         src="/plotly-view/index.html?mode=embed"
         style={{ width: "100%", height: "900px", border: "none" }}
         title="plotly-view"
         onLoad={() => {
-          console.log("[iframe onLoad] loaded");
+          console.log("[plotly iframe onLoad] loaded");
           console.log(
-            "[iframe onLoad] contentWindow=",
+            "[plotly iframe onLoad] contentWindow=",
             !!iframeRef.current?.contentWindow
           );
+        }}
+      />
+
+      {/* Map iframe */}
+      <iframe
+        ref={mapIframeRef}
+        src="/maplibre-view/division.html"
+        style={{
+          width: "100%",
+          height: "700px",
+          border: "none",
+          marginTop: 16,
+        }}
+        title="maplibre-view"
+        onLoad={() => {
+          console.log("[map iframe onLoad] loaded");
+          console.log(
+            "[map iframe onLoad] contentWindow=",
+            !!mapIframeRef.current?.contentWindow
+          );
+
+          // division.html 側が MAP_READY をまだ送っていなくても、
+          // onLoad で最低限 ready 扱いにする
+          setMapReady(true);
         }}
       />
     </main>
