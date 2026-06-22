@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>MapLibre + Babylon.js（Temp / Aircon 縮退版）</title>
+  <title>MapLibre + Babylon.js（Temp / Aircon）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css" />
@@ -10,6 +10,9 @@
 
   <script src="https://unpkg.com/babylonjs@5.42.2/babylon.js"></script>
   <script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
+
+  <!-- ★追加（重要） -->
+  <script src="/common/view-adapter.js"></script>
 
   <style>
     html, body, #map {
@@ -33,57 +36,59 @@
     }
   </style>
 </head>
-<body>
-  <div id="map"></div>
-  <div id="tooltip"></div>
 
-  <script>
+<body>
+<div id="map"></div>
+<div id="tooltip"></div>
+
+<script>
     const BABYLON = window.BABYLON;
 
-    // =========================================================
-    // 親(page.tsx)から受け取る状態（最小対応）
-    // =========================================================
+    // =========================
+    // ✅ 状態
+    // =========================
     const embeddedState = {
       viewState: null,
       rows: [],
     };
 
+    // =========================
+    // ✅ Device更新（ここが今後の拡張ポイント）
+    // =========================
     function updateDevicesFromRows(rows) {
-      // 最小対応版：
-      // ここでは rows を保持するだけにして既存表示は壊さない。
-      // 今後、Deviceごとの最新値抽出・色変更・tooltip更新をここに足せます。
       embeddedState.rows = Array.isArray(rows) ? rows : [];
-      console.log("[MAP] updateDevicesFromRows rows=", embeddedState.rows.length);
+
+      console.log("[MAP] rows=", embeddedState.rows.length);
+
+      // ↓ 今後ここを強化
+      // Deviceごとの最新値抽出
+      // 色変更など
     }
 
-    window.addEventListener("message", (event) => {
-      if (event.origin !== window.location.origin) return;
+    // =========================
+    // ✅ Adapter導入（←今回の核心）
+    // =========================
+    const adapter = window.createViewAdapter({
 
-      const msg = event.data;
-      if (!msg || !msg.type) return;
+      onViewStateChanged(viewState) {
+        embeddedState.viewState = viewState;
+        console.log("[MAP] VIEWSTATE", viewState);
+      },
 
-      if (msg.type === "SET_VIEWSTATE") {
-        embeddedState.viewState = {
-          division: msg.division ?? "",
-          startDay: msg.startDay ?? "",
-          endDay: msg.endDay ?? "",
-          dataKind: msg.dataKind ?? "iot",
-        };
-        console.log("[MAP] SET_VIEWSTATE", embeddedState.viewState);
+      onRowsLoaded(rows) {
+        console.log("[MAP] DATA rows=", rows.length);
+        updateDevicesFromRows(rows);
       }
 
-      if (msg.type === "SET_DATA") {
-        console.log("[MAP] SET_DATA rows=", Array.isArray(msg.rows) ? msg.rows.length : 0);
-        updateDevicesFromRows(msg.rows);
-      }
     });
 
-    // 親へ ready 通知
-    window.parent.postMessage({ type: "MAP_READY" }, window.location.origin);
+    adapter.init();
 
     // =========================
-    // 1) Map 初期化
+    // ▼ ここから下は既存コードそのまま
     // =========================
+
+    // 1) Map初期化
     const map = new maplibregl.Map({
       container: "map",
       style: "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
@@ -102,15 +107,14 @@
       })
     );
 
-    // =========================
-    // 2) ワールド基準
-    // =========================
+    // 2) 基準
     const worldOrigin = [140.303475, 35.35359];
     const worldAltitude = 0;
     const worldRotate = [Math.PI / 2, 0, 0];
 
     const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
     const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
 
     const worldMatrix = BABYLON.Matrix.Compose(
       new BABYLON.Vector3(worldScale, worldScale, worldScale),
