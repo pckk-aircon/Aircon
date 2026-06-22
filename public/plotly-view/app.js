@@ -1469,9 +1469,6 @@
       appState.currentDataKind = appState.pendingViewState.dataKind;
     }
 
-    // embedでは SET_VIEWSTATE では描画しない
-    if (MODE === "embed") return;
-
     if (!appState.sourceData) return;
 
     appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
@@ -1539,18 +1536,15 @@
       els.divisionSel.addEventListener("change", () => {
         const nextDivision = els.divisionSel.value;
 
-        // ★ 追加（これが最重要）
-        if (MODE === "embed") {
-          window.parent.postMessage(
-            {
-              type: "DIVISION_CHANGED",
-              division: nextDivision,
-            },
-            window.location.origin
-          );
-          // ★ embedでは即描画しない
-          return;
-        }
+        window.parent.postMessage(
+          {
+            type: "DIVISION_CHANGED",
+            division: nextDivision,
+          },
+          window.location.origin
+        );
+        return;
+
         // standalone時だけ描画
         clearRenderCachesOnly();
         renderAll();
@@ -1694,10 +1688,6 @@
 
 
   function init() {
-    if (MODE === "embed") {
-      els.body?.classList.add("embed");
-    }
-
     bindUiEventsOnce();
     adapter.init();
     adapter.applyUiLock();
