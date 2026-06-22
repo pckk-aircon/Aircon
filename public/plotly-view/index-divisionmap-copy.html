@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>MapLibre + Babylon.js（Temp / Aircon 縮退版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
+
+  <script src="https://unpkg.com/babylonjs@5.42.2/babylon.js"></script>
+  <script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
+
+  <style>
+    html, body, #map {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    #tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+      display: none;
+      font-size: 12px;
+      z-index: 10;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="tooltip"></div>
+
+  <script>
+    const BABYLON = window.BABYLON;
+
+    // =========================================================
+    // 親(page.tsx)から受け取る状態（最小対応）
+    // =========================================================
+    const embeddedState = {
+      viewState: null,
+      rows: [],
+    };
+
+    function updateDevicesFromRows(rows) {
+      // 最小対応版：
+      // ここでは rows を保持するだけにして既存表示は壊さない。
+      // 今後、Deviceごとの最新値抽出・色変更・tooltip更新をここに足せます。
+      embeddedState.rows = Array.isArray(rows) ? rows : [];
+      console.log("[MAP] updateDevicesFromRows rows=", embeddedState.rows.length);
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+
+      const msg = event.data;
+      if (!msg || !msg.type) return;
+
+      if (msg.type === "SET_VIEWSTATE") {
+        embeddedState.viewState = {
+          division: msg.division ?? "",
+          startDay: msg.startDay ?? "",
+          endDay: msg.endDay ?? "",
+          dataKind: msg.dataKind ?? "iot",
+        };
+        console.log("[MAP] SET_VIEWSTATE", embeddedState.viewState);
+      }
+
+      if (msg.type === "SET_DATA") {
+        console.log("[MAP] SET_DATA rows=", Array.isArray(msg.rows) ? msg.rows.length : 0);
+        updateDevicesFromRows(msg.rows);
+      }
+    });
+
+    // 親へ ready 通知
+    window.parent.postMessage({ type: "MAP_READY" }, window.location.origin);
+
+    // =========================
+    // 1) Map 初期化
+    // =========================
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
+      center: [140.303872, 35.353847],
+      zoom: 18,
+      pitch: 60,
+      maxPitch: 89,
+      canvasContextAttributes: { antialias: true }
+    });
+
+    map.addControl(
+      new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showZoom: true,
+        showCompass: true
+      })
+    );
+
+    // =========================
+    // 2) ワールド基準
+    // =========================
+    const worldOrigin = [140.303475, 35.35359];
+    const worldAltitude = 0;
+    const worldRotate = [Math.PI / 2, 0, 0];
+
+    const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(worldOrigin, worldAltitude);
+    const worldScale = worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+      new BABYLON.Vector3(worldOriginMercator.x, worldOriginMercator.y, worldOriginMercator.z)
+    );
+
+    const geojson = {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        "name": "flower",
+        properties: { height: 7 },
+        geometry: {
+          type: "Polygon",
+          coordinates: [[
+            [140.303346018325897, 35.35398247488471],
+            [140.303472747451622, 35.354079333598698],
+            [140.30359127846674, 35.353974209850065],
+            [140.303463524577268, 35.353878001069745],
+            [140.303346018325897, 35.35398247488471]
+          ]]
+        }
+      }]
+    };
+
+    // =========================
+    // 3) Temp / Aircon のみ
+    //    [type, lon, lat, height, rot, label, temp?]
+    // =========================
+    const rawDeviceData = [
+      ["Aircon", 140.30340102220504, 35.353987950514636, 7, Math.PI * 2.1 / 8, "室内機１"],
+      ["Aircon", 140.30346602165832, 35.354036292938815, 7, Math.PI * 2.1 / 8, "室内機２"],
+      ["Aircon", 140.30353190435733, 35.35397756547854, 7, Math.PI * 2.1 / 8, "室内機３"],
+      ["Aircon", 140.30346638009925, 35.35392972695351, 7, Math.PI * 2.1 / 8, "室内機４"],
+
+      ["Temp", 140.30348309112077, 35.35404722681922, 1, Math.PI * 2.1 / 8, "センサ１", 24],
+      ["Temp", 140.3034995038862, 35.35395210193434, 1, Math.PI * 2.1 / 8, "センサ２", 10],
+      ["Temp", 140.30343539942157, 35.3540140575746, 1, Math.PI * 2.1 / 8, "センサ３", 23],
+      ["Temp", 140.3034093278839, 35.35396468276288, 1, Math.PI * 2.1 / 8, "センサ４", 10],
+      ["Temp", 140.30345724383943, 35.35391946748078, 1, Math.PI * 2.1 / 8, "センサ５", 10],
+      ["Temp", 140.30350520291523, 35.35399877641619, 1, Math.PI * 2.1 / 8, "センサ６", 25],
+      ["Temp", 140.30354689864186, 35.353988054431554, 1, Math.PI * 2.1 / 8, "センサ７", 26]
+    ];
+
+    // モデル対応表も Temp / Aircon のみに限定
+    const deviceTypeToModel = {
+      "Aircon": "AirconModel.glb",
+      "Temp": "TempModel.glb"
+    };
+
+    // type ごとにまとめる
+    const modelConfigs = Object.values(
+      rawDeviceData.reduce((acc, [type, lon, lat, height, rot]) => {
+        const url = deviceTypeToModel[type];
+        if (!url) return acc;
+        if (!acc[url]) acc[url] = { url, positions: [] };
+        acc[url].positions.push([lon, lat, height, rot]);
+        return acc;
+      }, {})
+    );
+
+    // =========================
+    // 4) Babylon カスタムレイヤ
+    // =========================
+    const customLayer = {
+      id: "babylon-temp-aircon-layer",
+      type: "custom",
+      renderingMode: "3d",
+
+      onAdd(map, gl) {
+        this.engine = new BABYLON.Engine(gl, true, { useHighPrecisionMatrix: true }, true);
+        this.scene = new BABYLON.Scene(this.engine);
+
+        this.scene.autoClear = false;
+        this.scene.preventDefaultOnPointerDown = false;
+        this.scene.preventDefaultOnPointerUp = false;
+
+        this.scene.beforeRender = () => {
+          this.engine.wipeCaches(true);
+        };
+
+        this.camera = new BABYLON.Camera("Camera", new BABYLON.Vector3(0, 0, 0), this.scene);
+
+        const light = new BABYLON.HemisphericLight(
+          "light1",
+          new BABYLON.Vector3(0, 0, 100),
+          this.scene
+        );
+        light.intensity = 0.9;
+
+        // =========================
+        // ツールチップ表示（MapLibre座標ベース）
+        // =========================
+        const tooltip = document.getElementById("tooltip");
+        const hoverRadiusPx = 60; // ホバーの条件を少し甘くする。
+
+        function findHoveredDevice(point) {
+          let nearest = null;
+          let nearestDist = Infinity;
+
+          for (const d of rawDeviceData) {
+            const [type, lon, lat, height, rot, label, temp = null] = d;
+
+            const screen = map.project([lon, lat]);
+
+            // 高さ分だけ画面Yを補正
+            const adjustedY = screen.y - height * 5;
+
+            const dx = screen.x - point.x;
+            const dy = adjustedY - point.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < hoverRadiusPx && dist < nearestDist) {
+              nearest = {
+                type, lon, lat, height, rot, label, temp,
+                screen: { x: screen.x, y: adjustedY },
+                dist
+              };
+              nearestDist = dist;
+            }
+          }
+
+          return nearest;
+        }
+
+        map.on("mousemove", (e) => {
+          const hit = findHoveredDevice(e.point);
+
+          if (hit) {
+            tooltip.style.display = "block";
+            tooltip.innerText =
+              hit.type === "Temp" && hit.temp != null
+                ? `${hit.label} (${hit.temp}℃)`
+                : hit.label;
+
+            tooltip.style.left = (e.originalEvent.clientX + 10) + "px";
+            tooltip.style.top = (e.originalEvent.clientY + 10) + "px";
+          } else {
+            tooltip.style.display = "none";
+          }index-divisionmap.html
+        });
+
+        map.on("mouseout", () => {
+          tooltip.style.display = "none";
+        });
+
+        // =========================
+        // glTF モデル配置
+        // =========================
+        modelConfigs.forEach(({ url, positions }, modelIndex) => {
+          BABYLON.SceneLoader.LoadAssetContainerAsync(
+            "https://pckk-device.s3.ap-southeast-2.amazonaws.com/",
+            url,
+            this.scene
+          ).then((container) => {
+            const rootMesh = container.createRootMesh();
+            container.addAllToScene();
+
+            positions.forEach(([lon, lat, height, rot], i) => {
+              const offset = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], worldAltitude);
+              const dx = (offset.x - worldOriginMercator.x) / worldScale;
+              const dz = (offset.y - worldOriginMercator.y) / worldScale;
+
+              const mesh = rootMesh.clone(`model-${modelIndex}-instance-${i}`);
+              mesh.position.set(dx, height, -dz);
+              mesh.rotation.y = rot;
+
+              const match = rawDeviceData.find(d =>
+                Math.abs(d[1] - lon) < 1e-9 &&
+                Math.abs(d[2] - lat) < 1e-9 &&
+                Math.abs(d[3] - height) < 1e-9 &&
+                Math.abs(d[4] - rot) < 1e-9
+              );
+
+              const label = match?.[5] ?? "ラベル未設定";
+              mesh.metadata = { label };
+
+              // 子メッシュにもラベルを付与（Pick対策）
+              mesh.getChildMeshes().forEach(child => {
+                child.metadata = { label };
+              });
+            });
+
+            // 元の root を非表示化
+            rootMesh.setEnabled(false);
+          }).catch(err => {
+            console.error(`モデルロード失敗: ${url}`, err);
+          });
+        });
+
+        // MapLibre の canvas を Babylon に紐付ける（超重要）
+        this.scene.attachControl(map.getCanvas(), true);
+        this.map = map;
+      },
+
+      render(gl, args) {
+        const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+
+        this.camera.freezeProjectionMatrix(wvpMatrix);
+        this.scene.render(false);
+        this.map.triggerRepaint();
+      }
+    };
+
+    // =========================
+    // 5) map load
+    // =========================
+    map.on("load", () => {
+      console.log("✅ map load event fired");
+
+      // 室内 GeoJSON（押し出し）
+      map.addSource("floorplan", {
+        type: "geojson",
+        data: geojson
+      });
+
+      map.addLayer({
+        id: "room-extrusion",
+        type: "fill-extrusion",
+        source: "floorplan",
+        paint: {
+          "fill-extrusion-color": "#66aaff",
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": 0.15
+        }
+      });
+
+      map.addLayer(customLayer);
+    });
+  </script>
+</body>
+</html>
