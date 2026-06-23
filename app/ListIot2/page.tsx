@@ -894,6 +894,9 @@ export default function Page() {
         if (cancelled) return;
 
         const list = (data || []) as DeviceRow[];
+
+        console.log("deviceRows sample raw", list[0]);
+
         const map = buildDeviceNameMap(list);
 
         console.log("[MASTER] devices loaded", {
