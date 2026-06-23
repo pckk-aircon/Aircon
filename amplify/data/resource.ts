@@ -329,6 +329,7 @@ const schema = a.schema({
     Division: a.id().required(),
     DivisionName: a.string(),
     Geojson: a.string(),
+    DivisionOutline: a.string(),
     Controller: a.string(),
   }),
 
@@ -356,6 +357,7 @@ const schema = a.schema({
       Division: a.id(),
       DivisionName: a.string(),
       Geojson: a.string(),
+      DivisionOutline: a.string(),
       Controller: a.string(),
     })
     .returns(a.ref("Division").array())
