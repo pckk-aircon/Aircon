@@ -55,15 +55,38 @@
     latest: new Map(),
     map: null,
     mapLoaded: false,
-    divisionGeoJSON: null,
-    babylonLayerAdded: false
+    divisionGeoJSON: null
+  };
+
+  // =========================================================
+  // Babylon Runtime
+  // =========================================================
+  const babylonRuntime = {
+    layerAdded: false,
+    sceneReady: false,
+
+    map: null,
+    engine: null,
+    scene: null,
+    camera: null,
+
+    worldOriginMercator: null,
+    worldScale: null,
+    worldMatrix: null,
+
+    divisionRoot: null,
+    deviceRoot: null,
+
+    // url -> { container, templateRoot }
+    modelCache: new Map(),
+
+    // Device CSV読込中に古い非同期処理が残るのを防ぐ
+    deviceVersion: 0
   };
 
   // =========================================================
   // glTF / Babylon 設定
   // =========================================================
-
-  // glTF の取得元
   const MODEL_BASE_URL =
     "https://pckk-device.s3.ap-southeast-2.amazonaws.com/";
 
@@ -78,7 +101,6 @@
   const worldRotate = [Math.PI / 2, 0, 0];
 
   // Device 配置データ
-  // CSVから読み込む
   // [type, lon, lat, height, rot, label, fallbackTemp?]
   let rawDeviceData = [];
 
@@ -94,12 +116,11 @@
 
     onViewStateChanged: (viewState) => {
       console.log("[MAP] VIEWSTATE", viewState);
-      // 今は特に何もしない
     }
   });
 
   // =========================================================
-  // データ処理（IoT rows）
+  // IoT rows
   // =========================================================
   function setRows(rows) {
     appState.rows = rows || [];
@@ -128,8 +149,6 @@
 
   // =========================================================
   // CSV Parser
-  // - quoted field対応
-  // - DivisionOutlineのようにカンマを含むJSON文字列も対応
   // =========================================================
   function parseCsv(text) {
     const normalized = String(text || "")
@@ -148,27 +167,23 @@
       const char = normalized[i];
       const next = normalized[i + 1];
 
-      // "" → " として扱う
       if (char === '"' && inQuotes && next === '"') {
         field += '"';
         i++;
         continue;
       }
 
-      // quote開始/終了
       if (char === '"') {
         inQuotes = !inQuotes;
         continue;
       }
 
-      // field区切り
       if (char === "," && !inQuotes) {
         row.push(field);
         field = "";
         continue;
       }
 
-      // 行区切り
       if ((char === "\n" || char === "\r") && !inQuotes) {
         if (char === "\r" && next === "\n") {
           i++;
@@ -212,6 +227,40 @@
   }
 
   // =========================================================
+  // 文字コード対応
+  // - UTF-8
+  // - Shift_JIS / CP932
+  // =========================================================
+  function decodeArrayBuffer(buffer) {
+    try {
+      return new TextDecoder("utf-8", {
+        fatal: true
+      }).decode(buffer);
+    } catch (e) {
+      console.warn("[MAP] UTF-8 decode failed → Shift_JISで再読込");
+      return new TextDecoder("shift_jis").decode(buffer);
+    }
+  }
+
+  async function readTextFile(file) {
+    const buffer = await file.arrayBuffer();
+    return decodeArrayBuffer(buffer);
+  }
+
+  async function fetchTextSmart(url) {
+    const res = await fetch(url, {
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      throw new Error(`fetch failed: ${url}, status=${res.status}`);
+    }
+
+    const buffer = await res.arrayBuffer();
+    return decodeArrayBuffer(buffer);
+  }
+
+  // =========================================================
   // DivisionOutline文字列 → GeoJSON coordinates
   // =========================================================
   function parseDivisionOutline(value) {
@@ -219,10 +268,8 @@
 
     let s = String(value).trim();
 
-    // 前後にダブルクォートが残った場合の保険
     s = s.replace(/^"|"$/g, "");
 
-    // CSVやExcel経由で \[ \] になった場合の保険
     s = s
       .replace(/\\\[/g, "[")
       .replace(/\\\]/g, "]")
@@ -231,14 +278,6 @@
     try {
       const parsed = JSON.parse(s);
 
-      // 期待形:
-      // [
-      //   [
-      //     [lon, lat],
-      //     [lon, lat],
-      //     ...
-      //   ]
-      // ]
       if (!Array.isArray(parsed)) {
         console.warn("[MAP] DivisionOutline is not array:", parsed);
         return null;
@@ -259,7 +298,7 @@
     const features = [];
 
     for (const r of rows || []) {
-      const division = r.Division;
+      const division = String(r.Division || "").trim();
       const outline = r.DivisionOutline;
 
       if (!division || !outline) {
@@ -277,8 +316,6 @@
         properties: {
           Division: division,
           name: division,
-
-          // CSVに Height 列があればそれを使用
           height: Number(r.Height || 7)
         },
         geometry: {
@@ -299,7 +336,6 @@
   // =========================================================
   function parseNumberValue(value, fallback = 0) {
     const n = Number(String(value ?? "").trim());
-
     return Number.isFinite(n) ? n : fallback;
   }
 
@@ -314,8 +350,6 @@
       return direct;
     }
 
-    // CSVの rot に "Math.PI * 2.1 / 8" のような値が入る想定
-    // evalは使わず、Math.PI と数値・演算子だけを許可する
     const allowed = s.replace(/\s+/g, "");
 
     if (!/^[0-9+\-*/().MathPI]+$/.test(allowed)) {
@@ -325,7 +359,6 @@
 
     try {
       const expr = allowed.replace(/Math\.PI/g, String(Math.PI));
-
       const result = Function(`"use strict"; return (${expr});`)();
 
       return Number.isFinite(result) ? result : fallback;
@@ -419,7 +452,8 @@
 
   function buildModelConfigs(deviceData) {
     return Object.values(
-      (deviceData || []).reduce((acc, [type, lon, lat, height, rot]) => {
+      (deviceData || []).reduce((acc, device, index) => {
+        const [type, lon, lat, height, rot, label, fallbackTemp] = device;
         const url = deviceTypeToModel[type];
 
         if (!url) {
@@ -430,11 +464,20 @@
         if (!acc[url]) {
           acc[url] = {
             url,
-            positions: []
+            devices: []
           };
         }
 
-        acc[url].positions.push([lon, lat, height, rot]);
+        acc[url].devices.push({
+          index,
+          type,
+          lon,
+          lat,
+          height,
+          rot,
+          label,
+          fallbackTemp
+        });
 
         return acc;
       }, {})
@@ -442,43 +485,8 @@
   }
 
   // =========================================================
-  // FileReader
+  // File loaders
   // =========================================================
-
-  function readTextFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        const result = reader.result;
-
-        // UTF-8で読んでみる
-        let text = String(result || "");
-
-        // 文字化け判定（簡易）
-        if (text.includes("�")) {
-          console.warn("[MAP] UTF-8 読込で文字化け検出 → Shift_JISで再読込");
-
-          const reader2 = new FileReader();
-
-          reader2.onload = () => {
-            resolve(String(reader2.result || ""));
-          };
-
-          reader2.onerror = () => reject(reader2.error);
-
-          reader2.readAsText(file, "shift_jis");
-        } else {
-          resolve(text);
-        }
-      };
-
-      reader.onerror = () => reject(reader.error);
-
-      reader.readAsText(file, "utf-8");
-    });
-  }
-
   async function loadDivisionGeoJSONFromFile(file) {
     const text = await readTextFile(file);
     const rows = parseCsv(text);
@@ -505,10 +513,6 @@
     return devices;
   }
 
-  // =========================================================
-  // 任意: http(s)起動時のみ ./division.csv 自動読込
-  // file:// ではCORSになるためスキップ
-  // =========================================================
   async function tryAutoLoadDivisionGeoJSON() {
     if (window.location.protocol === "file:") {
       console.warn(
@@ -518,16 +522,7 @@
     }
 
     try {
-      const res = await fetch("./division.csv", {
-        cache: "no-store"
-      });
-
-      if (!res.ok) {
-        console.warn("[MAP] division.csv auto fetch failed:", res.status);
-        return null;
-      }
-
-      const text = await res.text();
+      const text = await fetchTextSmart("./division.csv");
       const rows = parseCsv(text);
       const geojson = buildDivisionGeoJSONFromRows(rows);
 
@@ -541,10 +536,6 @@
     }
   }
 
-  // =========================================================
-  // 任意: http(s)起動時のみ ./device.csv 自動読込
-  // file:// ではCORSになるためスキップ
-  // =========================================================
   async function tryAutoLoadDeviceData() {
     if (window.location.protocol === "file:") {
       console.warn(
@@ -554,16 +545,7 @@
     }
 
     try {
-      const res = await fetch("./device.csv", {
-        cache: "no-store"
-      });
-
-      if (!res.ok) {
-        console.warn("[MAP] device.csv auto fetch failed:", res.status);
-        return null;
-      }
-
-      const text = await res.text();
+      const text = await fetchTextSmart("./device.csv");
       const rows = parseCsv(text);
       const devices = buildDeviceDataFromRows(rows);
 
@@ -578,7 +560,7 @@
   }
 
   // =========================================================
-  // MapLibre source/layer は使わず、Division情報だけ保持する
+  // Division GeoJSON state
   // =========================================================
   function setDivisionGeoJSON(geojson) {
     if (!geojson || !geojson.features || geojson.features.length === 0) {
@@ -595,7 +577,7 @@
   // =========================================================
   // Babylon座標変換
   // =========================================================
-  function lngLatToBabylonVector(lon, lat, y, worldOriginMercator, worldScale) {
+  function lngLatToBabylonVector(lon, lat, y) {
     const offset =
       maplibregl.MercatorCoordinate.fromLngLat(
         [lon, lat],
@@ -603,12 +585,13 @@
       );
 
     const dx =
-      (offset.x - worldOriginMercator.x) / worldScale;
+      (offset.x - babylonRuntime.worldOriginMercator.x) /
+      babylonRuntime.worldScale;
 
     const dz =
-      (offset.y - worldOriginMercator.y) / worldScale;
+      (offset.y - babylonRuntime.worldOriginMercator.y) /
+      babylonRuntime.worldScale;
 
-    // 既存Device配置と同じ座標系
     return new BABYLON.Vector3(dx, y, -dz);
   }
 
@@ -632,7 +615,10 @@
       )
       .map(p => [Number(p[0]), Number(p[1])]);
 
-    if (points.length >= 2 && isSamePoint2D(points[0], points[points.length - 1])) {
+    if (
+      points.length >= 2 &&
+      isSamePoint2D(points[0], points[points.length - 1])
+    ) {
       points.pop();
     }
 
@@ -640,11 +626,170 @@
   }
 
   // =========================================================
-  // Babylon Division 直方体メッシュ作成
-  // - floor / ceiling / walls を1メッシュ化
-  // - 輪郭は Tube で別途描画
+  // Babylon root helpers
   // =========================================================
-  function createDivisionBoxMesh(scene, feature, featureIndex, worldOriginMercator, worldScale) {
+  function disposeNode(node) {
+    if (!node) return;
+
+    try {
+      node.dispose(false, true);
+    } catch (e) {
+      console.warn("[MAP] dispose skipped:", e);
+    }
+  }
+
+  function createRootNode(name) {
+    return new BABYLON.TransformNode(
+      name,
+      babylonRuntime.scene
+    );
+  }
+
+  function ensureBabylonSceneReady() {
+    return (
+      babylonRuntime.sceneReady &&
+      babylonRuntime.scene &&
+      babylonRuntime.worldOriginMercator &&
+      babylonRuntime.worldScale
+    );
+  }
+
+  // =========================================================
+  // Materials
+  // =========================================================
+  function createDivisionBoxMaterial(name) {
+    const mat = new BABYLON.StandardMaterial(
+      name,
+      babylonRuntime.scene
+    );
+
+    mat.diffuseColor = new BABYLON.Color3(0.25, 0.55, 1.0);
+    mat.emissiveColor = new BABYLON.Color3(0.02, 0.08, 0.16);
+    mat.alpha = 0.18;
+    mat.backFaceCulling = false;
+    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+
+    return mat;
+  }
+
+  function createEdgeMaterial(name) {
+    const mat = new BABYLON.StandardMaterial(
+      name,
+      babylonRuntime.scene
+    );
+
+    const color = new BABYLON.Color3(1.0, 0.68, 0.0);
+
+    mat.diffuseColor = color;
+    mat.emissiveColor = color;
+    mat.alpha = 1.0;
+    mat.backFaceCulling = false;
+
+    return mat;
+  }
+
+  // =========================================================
+  // Division mesh
+  // =========================================================
+  function createTubeLine(name, path, radius, material, parent) {
+    if (!path || path.length < 2) return null;
+
+    const mesh = BABYLON.MeshBuilder.CreateTube(
+      name,
+      {
+        path,
+        radius,
+        tessellation: 8,
+        updatable: false
+      },
+      babylonRuntime.scene
+    );
+
+    mesh.material = material;
+    mesh.parent = parent;
+    mesh.alwaysSelectAsActiveMesh = true;
+
+    return mesh;
+  }
+
+  function createDivisionBoxEdges(
+    bottomPoints,
+    topPoints,
+    featureIndex,
+    divisionName,
+    height,
+    parent
+  ) {
+    const n = bottomPoints.length;
+
+    if (n < 3) return;
+
+    const edgeRadius = 0.035;
+    const edgeMaterial = createEdgeMaterial(
+      `division-edge-mat-${featureIndex}`
+    );
+
+    const bottomLoop = bottomPoints.map(p => p.clone());
+    bottomLoop.push(bottomPoints[0].clone());
+
+    const topLoop = topPoints.map(p => p.clone());
+    topLoop.push(topPoints[0].clone());
+
+    const bottomEdge = createTubeLine(
+      `division-bottom-edge-${featureIndex}`,
+      bottomLoop,
+      edgeRadius,
+      edgeMaterial,
+      parent
+    );
+
+    const topEdge = createTubeLine(
+      `division-top-edge-${featureIndex}`,
+      topLoop,
+      edgeRadius,
+      edgeMaterial,
+      parent
+    );
+
+    if (bottomEdge) {
+      bottomEdge.metadata = {
+        type: "DivisionBottomEdge",
+        division: divisionName,
+        height
+      };
+    }
+
+    if (topEdge) {
+      topEdge.metadata = {
+        type: "DivisionTopEdge",
+        division: divisionName,
+        height
+      };
+    }
+
+    for (let i = 0; i < n; i++) {
+      const verticalEdge = createTubeLine(
+        `division-vertical-edge-${featureIndex}-${i}`,
+        [
+          bottomPoints[i].clone(),
+          topPoints[i].clone()
+        ],
+        edgeRadius,
+        edgeMaterial,
+        parent
+      );
+
+      if (verticalEdge) {
+        verticalEdge.metadata = {
+          type: "DivisionVerticalEdge",
+          division: divisionName,
+          height
+        };
+      }
+    }
+  }
+
+  function createDivisionBoxMesh(feature, featureIndex, parent) {
     const geometry = feature.geometry;
 
     if (!geometry || geometry.type !== "Polygon") {
@@ -660,6 +805,7 @@
     }
 
     const height = Number(feature.properties?.height || 7);
+
     const divisionName =
       feature.properties?.Division ||
       feature.properties?.name ||
@@ -669,9 +815,7 @@
       lngLatToBabylonVector(
         lon,
         lat,
-        0,
-        worldOriginMercator,
-        worldScale
+        0
       )
     );
 
@@ -679,9 +823,7 @@
       lngLatToBabylonVector(
         lon,
         lat,
-        height,
-        worldOriginMercator,
-        worldScale
+        height
       )
     );
 
@@ -698,27 +840,18 @@
 
     const n = bottomPoints.length;
 
-    // ---------------------------------------------------------
     // 床面
-    // 注意:
-    // ここはシンプルな三角形ファンです。
-    // 凹形ポリゴンや自己交差ポリゴンでは表示が崩れる可能性があります。
-    // 矩形・凸形のDivisionでは問題なく使えます。
-    // ---------------------------------------------------------
+    // 注意: 凹形ポリゴンの場合は三角形ファンでは崩れる可能性あり
     for (let i = 1; i < n - 1; i++) {
       indices.push(bottomIdx[0], bottomIdx[i + 1], bottomIdx[i]);
     }
 
-    // ---------------------------------------------------------
     // 天井面
-    // ---------------------------------------------------------
     for (let i = 1; i < n - 1; i++) {
       indices.push(topIdx[0], topIdx[i], topIdx[i + 1]);
     }
 
-    // ---------------------------------------------------------
     // 壁面
-    // ---------------------------------------------------------
     for (let i = 0; i < n; i++) {
       const next = (i + 1) % n;
 
@@ -747,23 +880,16 @@
 
     const mesh = new BABYLON.Mesh(
       `division-box-${featureIndex}`,
-      scene
+      babylonRuntime.scene
     );
 
     vertexData.applyToMesh(mesh);
 
-    const mat = new BABYLON.StandardMaterial(
-      `division-box-mat-${featureIndex}`,
-      scene
+    mesh.material = createDivisionBoxMaterial(
+      `division-box-mat-${featureIndex}`
     );
 
-    mat.diffuseColor = new BABYLON.Color3(0.25, 0.55, 1.0);
-    mat.emissiveColor = new BABYLON.Color3(0.02, 0.08, 0.16);
-    mat.alpha = 0.18;
-    mat.backFaceCulling = false;
-    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
-
-    mesh.material = mat;
+    mesh.parent = parent;
     mesh.alwaysSelectAsActiveMesh = true;
 
     mesh.metadata = {
@@ -773,129 +899,27 @@
     };
 
     createDivisionBoxEdges(
-      scene,
       bottomPoints,
       topPoints,
       featureIndex,
       divisionName,
-      height
+      height,
+      parent
     );
 
     console.log("[MAP] Division Babylon box created:", divisionName);
   }
 
-  // =========================================================
-  // Division 直方体の輪郭線
-  // - 床外周
-  // - 天井外周
-  // - 縦線
-  // =========================================================
-  function createTubeLine(scene, name, path, radius, color) {
-    if (!path || path.length < 2) return null;
-
-    const mesh = BABYLON.MeshBuilder.CreateTube(
-      name,
-      {
-        path,
-        radius,
-        tessellation: 8,
-        updatable: false
-      },
-      scene
-    );
-
-    const mat = new BABYLON.StandardMaterial(
-      `${name}-mat`,
-      scene
-    );
-
-    mat.diffuseColor = color;
-    mat.emissiveColor = color;
-    mat.alpha = 1.0;
-    mat.backFaceCulling = false;
-
-    mesh.material = mat;
-    mesh.alwaysSelectAsActiveMesh = true;
-
-    return mesh;
-  }
-
-  function createDivisionBoxEdges(
-    scene,
-    bottomPoints,
-    topPoints,
-    featureIndex,
-    divisionName,
-    height
-  ) {
-    const n = bottomPoints.length;
-
-    if (n < 3) return;
-
-    const edgeColor = new BABYLON.Color3(1.0, 0.46, 0.0);
-    const edgeRadius = 0.035;
-
-    const bottomLoop = bottomPoints.map(p => p.clone());
-    bottomLoop.push(bottomPoints[0].clone());
-
-    const topLoop = topPoints.map(p => p.clone());
-    topLoop.push(topPoints[0].clone());
-
-    const bottomEdge = createTubeLine(
-      scene,
-      `division-bottom-edge-${featureIndex}`,
-      bottomLoop,
-      edgeRadius,
-      edgeColor
-    );
-
-    const topEdge = createTubeLine(
-      scene,
-      `division-top-edge-${featureIndex}`,
-      topLoop,
-      edgeRadius,
-      edgeColor
-    );
-
-    if (bottomEdge) {
-      bottomEdge.metadata = {
-        type: "DivisionBottomEdge",
-        division: divisionName,
-        height
-      };
+  function rebuildDivisionMeshes() {
+    if (!ensureBabylonSceneReady()) {
+      console.warn("[MAP] Babylon scene not ready. Division rebuild skipped.");
+      return;
     }
 
-    if (topEdge) {
-      topEdge.metadata = {
-        type: "DivisionTopEdge",
-        division: divisionName,
-        height
-      };
-    }
+    disposeNode(babylonRuntime.divisionRoot);
 
-    for (let i = 0; i < n; i++) {
-      const verticalEdge = createTubeLine(
-        scene,
-        `division-vertical-edge-${featureIndex}-${i}`,
-        [
-          bottomPoints[i].clone(),
-          topPoints[i].clone()
-        ],
-        edgeRadius,
-        edgeColor
-      );
+    babylonRuntime.divisionRoot = createRootNode("division-root");
 
-      if (verticalEdge) {
-        verticalEdge.metadata = {
-          type: "DivisionVerticalEdge",
-          division: divisionName,
-          height
-        };
-      }
-    }
-  }
-
-  function createDivisionBoxes(scene, worldOriginMercator, worldScale) {
     const geojson = appState.divisionGeoJSON;
 
     if (!geojson || !geojson.features || geojson.features.length === 0) {
@@ -905,17 +929,137 @@
 
     geojson.features.forEach((feature, featureIndex) => {
       createDivisionBoxMesh(
-        scene,
         feature,
         featureIndex,
-        worldOriginMercator,
-        worldScale
+        babylonRuntime.divisionRoot
       );
     });
+
+    console.log("[MAP] Division meshes rebuilt");
   }
 
   // =========================================================
-  // Babylon.js custom layer 作成
+  // Device model cache
+  // =========================================================
+  async function getModelTemplate(url) {
+    if (babylonRuntime.modelCache.has(url)) {
+      return babylonRuntime.modelCache.get(url);
+    }
+
+    const container =
+      await BABYLON.SceneLoader.LoadAssetContainerAsync(
+        MODEL_BASE_URL,
+        url,
+        babylonRuntime.scene
+      );
+
+    const templateRoot = container.createRootMesh();
+
+    container.addAllToScene();
+
+    templateRoot.setEnabled(false);
+
+    const cached = {
+      container,
+      templateRoot
+    };
+
+    babylonRuntime.modelCache.set(url, cached);
+
+    console.log("[MAP] model cached:", url);
+
+    return cached;
+  }
+
+  function setMetadataRecursive(mesh, metadata) {
+    mesh.metadata = metadata;
+
+    mesh.getChildMeshes().forEach(child => {
+      child.metadata = metadata;
+    });
+  }
+
+  async function rebuildDeviceMeshes() {
+    if (!ensureBabylonSceneReady()) {
+      console.warn("[MAP] Babylon scene not ready. Device rebuild skipped.");
+      return;
+    }
+
+    const currentVersion = ++babylonRuntime.deviceVersion;
+
+    disposeNode(babylonRuntime.deviceRoot);
+
+    babylonRuntime.deviceRoot = createRootNode("device-root");
+
+    if (!rawDeviceData || rawDeviceData.length === 0) {
+      console.warn("[MAP] Device data が空のためDevice meshは作成しません");
+      return;
+    }
+
+    const modelConfigs = buildModelConfigs(rawDeviceData);
+
+    for (let modelIndex = 0; modelIndex < modelConfigs.length; modelIndex++) {
+      const { url, devices } = modelConfigs[modelIndex];
+
+      let cached;
+
+      try {
+        cached = await getModelTemplate(url);
+      } catch (err) {
+        console.error("[MAP] model load failed:", url, err);
+        continue;
+      }
+
+      // 読込中に別のCSVが読み込まれた場合、古い処理を破棄
+      if (currentVersion !== babylonRuntime.deviceVersion) {
+        console.warn("[MAP] stale device rebuild skipped:", url);
+        return;
+      }
+
+      const templateRoot = cached.templateRoot;
+
+      devices.forEach((device, i) => {
+        const {
+          type,
+          lon,
+          lat,
+          height,
+          rot,
+          label
+        } = device;
+
+        const pos = lngLatToBabylonVector(
+          lon,
+          lat,
+          height
+        );
+
+        const mesh = templateRoot.clone(
+          `device-${modelIndex}-instance-${i}`
+        );
+
+        mesh.position.set(pos.x, pos.y, pos.z);
+        mesh.rotation.y = rot;
+        mesh.parent = babylonRuntime.deviceRoot;
+        mesh.setEnabled(true);
+
+        setMetadataRecursive(mesh, {
+          type,
+          label
+        });
+      });
+    }
+
+    console.log("[MAP] Device meshes rebuilt:", rawDeviceData.length);
+  }
+
+  function rebuildBabylonContent() {
+    rebuildDivisionMeshes();
+    rebuildDeviceMeshes();
+  }
+
+  // =========================================================
+  // Babylon custom layer
   // =========================================================
   function createBabylonLayer() {
     const worldOriginMercator =
@@ -937,6 +1081,10 @@
       )
     );
 
+    babylonRuntime.worldOriginMercator = worldOriginMercator;
+    babylonRuntime.worldScale = worldScale;
+    babylonRuntime.worldMatrix = worldMatrix;
+
     return {
       id: "babylon-device-layer",
       type: "custom",
@@ -945,9 +1093,11 @@
       onAdd(map, gl) {
         console.log("[MAP] Babylon layer onAdd");
 
+        babylonRuntime.map = map;
+
         this.map = map;
 
-        this.engine = new BABYLON.Engine(
+        babylonRuntime.engine = new BABYLON.Engine(
           gl,
           true,
           {
@@ -956,131 +1106,85 @@
           true
         );
 
-        this.scene = new BABYLON.Scene(this.engine);
+        babylonRuntime.scene = new BABYLON.Scene(
+          babylonRuntime.engine
+        );
 
-        this.scene.autoClear = false;
-        this.scene.preventDefaultOnPointerDown = false;
-        this.scene.preventDefaultOnPointerUp = false;
+        const scene = babylonRuntime.scene;
 
-        this.scene.beforeRender = () => {
-          this.engine.wipeCaches(true);
+        scene.autoClear = false;
+        scene.preventDefaultOnPointerDown = false;
+        scene.preventDefaultOnPointerUp = false;
+
+        scene.beforeRender = () => {
+          babylonRuntime.engine.wipeCaches(true);
         };
 
-        this.camera = new BABYLON.Camera(
+        babylonRuntime.camera = new BABYLON.Camera(
           "Camera",
           new BABYLON.Vector3(0, 0, 0),
-          this.scene
+          scene
         );
 
         const light = new BABYLON.HemisphericLight(
           "light1",
           new BABYLON.Vector3(0, 0, 100),
-          this.scene
+          scene
         );
 
         light.intensity = 0.9;
 
-        // =========================
-        // Division 直方体をBabylonで描画
-        // =========================
-        createDivisionBoxes(
-          this.scene,
-          worldOriginMercator,
-          worldScale
-        );
+        babylonRuntime.divisionRoot = createRootNode("division-root");
+        babylonRuntime.deviceRoot = createRootNode("device-root");
 
-        // =========================
-        // glTF Device モデル配置
-        // =========================
-        const modelConfigs = buildModelConfigs(rawDeviceData);
+        scene.attachControl(map.getCanvas(), true);
 
-        modelConfigs.forEach(({ url, positions }, modelIndex) => {
-          BABYLON.SceneLoader.LoadAssetContainerAsync(
-            MODEL_BASE_URL,
-            url,
-            this.scene
-          )
-            .then((container) => {
-              const rootMesh = container.createRootMesh();
+        babylonRuntime.sceneReady = true;
 
-              container.addAllToScene();
-
-              positions.forEach(([lon, lat, height, rot], i) => {
-                const offset =
-                  maplibregl.MercatorCoordinate.fromLngLat(
-                    [lon, lat],
-                    worldAltitude
-                  );
-
-                const dx =
-                  (offset.x - worldOriginMercator.x) / worldScale;
-
-                const dz =
-                  (offset.y - worldOriginMercator.y) / worldScale;
-
-                const mesh = rootMesh.clone(
-                  `device-${modelIndex}-instance-${i}`
-                );
-
-                mesh.position.set(dx, height, -dz);
-                mesh.rotation.y = rot;
-
-                const match = rawDeviceData.find(d =>
-                  Math.abs(d[1] - lon) < 1e-9 &&
-                  Math.abs(d[2] - lat) < 1e-9 &&
-                  Math.abs(d[3] - height) < 1e-9 &&
-                  Math.abs(d[4] - rot) < 1e-9
-                );
-
-                const type = match?.[0] ?? "";
-                const label = match?.[5] ?? "ラベル未設定";
-
-                mesh.metadata = {
-                  type,
-                  label
-                };
-
-                // 子メッシュにも metadata を付与
-                mesh.getChildMeshes().forEach(child => {
-                  child.metadata = {
-                    type,
-                    label
-                  };
-                });
-              });
-
-              // 元の root は非表示
-              rootMesh.setEnabled(false);
-
-              console.log("[MAP] model loaded:", url);
-            })
-            .catch(err => {
-              console.error("[MAP] model load failed:", url, err);
-            });
-        });
-
-        // MapLibre の canvas を Babylon に紐付ける
-        this.scene.attachControl(map.getCanvas(), true);
+        // 初回だけ全体生成
+        rebuildBabylonContent();
       },
 
       render(gl, args) {
+        if (!babylonRuntime.scene || !babylonRuntime.camera) {
+          return;
+        }
+
         const cameraMatrix =
           BABYLON.Matrix.FromArray(
             args.defaultProjectionData.mainMatrix
           );
 
-        const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+        const wvpMatrix =
+          babylonRuntime.worldMatrix.multiply(cameraMatrix);
 
-        this.camera.freezeProjectionMatrix(wvpMatrix);
-        this.scene.render(false);
+        babylonRuntime.camera.freezeProjectionMatrix(wvpMatrix);
+
+        babylonRuntime.scene.render(false);
 
         this.map.triggerRepaint();
       },
 
       onRemove() {
         try {
-          this.scene?.dispose();
-          this.engine?.dispose();
+          babylonRuntime.sceneReady = false;
+
+          disposeNode(babylonRuntime.divisionRoot);
+          disposeNode(babylonRuntime.deviceRoot);
+
+          babylonRuntime.modelCache.forEach(({ container }) => {
+            try {
+              container.dispose();
+            } catch (e) {
+              console.warn("[MAP] model container dispose skipped:", e);
+            }
+          });
+
+          babylonRuntime.modelCache.clear();
+
+          babylonRuntime.scene?.dispose();
+          babylonRuntime.engine?.dispose();
+
         } catch (e) {
           console.warn("[MAP] Babylon layer dispose skipped:", e);
         }
@@ -1088,34 +1192,8 @@
     };
   }
 
-  function removeBabylonLayer(map) {
+  function addBabylonLayerOnce(map) {
     if (!map) return;
-
-    if (map.getLayer("babylon-device-layer")) {
-      map.removeLayer("babylon-device-layer");
-    }
-
-    appState.babylonLayerAdded = false;
-
-    console.log("[MAP] Babylon layer removed");
-  }
-
-  function addBabylonLayer(map) {
-    if (!map) return;
-
-    const hasDeviceData =
-      rawDeviceData &&
-      rawDeviceData.length > 0;
-
-    const hasDivisionData =
-      appState.divisionGeoJSON &&
-      appState.divisionGeoJSON.features &&
-      appState.divisionGeoJSON.features.length > 0;
-
-    if (!hasDeviceData && !hasDivisionData) {
-      console.warn("[MAP] Device data / Division data が空のため Babylon layer は追加しません");
-      return;
-    }
 
     if (map.getLayer("babylon-device-layer")) {
       console.log("[MAP] Babylon layer already exists");
@@ -1124,30 +1202,13 @@
 
     map.addLayer(createBabylonLayer());
 
-    appState.babylonLayerAdded = true;
+    babylonRuntime.layerAdded = true;
 
-    console.log("[MAP] Babylon layer added");
-  }
-
-  function reloadBabylonLayer(map) {
-    if (!map) return;
-
-    removeBabylonLayer(map);
-    addBabylonLayer(map);
-  }
-
-  // 既存コードとの互換用
-  function addBabylonDeviceLayer(map) {
-    addBabylonLayer(map);
-  }
-
-  function reloadBabylonDeviceLayer(map) {
-    reloadBabylonLayer(map);
+    console.log("[MAP] Babylon layer added once");
   }
 
   // =========================================================
   // postMessage safe
-  // - file:// standaloneでは origin が null になりやすいので安全化
   // =========================================================
   function postToParentSafe(message) {
     if (!window.parent || window.parent === window) {
@@ -1180,7 +1241,6 @@
       bearing: 0,
       maxPitch: 89,
 
-      // Babylon custom layer 用
       canvasContextAttributes: {
         antialias: true
       }
@@ -1201,24 +1261,20 @@
 
       appState.mapLoaded = true;
 
-      // http(s)起動時のみ division.csv を自動読込
-      // file:// ではスキップ
       const autoGeoJSON = await tryAutoLoadDivisionGeoJSON();
 
       if (autoGeoJSON) {
         setDivisionGeoJSON(autoGeoJSON);
       }
 
-      // http(s)起動時のみ device.csv を自動読込
-      // file:// ではスキップ
       const autoDeviceData = await tryAutoLoadDeviceData();
 
       if (autoDeviceData && autoDeviceData.length > 0) {
         rawDeviceData = autoDeviceData;
       }
 
-      // Division直方体 / Device glTF をBabylonで描画
-      addBabylonLayer(map);
+      // custom layerは一度だけ追加
+      addBabylonLayerOnce(map);
 
       postToParentSafe({
         type: "MAP_READY"
@@ -1261,8 +1317,12 @@
 
         setDivisionGeoJSON(geojson);
 
-        // Division直方体を更新するため Babylon layer を再作成
-        reloadBabylonLayer(appState.map);
+        // layer全体は消さず、Divisionだけ差分更新
+        if (ensureBabylonSceneReady()) {
+          rebuildDivisionMeshes();
+        } else {
+          addBabylonLayerOnce(appState.map);
+        }
 
       } catch (err) {
         console.error("[MAP] failed to load selected division csv", err);
@@ -1303,8 +1363,12 @@
           return;
         }
 
-        // Device配置を更新するため Babylon layer を再作成
-        reloadBabylonLayer(appState.map);
+        // layer全体は消さず、Deviceだけ差分更新
+        if (ensureBabylonSceneReady()) {
+          rebuildDeviceMeshes();
+        } else {
+          addBabylonLayerOnce(appState.map);
+        }
 
       } catch (err) {
         console.error("[MAP] failed to load selected device csv", err);
@@ -1314,8 +1378,6 @@
 
   // =========================================================
   // Tooltip
-  // - Device glTF の位置に合わせて MapLibre 側の project 座標で判定
-  // - IoT rows の最新温度があればそれを表示
   // =========================================================
   function bindTooltip(map) {
     if (!els.tooltip) return;
@@ -1331,8 +1393,6 @@
 
         const screen = map.project([lon, lat]);
 
-        // 高さ分だけ見た目の位置を少し上に補正
-        // pitchやzoomによって完全一致ではないが、実用上のhover補正
         const adjustedY = screen.y - height * 5;
 
         const dx = screen.x - point.x;
@@ -1412,10 +1472,10 @@
     // rows更新後に特別な再描画処理は不要。
     //
     // 将来:
-    // - 温度に応じて TempModel の色を変える
-    // - Aircon の稼働状態でモデル色を変える
-    // - Division の色を IoT rows で更新する
-    // 場合はここで Babylon scene を更新する。
+    // - 温度に応じてDeviceモデル色を変える
+    // - Division色をIoT rowsで更新する
+    // - Aircon稼働状態をモデルに反映する
+    // 場合は、babylonRuntime.scene 内の対象Meshだけ更新する。
   }
 
   // =========================================================
