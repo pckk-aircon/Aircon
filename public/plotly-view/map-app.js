@@ -26,6 +26,9 @@
  * 起動モード判定
  * ========================================================= */
 
+
+src="/plotly-view/map-index.html?mode=embed"
+
 const params = new URLSearchParams(window.location.search);
 const embedMode = params.get("mode") === "embed";
 
