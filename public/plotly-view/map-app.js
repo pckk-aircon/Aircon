@@ -1256,41 +1256,6 @@
   // =========================================================
 
 
-
-  const mapRef = useRef<HTMLIFrameElement>(null);
-  const [ready, setReady] = useState(false);
-
-  // ① MAP_READY受信
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.data?.type === "MAP_READY") {
-        console.log("MAP_READY");
-        setReady(true);
-      }
-    };
-
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
-
-  // ② データ送信
-  useEffect(() => {
-    if (!ready) return;
-
-    mapRef.current?.contentWindow?.postMessage(
-      {
-        type: "MAP_SET_ALL",
-        divisions: divisionRows,  // ← これ絶対必要
-        devices: deviceRows,      // ← これ絶対必要
-        rows: iotRows             // ← 任意（tooltip用）
-      },
-      window.location.origin
-    );
-  }, [ready, divisionRows, deviceRows, iotRows]);
-
-
-
-
   function applyDivisionRowsFromParent(rows) {
     appState.divisionSource = "parent";
 
