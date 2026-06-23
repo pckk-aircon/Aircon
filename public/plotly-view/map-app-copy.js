@@ -8,6 +8,10 @@
     throw new Error("maplibregl が読み込まれていません");
   }
 
+  if (typeof BABYLON === "undefined") {
+    throw new Error("BABYLON が読み込まれていません");
+  }
+
   // =========================================================
   // Fallback Adapter（standalone / file:// 用）
   // =========================================================
@@ -34,11 +38,13 @@
     tooltip: document.getElementById("tooltip"),
 
     // Division CSV読込用
-    // map-index.html 側に <input id="divisionCsvInput" type="file" accept=".csv" />
-    // がある想定
     divisionCsvInput:
       document.getElementById("divisionCsvInput") ||
-      document.getElementById("fileInput")
+      document.getElementById("fileInput"),
+
+    // Device CSV読込用
+    deviceCsvInput:
+      document.getElementById("deviceCsvInput")
   };
 
   // =========================================================
@@ -53,10 +59,55 @@
   };
 
   // =========================================================
+  // Babylon Runtime
+  // =========================================================
+  const babylonRuntime = {
+    layerAdded: false,
+    sceneReady: false,
+
+    map: null,
+    engine: null,
+    scene: null,
+    camera: null,
+
+    worldOriginMercator: null,
+    worldScale: null,
+    worldMatrix: null,
+
+    divisionRoot: null,
+    deviceRoot: null,
+
+    // url -> { container, templateRoot }
+    modelCache: new Map(),
+
+    // Device CSV読込中に古い非同期処理が残るのを防ぐ
+    deviceVersion: 0
+  };
+
+  // =========================================================
+  // glTF / Babylon 設定
+  // =========================================================
+  const MODEL_BASE_URL =
+    "https://pckk-device.s3.ap-southeast-2.amazonaws.com/";
+
+  const deviceTypeToModel = {
+    Aircon: "AirconModel.glb",
+    Temp: "TempModel.glb"
+  };
+
+  // MapLibre / Babylon のワールド基準
+  const worldOrigin = [140.303475, 35.35359];
+  const worldAltitude = 0;
+  const worldRotate = [Math.PI / 2, 0, 0];
+
+  // Device 配置データ
+  // [type, lon, lat, height, rot, label, fallbackTemp?]
+  let rawDeviceData = [];
+
+  // =========================================================
   // Adapter（Plotlyと同じ構造）
   // =========================================================
   const adapter = window.createViewAdapter({
-
     onRowsLoaded: (rows) => {
       console.log("[MAP] RECV DATA", rows.length);
       setRows(rows);
@@ -65,13 +116,11 @@
 
     onViewStateChanged: (viewState) => {
       console.log("[MAP] VIEWSTATE", viewState);
-      // 今は特に何もしない
     }
-
   });
 
   // =========================================================
-  // データ処理（IoT rows）
+  // IoT rows
   // =========================================================
   function setRows(rows) {
     appState.rows = rows || [];
@@ -100,8 +149,6 @@
 
   // =========================================================
   // CSV Parser
-  // - quoted field対応
-  // - DivisionOutlineのようにカンマを含むJSON文字列も対応
   // =========================================================
   function parseCsv(text) {
     const normalized = String(text || "")
@@ -120,27 +167,23 @@
       const char = normalized[i];
       const next = normalized[i + 1];
 
-      // "" → " として扱う
       if (char === '"' && inQuotes && next === '"') {
         field += '"';
         i++;
         continue;
       }
 
-      // quote開始/終了
       if (char === '"') {
         inQuotes = !inQuotes;
         continue;
       }
 
-      // field区切り
       if (char === "," && !inQuotes) {
         row.push(field);
         field = "";
         continue;
       }
 
-      // 行区切り
       if ((char === "\n" || char === "\r") && !inQuotes) {
         if (char === "\r" && next === "\n") {
           i++;
@@ -184,6 +227,40 @@
   }
 
   // =========================================================
+  // 文字コード対応
+  // - UTF-8
+  // - Shift_JIS / CP932
+  // =========================================================
+  function decodeArrayBuffer(buffer) {
+    try {
+      return new TextDecoder("utf-8", {
+        fatal: true
+      }).decode(buffer);
+    } catch (e) {
+      console.warn("[MAP] UTF-8 decode failed → Shift_JISで再読込");
+      return new TextDecoder("shift_jis").decode(buffer);
+    }
+  }
+
+  async function readTextFile(file) {
+    const buffer = await file.arrayBuffer();
+    return decodeArrayBuffer(buffer);
+  }
+
+  async function fetchTextSmart(url) {
+    const res = await fetch(url, {
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      throw new Error(`fetch failed: ${url}, status=${res.status}`);
+    }
+
+    const buffer = await res.arrayBuffer();
+    return decodeArrayBuffer(buffer);
+  }
+
+  // =========================================================
   // DivisionOutline文字列 → GeoJSON coordinates
   // =========================================================
   function parseDivisionOutline(value) {
@@ -191,10 +268,8 @@
 
     let s = String(value).trim();
 
-    // 前後にダブルクォートが残った場合の保険
     s = s.replace(/^"|"$/g, "");
 
-    // CSVやExcel経由で \[ \] になった場合の保険
     s = s
       .replace(/\\\[/g, "[")
       .replace(/\\\]/g, "]")
@@ -203,14 +278,6 @@
     try {
       const parsed = JSON.parse(s);
 
-      // 期待形:
-      // [
-      //   [
-      //     [lon, lat],
-      //     [lon, lat],
-      //     ...
-      //   ]
-      // ]
       if (!Array.isArray(parsed)) {
         console.warn("[MAP] DivisionOutline is not array:", parsed);
         return null;
@@ -225,13 +292,13 @@
   }
 
   // =========================================================
-  // CSV rows → GeoJSON
+  // CSV rows → Division GeoJSON
   // =========================================================
   function buildDivisionGeoJSONFromRows(rows) {
     const features = [];
 
     for (const r of rows || []) {
-      const division = r.Division;
+      const division = String(r.Division || "").trim();
       const outline = r.DivisionOutline;
 
       if (!division || !outline) {
@@ -249,9 +316,6 @@
         properties: {
           Division: division,
           name: division,
-
-          // 暫定固定値
-          // 後でCSVに Height 列を追加すれば可変化できます
           height: Number(r.Height || 7)
         },
         geometry: {
@@ -268,24 +332,161 @@
   }
 
   // =========================================================
-  // FileReader
+  // Device CSV rows → rawDeviceData
   // =========================================================
-  function readTextFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        resolve(String(reader.result || ""));
-      };
-
-      reader.onerror = () => {
-        reject(reader.error);
-      };
-
-      reader.readAsText(file, "utf-8");
-    });
+  function parseNumberValue(value, fallback = 0) {
+    const n = Number(String(value ?? "").trim());
+    return Number.isFinite(n) ? n : fallback;
   }
 
+  function parseRotationValue(value, fallback = 0) {
+    const s = String(value ?? "").trim();
+
+    if (!s) return fallback;
+
+    const direct = Number(s);
+
+    if (Number.isFinite(direct)) {
+      return direct;
+    }
+
+    const allowed = s.replace(/\s+/g, "");
+
+    if (!/^[0-9+\-*/().MathPI]+$/.test(allowed)) {
+      console.warn("[MAP] invalid rot expression:", value);
+      return fallback;
+    }
+
+    try {
+      const expr = allowed.replace(/Math\.PI/g, String(Math.PI));
+      const result = Function(`"use strict"; return (${expr});`)();
+
+      return Number.isFinite(result) ? result : fallback;
+
+    } catch (e) {
+      console.warn("[MAP] rot parse error:", value, e);
+      return fallback;
+    }
+  }
+
+  function buildDeviceDataFromRows(rows) {
+    const devices = [];
+
+    for (const r of rows || []) {
+      const type = String(
+        r.type ||
+        r.Type ||
+        r.DeviceType ||
+        ""
+      ).trim();
+
+      const lon = parseNumberValue(
+        r.lon ||
+        r.Lon ||
+        r.Longitude,
+        NaN
+      );
+
+      const lat = parseNumberValue(
+        r.lat ||
+        r.Lat ||
+        r.Latitude,
+        NaN
+      );
+
+      const height = parseNumberValue(
+        r.height ||
+        r.Height,
+        0
+      );
+
+      const rot = parseRotationValue(
+        r.rot ||
+        r.Rot ||
+        r.Rotation,
+        0
+      );
+
+      const label = String(
+        r.DeviceName ||
+        r.deviceName ||
+        r.label ||
+        r.Label ||
+        ""
+      ).trim();
+
+      const fallbackTempRaw =
+        r.fallbackTemp ??
+        r.FallbackTemp ??
+        r.ActualTemp ??
+        "";
+
+      const fallbackTemp =
+        fallbackTempRaw === ""
+          ? null
+          : parseNumberValue(fallbackTempRaw, null);
+
+      if (!type || !Number.isFinite(lon) || !Number.isFinite(lat) || !label) {
+        console.warn("[MAP] invalid device row skipped:", r);
+        continue;
+      }
+
+      if (!deviceTypeToModel[type]) {
+        console.warn("[MAP] unknown device type skipped:", r);
+        continue;
+      }
+
+      devices.push([
+        type,
+        lon,
+        lat,
+        height,
+        rot,
+        label,
+        fallbackTemp
+      ]);
+    }
+
+    return devices;
+  }
+
+  function buildModelConfigs(deviceData) {
+    return Object.values(
+      (deviceData || []).reduce((acc, device, index) => {
+        const [type, lon, lat, height, rot, label, fallbackTemp] = device;
+        const url = deviceTypeToModel[type];
+
+        if (!url) {
+          console.warn("[MAP] unknown device type:", type);
+          return acc;
+        }
+
+        if (!acc[url]) {
+          acc[url] = {
+            url,
+            devices: []
+          };
+        }
+
+        acc[url].devices.push({
+          index,
+          type,
+          lon,
+          lat,
+          height,
+          rot,
+          label,
+          fallbackTemp
+        });
+
+        return acc;
+      }, {})
+    );
+  }
+
+  // =========================================================
+  // File loaders
+  // =========================================================
   async function loadDivisionGeoJSONFromFile(file) {
     const text = await readTextFile(file);
     const rows = parseCsv(text);
@@ -299,10 +500,19 @@
     return geojson;
   }
 
-  // =========================================================
-  // 任意: http(s)起動時のみ ./division.csv 自動読込
-  // file:// ではCORSになるためスキップ
-  // =========================================================
+  async function loadDeviceDataFromFile(file) {
+    const text = await readTextFile(file);
+    const rows = parseCsv(text);
+
+    console.log("[MAP] device csv rows", rows);
+
+    const devices = buildDeviceDataFromRows(rows);
+
+    console.log("[MAP] device data from file", devices);
+
+    return devices;
+  }
+
   async function tryAutoLoadDivisionGeoJSON() {
     if (window.location.protocol === "file:") {
       console.warn(
@@ -312,16 +522,7 @@
     }
 
     try {
-      const res = await fetch("./division.csv", {
-        cache: "no-store"
-      });
-
-      if (!res.ok) {
-        console.warn("[MAP] division.csv auto fetch failed:", res.status);
-        return null;
-      }
-
-      const text = await res.text();
+      const text = await fetchTextSmart("./division.csv");
       const rows = parseCsv(text);
       const geojson = buildDivisionGeoJSONFromRows(rows);
 
@@ -335,69 +536,679 @@
     }
   }
 
-  // =========================================================
-  // Division直方体レイヤー追加/更新
-  // =========================================================
-  function addDivisionExtrusionLayer(map, geojson) {
-    if (!map) return;
+  async function tryAutoLoadDeviceData() {
+    if (window.location.protocol === "file:") {
+      console.warn(
+        "[MAP] file:// のため fetch('./device.csv') はスキップします。Device CSVボタンから読み込んでください。"
+      );
+      return null;
+    }
 
+    try {
+      const text = await fetchTextSmart("./device.csv");
+      const rows = parseCsv(text);
+      const devices = buildDeviceDataFromRows(rows);
+
+      console.log("[MAP] device data from fetch", devices);
+
+      return devices;
+
+    } catch (e) {
+      console.warn("[MAP] device.csv auto fetch error:", e);
+      return null;
+    }
+  }
+
+  // =========================================================
+  // Division GeoJSON state
+  // =========================================================
+  function setDivisionGeoJSON(geojson) {
     if (!geojson || !geojson.features || geojson.features.length === 0) {
       console.warn("[MAP] Division GeoJSON が空です");
+      appState.divisionGeoJSON = null;
       return;
     }
 
-    // 既存レイヤー削除
-    if (map.getLayer("room-outline")) {
-      map.removeLayer("room-outline");
-    }
-
-    if (map.getLayer("room-extrusion")) {
-      map.removeLayer("room-extrusion");
-    }
-
-    // 既存source削除
-    if (map.getSource("floorplan")) {
-      map.removeSource("floorplan");
-    }
-
-    // source追加
-    map.addSource("floorplan", {
-      type: "geojson",
-      data: geojson
-    });
-
-    // 直方体本体
-    map.addLayer({
-      id: "room-extrusion",
-      type: "fill-extrusion",
-      source: "floorplan",
-      paint: {
-        "fill-extrusion-color": "#66aaff",
-        "fill-extrusion-height": ["get", "height"],
-        "fill-extrusion-base": 0,
-        "fill-extrusion-opacity": 0.3
-      }
-    });
-
-    // 輪郭線
-    map.addLayer({
-      id: "room-outline",
-      type: "line",
-      source: "floorplan",
-      paint: {
-        "line-color": "#1f6feb",
-        "line-width": 2
-      }
-    });
-
     appState.divisionGeoJSON = geojson;
 
-    console.log("[MAP] Division extrusion layer added", geojson);
+    console.log("[MAP] Division GeoJSON set for Babylon", geojson);
+  }
+
+  // =========================================================
+  // Babylon座標変換
+  // =========================================================
+  function lngLatToBabylonVector(lon, lat, y) {
+    const offset =
+      maplibregl.MercatorCoordinate.fromLngLat(
+        [lon, lat],
+        worldAltitude
+      );
+
+    const dx =
+      (offset.x - babylonRuntime.worldOriginMercator.x) /
+      babylonRuntime.worldScale;
+
+    const dz =
+      (offset.y - babylonRuntime.worldOriginMercator.y) /
+      babylonRuntime.worldScale;
+
+    return new BABYLON.Vector3(dx, y, -dz);
+  }
+
+  function isSamePoint2D(a, b) {
+    if (!a || !b) return false;
+
+    return (
+      Math.abs(Number(a[0]) - Number(b[0])) < 1e-12 &&
+      Math.abs(Number(a[1]) - Number(b[1])) < 1e-12
+    );
+  }
+
+  function normalizeRing(ring) {
+    if (!Array.isArray(ring)) return [];
+
+    const points = ring
+      .filter(p =>
+        Array.isArray(p) &&
+        Number.isFinite(Number(p[0])) &&
+        Number.isFinite(Number(p[1]))
+      )
+      .map(p => [Number(p[0]), Number(p[1])]);
+
+    if (
+      points.length >= 2 &&
+      isSamePoint2D(points[0], points[points.length - 1])
+    ) {
+      points.pop();
+    }
+
+    return points;
+  }
+
+  // =========================================================
+  // Babylon root helpers
+  // =========================================================
+  function disposeNode(node) {
+    if (!node) return;
+
+    try {
+      node.dispose(false, true);
+    } catch (e) {
+      console.warn("[MAP] dispose skipped:", e);
+    }
+  }
+
+  function createRootNode(name) {
+    return new BABYLON.TransformNode(
+      name,
+      babylonRuntime.scene
+    );
+  }
+
+  function ensureBabylonSceneReady() {
+    return (
+      babylonRuntime.sceneReady &&
+      babylonRuntime.scene &&
+      babylonRuntime.worldOriginMercator &&
+      babylonRuntime.worldScale
+    );
+  }
+
+  // =========================================================
+  // Materials
+  // =========================================================
+  function createDivisionBoxMaterial(name) {
+    const mat = new BABYLON.StandardMaterial(
+      name,
+      babylonRuntime.scene
+    );
+
+    mat.diffuseColor = new BABYLON.Color3(0.25, 0.55, 1.0);
+    mat.emissiveColor = new BABYLON.Color3(0.02, 0.08, 0.16);
+    mat.alpha = 0.18;
+    mat.backFaceCulling = false;
+    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+
+    return mat;
+  }
+
+  function createEdgeMaterial(name) {
+    const mat = new BABYLON.StandardMaterial(
+      name,
+      babylonRuntime.scene
+    );
+
+    const color = new BABYLON.Color3(1.0, 0.68, 0.0);
+
+    mat.diffuseColor = color;
+    mat.emissiveColor = color;
+    mat.alpha = 1.0;
+    mat.backFaceCulling = false;
+
+    return mat;
+  }
+
+  // =========================================================
+  // Division mesh
+  // =========================================================
+  function createTubeLine(name, path, radius, material, parent) {
+    if (!path || path.length < 2) return null;
+
+    const mesh = BABYLON.MeshBuilder.CreateTube(
+      name,
+      {
+        path,
+        radius,
+        tessellation: 8,
+        updatable: false
+      },
+      babylonRuntime.scene
+    );
+
+    mesh.material = material;
+    mesh.parent = parent;
+    mesh.alwaysSelectAsActiveMesh = true;
+
+    return mesh;
+  }
+
+  function createDivisionBoxEdges(
+    bottomPoints,
+    topPoints,
+    featureIndex,
+    divisionName,
+    height,
+    parent
+  ) {
+    const n = bottomPoints.length;
+
+    if (n < 3) return;
+
+    const edgeRadius = 0.035;
+    const edgeMaterial = createEdgeMaterial(
+      `division-edge-mat-${featureIndex}`
+    );
+
+    const bottomLoop = bottomPoints.map(p => p.clone());
+    bottomLoop.push(bottomPoints[0].clone());
+
+    const topLoop = topPoints.map(p => p.clone());
+    topLoop.push(topPoints[0].clone());
+
+    const bottomEdge = createTubeLine(
+      `division-bottom-edge-${featureIndex}`,
+      bottomLoop,
+      edgeRadius,
+      edgeMaterial,
+      parent
+    );
+
+    const topEdge = createTubeLine(
+      `division-top-edge-${featureIndex}`,
+      topLoop,
+      edgeRadius,
+      edgeMaterial,
+      parent
+    );
+
+    if (bottomEdge) {
+      bottomEdge.metadata = {
+        type: "DivisionBottomEdge",
+        division: divisionName,
+        height
+      };
+    }
+
+    if (topEdge) {
+      topEdge.metadata = {
+        type: "DivisionTopEdge",
+        division: divisionName,
+        height
+      };
+    }
+
+    for (let i = 0; i < n; i++) {
+      const verticalEdge = createTubeLine(
+        `division-vertical-edge-${featureIndex}-${i}`,
+        [
+          bottomPoints[i].clone(),
+          topPoints[i].clone()
+        ],
+        edgeRadius,
+        edgeMaterial,
+        parent
+      );
+
+      if (verticalEdge) {
+        verticalEdge.metadata = {
+          type: "DivisionVerticalEdge",
+          division: divisionName,
+          height
+        };
+      }
+    }
+  }
+
+  function createDivisionBoxMesh(feature, featureIndex, parent) {
+    const geometry = feature.geometry;
+
+    if (!geometry || geometry.type !== "Polygon") {
+      console.warn("[MAP] Polygon以外のgeometryはスキップします:", geometry);
+      return;
+    }
+
+    const outerRing = normalizeRing(geometry.coordinates?.[0]);
+
+    if (outerRing.length < 3) {
+      console.warn("[MAP] Division polygon points are insufficient:", feature);
+      return;
+    }
+
+    const height = Number(feature.properties?.height || 7);
+
+    const divisionName =
+      feature.properties?.Division ||
+      feature.properties?.name ||
+      `division-${featureIndex}`;
+
+    const bottomPoints = outerRing.map(([lon, lat]) =>
+      lngLatToBabylonVector(
+        lon,
+        lat,
+        0
+      )
+    );
+
+    const topPoints = outerRing.map(([lon, lat]) =>
+      lngLatToBabylonVector(
+        lon,
+        lat,
+        height
+      )
+    );
+
+    const positions = [];
+    const indices = [];
+
+    function addVertex(v) {
+      positions.push(v.x, v.y, v.z);
+      return positions.length / 3 - 1;
+    }
+
+    const bottomIdx = bottomPoints.map(addVertex);
+    const topIdx = topPoints.map(addVertex);
+
+    const n = bottomPoints.length;
+
+    // 床面
+    // 注意: 凹形ポリゴンの場合は三角形ファンでは崩れる可能性あり
+    for (let i = 1; i < n - 1; i++) {
+      indices.push(bottomIdx[0], bottomIdx[i + 1], bottomIdx[i]);
+    }
+
+    // 天井面
+    for (let i = 1; i < n - 1; i++) {
+      indices.push(topIdx[0], topIdx[i], topIdx[i + 1]);
+    }
+
+    // 壁面
+    for (let i = 0; i < n; i++) {
+      const next = (i + 1) % n;
+
+      const b1 = bottomIdx[i];
+      const b2 = bottomIdx[next];
+      const t1 = topIdx[i];
+      const t2 = topIdx[next];
+
+      indices.push(b1, b2, t2);
+      indices.push(b1, t2, t1);
+    }
+
+    const normals = [];
+
+    BABYLON.VertexData.ComputeNormals(
+      positions,
+      indices,
+      normals
+    );
+
+    const vertexData = new BABYLON.VertexData();
+
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    vertexData.normals = normals;
+
+    const mesh = new BABYLON.Mesh(
+      `division-box-${featureIndex}`,
+      babylonRuntime.scene
+    );
+
+    vertexData.applyToMesh(mesh);
+
+    mesh.material = createDivisionBoxMaterial(
+      `division-box-mat-${featureIndex}`
+    );
+
+    mesh.parent = parent;
+    mesh.alwaysSelectAsActiveMesh = true;
+
+    mesh.metadata = {
+      type: "DivisionBox",
+      division: divisionName,
+      height
+    };
+
+    createDivisionBoxEdges(
+      bottomPoints,
+      topPoints,
+      featureIndex,
+      divisionName,
+      height,
+      parent
+    );
+
+    console.log("[MAP] Division Babylon box created:", divisionName);
+  }
+
+  function rebuildDivisionMeshes() {
+    if (!ensureBabylonSceneReady()) {
+      console.warn("[MAP] Babylon scene not ready. Division rebuild skipped.");
+      return;
+    }
+
+    disposeNode(babylonRuntime.divisionRoot);
+
+    babylonRuntime.divisionRoot = createRootNode("division-root");
+
+    const geojson = appState.divisionGeoJSON;
+
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.warn("[MAP] Division GeoJSON がないためBabylon直方体は作成しません");
+      return;
+    }
+
+    geojson.features.forEach((feature, featureIndex) => {
+      createDivisionBoxMesh(
+        feature,
+        featureIndex,
+        babylonRuntime.divisionRoot
+      );
+    });
+
+    console.log("[MAP] Division meshes rebuilt");
+  }
+
+  // =========================================================
+  // Device model cache
+  // =========================================================
+  async function getModelTemplate(url) {
+    if (babylonRuntime.modelCache.has(url)) {
+      return babylonRuntime.modelCache.get(url);
+    }
+
+    const container =
+      await BABYLON.SceneLoader.LoadAssetContainerAsync(
+        MODEL_BASE_URL,
+        url,
+        babylonRuntime.scene
+      );
+
+    const templateRoot = container.createRootMesh();
+
+    container.addAllToScene();
+
+    templateRoot.setEnabled(false);
+
+    const cached = {
+      container,
+      templateRoot
+    };
+
+    babylonRuntime.modelCache.set(url, cached);
+
+    console.log("[MAP] model cached:", url);
+
+    return cached;
+  }
+
+  function setMetadataRecursive(mesh, metadata) {
+    mesh.metadata = metadata;
+
+    mesh.getChildMeshes().forEach(child => {
+      child.metadata = metadata;
+    });
+  }
+
+  async function rebuildDeviceMeshes() {
+    if (!ensureBabylonSceneReady()) {
+      console.warn("[MAP] Babylon scene not ready. Device rebuild skipped.");
+      return;
+    }
+
+    const currentVersion = ++babylonRuntime.deviceVersion;
+
+    disposeNode(babylonRuntime.deviceRoot);
+
+    babylonRuntime.deviceRoot = createRootNode("device-root");
+
+    if (!rawDeviceData || rawDeviceData.length === 0) {
+      console.warn("[MAP] Device data が空のためDevice meshは作成しません");
+      return;
+    }
+
+    const modelConfigs = buildModelConfigs(rawDeviceData);
+
+    for (let modelIndex = 0; modelIndex < modelConfigs.length; modelIndex++) {
+      const { url, devices } = modelConfigs[modelIndex];
+
+      let cached;
+
+      try {
+        cached = await getModelTemplate(url);
+      } catch (err) {
+        console.error("[MAP] model load failed:", url, err);
+        continue;
+      }
+
+      // 読込中に別のCSVが読み込まれた場合、古い処理を破棄
+      if (currentVersion !== babylonRuntime.deviceVersion) {
+        console.warn("[MAP] stale device rebuild skipped:", url);
+        return;
+      }
+
+      const templateRoot = cached.templateRoot;
+
+      devices.forEach((device, i) => {
+        const {
+          type,
+          lon,
+          lat,
+          height,
+          rot,
+          label
+        } = device;
+
+        const pos = lngLatToBabylonVector(
+          lon,
+          lat,
+          height
+        );
+
+        const mesh = templateRoot.clone(
+          `device-${modelIndex}-instance-${i}`
+        );
+
+        mesh.position.set(pos.x, pos.y, pos.z);
+        mesh.rotation.y = rot;
+        mesh.parent = babylonRuntime.deviceRoot;
+        mesh.setEnabled(true);
+
+        setMetadataRecursive(mesh, {
+          type,
+          label
+        });
+      });
+    }
+
+    console.log("[MAP] Device meshes rebuilt:", rawDeviceData.length);
+  }
+
+  function rebuildBabylonContent() {
+    rebuildDivisionMeshes();
+    rebuildDeviceMeshes();
+  }
+
+  // =========================================================
+  // Babylon custom layer
+  // =========================================================
+  function createBabylonLayer() {
+    const worldOriginMercator =
+      maplibregl.MercatorCoordinate.fromLngLat(
+        worldOrigin,
+        worldAltitude
+      );
+
+    const worldScale =
+      worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+      new BABYLON.Vector3(
+        worldOriginMercator.x,
+        worldOriginMercator.y,
+        worldOriginMercator.z
+      )
+    );
+
+    babylonRuntime.worldOriginMercator = worldOriginMercator;
+    babylonRuntime.worldScale = worldScale;
+    babylonRuntime.worldMatrix = worldMatrix;
+
+    return {
+      id: "babylon-device-layer",
+      type: "custom",
+      renderingMode: "3d",
+
+      onAdd(map, gl) {
+        console.log("[MAP] Babylon layer onAdd");
+
+        babylonRuntime.map = map;
+
+        this.map = map;
+
+        babylonRuntime.engine = new BABYLON.Engine(
+          gl,
+          true,
+          {
+            useHighPrecisionMatrix: true
+          },
+          true
+        );
+
+        babylonRuntime.scene = new BABYLON.Scene(
+          babylonRuntime.engine
+        );
+
+        const scene = babylonRuntime.scene;
+
+        scene.autoClear = false;
+        scene.preventDefaultOnPointerDown = false;
+        scene.preventDefaultOnPointerUp = false;
+
+        scene.beforeRender = () => {
+          babylonRuntime.engine.wipeCaches(true);
+        };
+
+        babylonRuntime.camera = new BABYLON.Camera(
+          "Camera",
+          new BABYLON.Vector3(0, 0, 0),
+          scene
+        );
+
+        const light = new BABYLON.HemisphericLight(
+          "light1",
+          new BABYLON.Vector3(0, 0, 100),
+          scene
+        );
+
+        light.intensity = 0.9;
+
+        babylonRuntime.divisionRoot = createRootNode("division-root");
+        babylonRuntime.deviceRoot = createRootNode("device-root");
+
+        scene.attachControl(map.getCanvas(), true);
+
+        babylonRuntime.sceneReady = true;
+
+        // 初回だけ全体生成
+        rebuildBabylonContent();
+      },
+
+      render(gl, args) {
+        if (!babylonRuntime.scene || !babylonRuntime.camera) {
+          return;
+        }
+
+        const cameraMatrix =
+          BABYLON.Matrix.FromArray(
+            args.defaultProjectionData.mainMatrix
+          );
+
+        const wvpMatrix =
+          babylonRuntime.worldMatrix.multiply(cameraMatrix);
+
+        babylonRuntime.camera.freezeProjectionMatrix(wvpMatrix);
+
+        babylonRuntime.scene.render(false);
+
+        this.map.triggerRepaint();
+      },
+
+      onRemove() {
+        try {
+          babylonRuntime.sceneReady = false;
+
+          disposeNode(babylonRuntime.divisionRoot);
+          disposeNode(babylonRuntime.deviceRoot);
+
+          babylonRuntime.modelCache.forEach(({ container }) => {
+            try {
+              container.dispose();
+            } catch (e) {
+              console.warn("[MAP] model container dispose skipped:", e);
+            }
+          });
+
+          babylonRuntime.modelCache.clear();
+
+          babylonRuntime.scene?.dispose();
+          babylonRuntime.engine?.dispose();
+
+        } catch (e) {
+          console.warn("[MAP] Babylon layer dispose skipped:", e);
+        }
+      }
+    };
+  }
+
+  function addBabylonLayerOnce(map) {
+    if (!map) return;
+
+    if (map.getLayer("babylon-device-layer")) {
+      console.log("[MAP] Babylon layer already exists");
+      return;
+    }
+
+    map.addLayer(createBabylonLayer());
+
+    babylonRuntime.layerAdded = true;
+
+    console.log("[MAP] Babylon layer added once");
   }
 
   // =========================================================
   // postMessage safe
-  // - file:// standaloneでは origin が null になりやすいので安全化
   // =========================================================
   function postToParentSafe(message) {
     if (!window.parent || window.parent === window) {
@@ -422,14 +1233,26 @@
   function initMap() {
     const map = new maplibregl.Map({
       container: "map",
-      style: "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
+      style:
+        "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
       center: [140.303872, 35.353847],
       zoom: 18,
       pitch: 60,
-      bearing: 0
+      bearing: 0,
+      maxPitch: 89,
+
+      canvasContextAttributes: {
+        antialias: true
+      }
     });
 
-    map.addControl(new maplibregl.NavigationControl());
+    map.addControl(
+      new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showZoom: true,
+        showCompass: true
+      })
+    );
 
     appState.map = map;
 
@@ -438,13 +1261,20 @@
 
       appState.mapLoaded = true;
 
-      // http(s)起動時のみ division.csv を自動読込
-      // file:// ではスキップ
       const autoGeoJSON = await tryAutoLoadDivisionGeoJSON();
 
       if (autoGeoJSON) {
-        addDivisionExtrusionLayer(map, autoGeoJSON);
+        setDivisionGeoJSON(autoGeoJSON);
       }
+
+      const autoDeviceData = await tryAutoLoadDeviceData();
+
+      if (autoDeviceData && autoDeviceData.length > 0) {
+        rawDeviceData = autoDeviceData;
+      }
+
+      // custom layerは一度だけ追加
+      addBabylonLayerOnce(map);
 
       postToParentSafe({
         type: "MAP_READY"
@@ -455,7 +1285,7 @@
   }
 
   // =========================================================
-  // CSV input events
+  // Division CSV input events
   // =========================================================
   function bindCsvInput() {
     if (!els.divisionCsvInput) {
@@ -485,7 +1315,14 @@
           return;
         }
 
-        addDivisionExtrusionLayer(appState.map, geojson);
+        setDivisionGeoJSON(geojson);
+
+        // layer全体は消さず、Divisionだけ差分更新
+        if (ensureBabylonSceneReady()) {
+          rebuildDivisionMeshes();
+        } else {
+          addBabylonLayerOnce(appState.map);
+        }
 
       } catch (err) {
         console.error("[MAP] failed to load selected division csv", err);
@@ -494,48 +1331,136 @@
   }
 
   // =========================================================
-  // Tooltip（最小）
+  // Device CSV input events
   // =========================================================
-  const devices = [
-    { name: "センサ１", lon: 140.30348, lat: 35.35404 },
-    { name: "センサ２", lon: 140.30349, lat: 35.35395 }
-  ];
+  function bindDeviceCsvInput() {
+    if (!els.deviceCsvInput) {
+      console.warn(
+        '[MAP] Device CSV入力が見つかりません。map-index.html に <input id="deviceCsvInput" type="file" accept=".csv" /> を追加してください。'
+      );
+      return;
+    }
 
+    els.deviceCsvInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      try {
+        console.log("[MAP] selected device csv", file.name);
+
+        const devices = await loadDeviceDataFromFile(file);
+
+        rawDeviceData = devices;
+
+        if (!appState.map) {
+          console.warn("[MAP] map is not ready yet");
+          return;
+        }
+
+        if (!appState.mapLoaded) {
+          console.warn("[MAP] map style is not loaded yet");
+          return;
+        }
+
+        // layer全体は消さず、Deviceだけ差分更新
+        if (ensureBabylonSceneReady()) {
+          rebuildDeviceMeshes();
+        } else {
+          addBabylonLayerOnce(appState.map);
+        }
+
+      } catch (err) {
+        console.error("[MAP] failed to load selected device csv", err);
+      }
+    });
+  }
+
+  // =========================================================
+  // Tooltip
+  // =========================================================
   function bindTooltip(map) {
     if (!els.tooltip) return;
 
-    map.on("mousemove", (e) => {
-      let hit = null;
-      let min = Infinity;
+    const hoverRadiusPx = 60;
 
-      for (const d of devices) {
-        const p = map.project([d.lon, d.lat]);
+    function findHoveredDevice(point) {
+      let nearest = null;
+      let nearestDist = Infinity;
 
-        const dx = p.x - e.point.x;
-        const dy = p.y - e.point.y;
+      for (const d of rawDeviceData) {
+        const [type, lon, lat, height, rot, label, fallbackTemp = null] = d;
+
+        const screen = map.project([lon, lat]);
+
+        const adjustedY = screen.y - height * 5;
+
+        const dx = screen.x - point.x;
+        const dy = adjustedY - point.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 40 && dist < min) {
-          hit = d;
-          min = dist;
+        if (dist < hoverRadiusPx && dist < nearestDist) {
+          nearest = {
+            type,
+            lon,
+            lat,
+            height,
+            rot,
+            label,
+            fallbackTemp,
+            screen: {
+              x: screen.x,
+              y: adjustedY
+            },
+            dist
+          };
+
+          nearestDist = dist;
         }
       }
 
+      return nearest;
+    }
+
+    map.on("mousemove", (e) => {
+      const hit = findHoveredDevice(e.point);
+
       if (hit) {
-        const latest = appState.latest.get(hit.name);
+        const latest = appState.latest.get(hit.label);
+
+        let text = hit.label;
+
+        if (hit.type === "Temp") {
+          const temp =
+            Number.isFinite(latest?.temp)
+              ? latest.temp
+              : hit.fallbackTemp;
+
+          if (temp != null && Number.isFinite(Number(temp))) {
+            text = `${hit.label}\n${Number(temp)}℃`;
+          }
+        }
+
+        if (hit.type === "Aircon") {
+          const latestPower = latest?.power;
+
+          if (Number.isFinite(latestPower)) {
+            text = `${hit.label}\n${latestPower} W`;
+          }
+        }
 
         els.tooltip.style.display = "block";
         els.tooltip.style.left = e.originalEvent.clientX + 10 + "px";
         els.tooltip.style.top = e.originalEvent.clientY + 10 + "px";
-
-        els.tooltip.innerText =
-          latest
-            ? `${hit.name}\n${latest.temp ?? "-"}℃`
-            : hit.name;
+        els.tooltip.innerText = text;
 
       } else {
         els.tooltip.style.display = "none";
       }
+    });
+
+    map.on("mouseout", () => {
+      els.tooltip.style.display = "none";
     });
   }
 
@@ -543,8 +1468,14 @@
   // Render
   // =========================================================
   function render() {
-    // 今はtooltipとDivision直方体表示のみ
-    // IoT rowsに応じて色や高さを変える場合はここでsource更新する
+    // 現時点では tooltip が appState.latest を参照するため、
+    // rows更新後に特別な再描画処理は不要。
+    //
+    // 将来:
+    // - 温度に応じてDeviceモデル色を変える
+    // - Division色をIoT rowsで更新する
+    // - Aircon稼働状態をモデルに反映する
+    // 場合は、babylonRuntime.scene 内の対象Meshだけ更新する。
   }
 
   // =========================================================
@@ -552,6 +1483,7 @@
   // =========================================================
   function init() {
     bindCsvInput();
+    bindDeviceCsvInput();
     initMap();
     adapter.init();
     adapter.applyUiLock();
