@@ -1,1509 +1,1664 @@
-/* =========================================================
- * map-app.js
- *
- * 入力を2系統に対応:
- *  1. standalone mode:
- *     - CSVから Division / Device を読み込む
- *
- *  2. embed mode:
- *     - 親 page.tsx から postMessage で
- *       SET_MASTER / SET_VIEWSTATE / SET_DATA を受け取る
- *
- * page.tsx 側 iframe:
- *   src="/plotly-view/map-index.html?mode=embed"
- *
- * page.tsx -> map-app.js:
- *   { type: "SET_MASTER", divisions: [...], devices: [...] }
- *   { type: "SET_VIEWSTATE", division, startDay, endDay, dataKind }
- *   { type: "SET_DATA", rows: [...] }
- *
- * map-app.js -> page.tsx:
- *   { type: "MAP_READY" }
- *   { type: "DIVISION_CHANGED", division }
- * ========================================================= */
+(() => {
+  "use strict";
 
-/* =========================================================
- * 起動モード判定
- * ========================================================= */
-
-
-src="/plotly-view/map-index.html?mode=embed"
-
-const params = new URLSearchParams(window.location.search);
-const embedMode = params.get("mode") === "embed";
-
-/* =========================================================
- * グローバル状態
- * ========================================================= */
-
-let currentViewState = {
-  division: "",
-  startDay: "",
-  endDay: "",
-  dataKind: "iot",
-};
-
-let rawDivisionRows = [];
-let rawDeviceRows = [];
-let rawIotRows = [];
-
-let divisionRows = [];
-let deviceRows = [];
-let iotRows = [];
-
-let latestRowsByDevice = new Map();
-
-let mapInitialized = false;
-let map = null;
-
-/**
- * 既存の map-app.js 側で使っていた変数名がある場合、
- * ここで互換用に window にも保持しておく。
- */
-window.__divisionRows = divisionRows;
-window.__deviceRows = deviceRows;
-window.__iotRows = iotRows;
-window.__latestRowsByDevice = latestRowsByDevice;
-
-/* =========================================================
- * CSVファイルパス
- *
- * 必要に応じて田渕さんの既存パスに合わせて変更してください。
- * ========================================================= */
-
-const CSV_PATHS = {
-  divisions: "./Division.csv",
-  devices: "./Device.csv",
-};
-
-/* =========================================================
- * 初期化
- * ========================================================= */
-
-window.addEventListener("DOMContentLoaded", async () => {
-  console.log("[map-app] DOMContentLoaded", {
-    embedMode,
-    href: window.location.href,
-  });
-
-  initMapIfNeeded();
-  setupUiEvents();
-  setupParentMessageListener();
-
-  notifyReadyToParent();
-
-  if (embedMode) {
-    console.log("[map-app] embed mode: CSV loading skipped");
-    showStatus("embed mode: parent data waiting...");
-    return;
+  // =========================================================
+  // Guard
+  // =========================================================
+  if (typeof maplibregl === "undefined") {
+    throw new Error("maplibregl が読み込まれていません");
   }
 
-  console.log("[map-app] standalone mode: CSV loading start");
-  showStatus("standalone mode: loading CSV...");
-
-  try {
-    await loadStandaloneCsvData();
-    showStatus("CSV loaded");
-    refreshMap();
-  } catch (err) {
-    console.error("[map-app] CSV load error", err);
-    showStatus(`CSV load error: ${getErrorMessage(err)}`);
+  if (typeof BABYLON === "undefined") {
+    throw new Error("BABYLON が読み込まれていません");
   }
-});
 
-/* =========================================================
- * 親 page.tsx への READY 通知
- * ========================================================= */
+  // =========================================================
+  // Fallback Adapter（standalone / file:// 用）
+  // =========================================================
+  if (typeof window.createViewAdapter !== "function") {
+    console.warn("[MAP] createViewAdapter not found → standalone mode");
 
-function notifyReadyToParent() {
-  if (!window.parent || window.parent === window) return;
-
-  try {
-    window.parent.postMessage(
-      {
-        type: "MAP_READY",
-      },
-      window.location.origin
-    );
-
-    console.log("[map-app] MAP_READY sent");
-  } catch (err) {
-    console.error("[map-app] MAP_READY send failed", err);
+    window.createViewAdapter = function () {
+      return {
+        init: () => {
+          console.log("[adapter] standalone");
+        },
+        applyUiLock: () => {
+          // standaloneでは何もしない
+        }
+      };
+    };
   }
-}
 
-/* =========================================================
- * 親 page.tsx からの postMessage 受信
- * ========================================================= */
+  // =========================================================
+  // DOM
+  // =========================================================
+  const els = {
+    map: document.getElementById("map"),
+    tooltip: document.getElementById("tooltip"),
 
-function setupParentMessageListener() {
-  window.addEventListener("message", (event) => {
-    if (event.origin !== window.location.origin) return;
+    // Division CSV読込用
+    divisionCsvInput:
+      document.getElementById("divisionCsvInput") ||
+      document.getElementById("fileInput"),
 
-    const data = event.data;
-    if (!data || typeof data !== "object") return;
-
-    switch (data.type) {
-      case "SET_MASTER": {
-        handleSetMaster(data);
-        break;
-      }
-
-      case "SET_VIEWSTATE": {
-        handleSetViewState(data);
-        break;
-      }
-
-      case "SET_DATA": {
-        handleSetData(data);
-        break;
-      }
-
-      default:
-        break;
-    }
-  });
-}
-
-function handleSetMaster(data) {
-  const divisions = Array.isArray(data.divisions) ? data.divisions : [];
-  const devices = Array.isArray(data.devices) ? data.devices : [];
-
-  console.log("[map-app] SET_MASTER received", {
-    divisions: divisions.length,
-    devices: devices.length,
-  });
-
-  rawDivisionRows = divisions;
-  rawDeviceRows = devices;
-
-  divisionRows = normalizeDivisionRows(rawDivisionRows);
-  deviceRows = normalizeDeviceRows(rawDeviceRows);
-
-  publishGlobals();
-
-  rebuildMasterIndexes();
-  refreshDivisionSelector();
-  refreshMap();
-
-  showStatus(
-    `master received: divisions=${divisionRows.length}, devices=${deviceRows.length}`
-  );
-}
-
-function handleSetViewState(data) {
-  currentViewState = {
-    division: String(data.division ?? "").trim(),
-    startDay: String(data.startDay ?? "").trim(),
-    endDay: String(data.endDay ?? "").trim(),
-    dataKind: String(data.dataKind ?? "iot").trim() || "iot",
+    // Device CSV読込用
+    deviceCsvInput:
+      document.getElementById("deviceCsvInput")
   };
 
-  console.log("[map-app] SET_VIEWSTATE received", currentViewState);
+  // =========================================================
+  // State
+  // =========================================================
+  const appState = {
+    rows: [],
+    latest: new Map(),
+    map: null,
+    mapLoaded: false,
+    divisionGeoJSON: null,
 
-  syncDivisionSelectorFromViewState();
-  refreshMap();
+    // standalone CSV / parent postMessage のどちらから来たかを管理
+    divisionSource: null,
+    deviceSource: null,
+    rowsSource: null
+  };
 
-  showStatus(
-    `viewState: division=${currentViewState.division}, ${currentViewState.startDay} - ${currentViewState.endDay}, ${currentViewState.dataKind}`
-  );
-}
+  // =========================================================
+  // Babylon Runtime
+  // =========================================================
+  const babylonRuntime = {
+    layerAdded: false,
+    sceneReady: false,
 
-function handleSetData(data) {
-  const rows = Array.isArray(data.rows) ? data.rows : [];
+    map: null,
+    engine: null,
+    scene: null,
+    camera: null,
 
-  console.log("[map-app] SET_DATA received", {
-    rows: rows.length,
+    worldOriginMercator: null,
+    worldScale: null,
+    worldMatrix: null,
+
+    divisionRoot: null,
+    deviceRoot: null,
+
+    // url -> { container, templateRoot }
+    modelCache: new Map(),
+
+    // Device CSV読込中に古い非同期処理が残るのを防ぐ
+    deviceVersion: 0
+  };
+
+  // =========================================================
+  // glTF / Babylon 設定
+  // =========================================================
+  const MODEL_BASE_URL =
+    window.__MODEL_BASE_URL__ ||
+    "https://pckk-device.s3.ap-southeast-2.amazonaws.com/";
+
+  const deviceTypeToModel = {
+    Aircon: "AirconModel.glb",
+    AC: "AirconModel.glb",
+    AirConditioner: "AirconModel.glb",
+
+    Temp: "TempModel.glb",
+    TemperatureSensor: "TempModel.glb"
+  };
+
+  // MapLibre / Babylon のワールド基準
+  const worldOrigin = [140.303475, 35.35359];
+  const worldAltitude = 0;
+  const worldRotate = [Math.PI / 2, 0, 0];
+
+  // Device 配置データ
+  // [type, lon, lat, height, rot, label, fallbackTemp?]
+  let rawDeviceData = [];
+
+  // =========================================================
+  // Adapter（Plotlyと同じ構造）
+  // =========================================================
+  const adapter = window.createViewAdapter({
+    onRowsLoaded: (rows) => {
+      console.log("[MAP] RECV DATA", rows.length);
+
+      appState.rowsSource = "adapter";
+
+      setRows(rows);
+      render();
+    },
+
+    onViewStateChanged: (viewState) => {
+      console.log("[MAP] VIEWSTATE", viewState);
+    }
   });
 
-  rawIotRows = rows;
-  iotRows = normalizeIotRows(rawIotRows);
+  // =========================================================
+  // IoT rows
+  // =========================================================
+  function setRows(rows) {
+    appState.rows = rows || [];
 
-  latestRowsByDevice = buildLatestRowsByDevice(
-    filterIotRowsByCurrentDivision(iotRows)
-  );
+    const latest = new Map();
 
-  publishGlobals();
+    for (const r of appState.rows) {
+      const dev = r.DeviceName || r.Device;
+      const ts = r.DatetimeAgg || r.DeviceDatetime;
 
-  refreshMap();
+      if (!dev || !ts) continue;
 
-  showStatus(
-    `data received: rows=${iotRows.length}, latestDevices=${latestRowsByDevice.size}`
-  );
-}
+      const prev = latest.get(dev);
 
-/* =========================================================
- * standalone CSV 読み込み
- * ========================================================= */
+      if (!prev || ts > prev.ts) {
+        latest.set(dev, {
+          ts,
+          temp: Number(r.ActualTemp),
+          power: Number(r.ActivePower)
+        });
+      }
+    }
 
-async function loadStandaloneCsvData() {
-  const [divisionText, deviceText] = await Promise.all([
-    fetchText(CSV_PATHS.divisions),
-    fetchText(CSV_PATHS.devices),
-  ]);
-
-  rawDivisionRows = parseCsv(divisionText);
-  rawDeviceRows = parseCsv(deviceText);
-
-  divisionRows = normalizeDivisionRows(rawDivisionRows);
-  deviceRows = normalizeDeviceRows(rawDeviceRows);
-
-  rawIotRows = [];
-  iotRows = [];
-  latestRowsByDevice = new Map();
-
-  publishGlobals();
-
-  rebuildMasterIndexes();
-  refreshDivisionSelector();
-
-  console.log("[map-app] CSV loaded", {
-    divisions: divisionRows.length,
-    devices: deviceRows.length,
-  });
-}
-
-async function fetchText(url) {
-  const res = await fetch(url, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`${url} fetch failed: ${res.status} ${res.statusText}`);
+    appState.latest = latest;
   }
 
-  return await res.text();
-}
+  // =========================================================
+  // CSV Parser
+  // =========================================================
+  function parseCsv(text) {
+    const normalized = String(text || "")
+      .replace(/^\uFEFF/, "")
+      .trim();
 
-/* =========================================================
- * CSV parser
- *
- * ダブルクォート・カンマ・改行を最低限考慮。
- * 既存で PapaParse 等を使っている場合は差し替えてOK。
- * ========================================================= */
+    if (!normalized) return [];
 
-function parseCsv(text) {
-  if (!text || typeof text !== "string") return [];
+    const rows = [];
 
-  const rows = [];
-  const table = [];
+    let row = [];
+    let field = "";
+    let inQuotes = false;
 
-  let field = "";
-  let row = [];
-  let inQuotes = false;
+    for (let i = 0; i < normalized.length; i++) {
+      const char = normalized[i];
+      const next = normalized[i + 1];
 
-  const s = text.replace(/^\uFEFF/, "");
-
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    const next = s[i + 1];
-
-    if (inQuotes) {
-      if (ch === '"' && next === '"') {
+      if (char === '"' && inQuotes && next === '"') {
         field += '"';
         i++;
-      } else if (ch === '"') {
-        inQuotes = false;
-      } else {
-        field += ch;
+        continue;
       }
-      continue;
-    }
 
-    if (ch === '"') {
-      inQuotes = true;
-      continue;
-    }
-
-    if (ch === ",") {
-      row.push(field);
-      field = "";
-      continue;
-    }
-
-    if (ch === "\n") {
-      row.push(field);
-      table.push(row);
-      row = [];
-      field = "";
-      continue;
-    }
-
-    if (ch === "\r") {
-      continue;
-    }
-
-    field += ch;
-  }
-
-  row.push(field);
-  table.push(row);
-
-  const nonEmptyTable = table.filter((r) =>
-    r.some((v) => String(v ?? "").trim() !== "")
-  );
-
-  if (nonEmptyTable.length === 0) return [];
-
-  const headers = nonEmptyTable[0].map((h) => String(h ?? "").trim());
-
-  for (let i = 1; i < nonEmptyTable.length; i++) {
-    const values = nonEmptyTable[i];
-    const obj = {};
-
-    headers.forEach((h, index) => {
-      if (!h) return;
-      obj[h] = values[index] == null ? "" : String(values[index]).trim();
-    });
-
-    rows.push(obj);
-  }
-
-  return rows;
-}
-
-/* =========================================================
- * 正規化: Division
- * ========================================================= */
-
-function normalizeDivisionRows(rows) {
-  return rows
-    .filter((row) => row && typeof row === "object")
-    .map(normalizeDivisionRow)
-    .filter((row) => row.Division);
-}
-
-function normalizeDivisionRow(row) {
-  const division = pickString(row, [
-    "Division",
-    "division",
-    "DivisionCode",
-    "divisionCode",
-    "Room",
-    "room",
-  ]);
-
-  const divisionName =
-    pickString(row, [
-      "DivisionName",
-      "divisionName",
-      "Name",
-      "name",
-      "RoomName",
-      "roomName",
-    ]) || division;
-
-  const polygonValue = pickFirst(row, [
-    "DivisionPolygon",
-    "divisionPolygon",
-    "Polygon",
-    "polygon",
-    "Coordinates",
-    "coordinates",
-  ]);
-
-  const polygon = normalizePolygon(polygonValue);
-
-  return {
-    ...row,
-
-    Division: division,
-    DivisionName: divisionName,
-
-    /**
-     * 既存コードが Polygon / DivisionPolygon のどちらを見ても動くように両方持つ。
-     */
-    DivisionPolygon: polygon,
-    Polygon: polygon,
-
-    Floor: pickString(row, ["Floor", "floor"]),
-    Building: pickString(row, ["Building", "building"]),
-  };
-}
-
-/* =========================================================
- * 正規化: Device
- * ========================================================= */
-
-function normalizeDeviceRows(rows) {
-  return rows
-    .filter((row) => row && typeof row === "object")
-    .map(normalizeDeviceRow)
-    .filter((row) => row.Device);
-}
-
-function normalizeDeviceRow(row) {
-  const device = pickString(row, [
-    "Device",
-    "device",
-    "DeviceCode",
-    "deviceCode",
-    "DeviceId",
-    "deviceId",
-  ]);
-
-  const deviceName =
-    pickString(row, [
-      "DeviceName",
-      "deviceName",
-      "Name",
-      "name",
-      "DisplayName",
-      "displayName",
-    ]) || device;
-
-  const division = pickString(row, [
-    "Division",
-    "division",
-    "DivisionAgg",
-    "divisionAgg",
-    "Room",
-    "room",
-  ]);
-
-  const deviceType = pickString(row, [
-    "DeviceType",
-    "deviceType",
-    "Type",
-    "type",
-  ]);
-
-  const x = pickNumber(row, [
-    "X",
-    "x",
-    "DeviceX",
-    "deviceX",
-    "PositionX",
-    "positionX",
-    "MapX",
-    "mapX",
-  ]);
-
-  const y = pickNumber(row, [
-    "Y",
-    "y",
-    "DeviceY",
-    "deviceY",
-    "PositionY",
-    "positionY",
-    "MapY",
-    "mapY",
-  ]);
-
-  const lat = pickNumber(row, ["Lat", "lat", "Latitude", "latitude"]);
-  const lng = pickNumber(row, [
-    "Lng",
-    "lng",
-    "Lon",
-    "lon",
-    "Longitude",
-    "longitude",
-  ]);
-
-  return {
-    ...row,
-
-    Device: device,
-    DeviceName: deviceName,
-    Division: division,
-    DeviceType: deviceType,
-
-    X: x,
-    Y: y,
-    Lat: lat,
-    Lng: lng,
-  };
-}
-
-/* =========================================================
- * 正規化: IoT rows
- * ========================================================= */
-
-function normalizeIotRows(rows) {
-  return rows
-    .filter((row) => row && typeof row === "object")
-    .map(normalizeIotRow);
-}
-
-function normalizeIotRow(row) {
-  const device = pickString(row, [
-    "Device",
-    "device",
-    "DeviceCode",
-    "deviceCode",
-    "DeviceName",
-    "deviceName",
-  ]);
-
-  const deviceName =
-    pickString(row, [
-      "DeviceName",
-      "deviceName",
-      "Name",
-      "name",
-      "DisplayName",
-      "displayName",
-    ]) || device;
-
-  const division = pickString(row, [
-    "Division",
-    "division",
-    "DivisionAgg",
-    "divisionAgg",
-  ]);
-
-  const divisionName =
-    pickString(row, ["DivisionName", "divisionName"]) || division;
-
-  const ts =
-    normalizeDateTime(
-      pickFirst(row, [
-        "DeviceDatetime",
-        "deviceDatetime",
-        "DatetimeAgg",
-        "datetimeAgg",
-        "DeviceTimestamp",
-        "deviceTimestamp",
-        "Timestamp",
-        "timestamp",
-      ])
-    ) || null;
-
-  return {
-    ...row,
-
-    Device: device,
-    DeviceName: deviceName,
-    Division: division,
-    DivisionAgg: pickString(row, ["DivisionAgg", "divisionAgg"]) || division,
-    DivisionName: divisionName,
-
-    DeviceDatetime: ts,
-    DatetimeAgg: normalizeDateTime(pickFirst(row, ["DatetimeAgg"])) || ts,
-    DeviceTimestamp:
-      normalizeDateTime(pickFirst(row, ["DeviceTimestamp"])) || ts,
-
-    ActualTemp: toNumberOrNull(pickFirst(row, ["ActualTemp", "actualTemp"])),
-    ActualHumidity: toNumberOrNull(
-      pickFirst(row, ["ActualHumidity", "actualHumidity"])
-    ),
-    ActivePower: toNumberOrNull(
-      pickFirst(row, ["ActivePower", "activePower"])
-    ),
-    ApparentPower: toNumberOrNull(
-      pickFirst(row, ["ApparentPower", "apparentPower"])
-    ),
-    CumulativeEnergy: toNumberOrNull(
-      pickFirst(row, ["CumulativeEnergy", "cumulativeEnergy"])
-    ),
-    EnergyDeltaPerEffectiveMinute: toNumberOrNull(
-      pickFirst(row, [
-        "EnergyDeltaPerEffectiveMinute",
-        "energyDeltaPerEffectiveMinute",
-      ])
-    ),
-    WtTemp: toNumberOrNull(pickFirst(row, ["WtTemp", "wtTemp"])),
-  };
-}
-
-/* =========================================================
- * 最新IoT値を Device ごとに抽出
- * ========================================================= */
-
-function buildLatestRowsByDevice(rows) {
-  const map = new Map();
-
-  for (const row of rows) {
-    const device = String(row.Device ?? "").trim();
-    if (!device) continue;
-
-    const ts = getRowTimestamp(row);
-    const prev = map.get(device);
-
-    if (!prev) {
-      map.set(device, row);
-      continue;
-    }
-
-    const prevTs = getRowTimestamp(prev);
-
-    if (compareTimestamp(ts, prevTs) >= 0) {
-      map.set(device, row);
-    }
-  }
-
-  return map;
-}
-
-function filterIotRowsByCurrentDivision(rows) {
-  const selectedDivision = String(currentViewState.division ?? "").trim();
-
-  if (!selectedDivision) return rows;
-
-  return rows.filter((row) => {
-    const div = String(row.Division ?? "").trim();
-    const divAgg = String(row.DivisionAgg ?? "").trim();
-
-    return div === selectedDivision || divAgg === selectedDivision;
-  });
-}
-
-function getRowTimestamp(row) {
-  return (
-    normalizeDateTime(row.DeviceDatetime) ||
-    normalizeDateTime(row.DatetimeAgg) ||
-    normalizeDateTime(row.DeviceTimestamp) ||
-    ""
-  );
-}
-
-function compareTimestamp(a, b) {
-  const aa = String(a ?? "");
-  const bb = String(b ?? "");
-
-  if (aa === bb) return 0;
-  if (!aa) return -1;
-  if (!bb) return 1;
-
-  return aa > bb ? 1 : -1;
-}
-
-/* =========================================================
- * Map 初期化
- *
- * ここは既存 map-app.js の初期化処理に合わせて調整してください。
- * maplibre-gl を使っている前提で、存在する場合だけ初期化します。
- * ========================================================= */
-
-function initMapIfNeeded() {
-  if (mapInitialized) return;
-  mapInitialized = true;
-
-  const container =
-    document.getElementById("map") ||
-    document.getElementById("maplibre-map") ||
-    document.querySelector("[data-map-container]");
-
-  if (!container) {
-    console.warn(
-      "[map-app] map container not found. Rendering functions will be skipped."
-    );
-    return;
-  }
-
-  if (!window.maplibregl) {
-    console.warn(
-      "[map-app] window.maplibregl not found. Please load maplibre-gl in map-index.html."
-    );
-    return;
-  }
-
-  try {
-    map = new window.maplibregl.Map({
-      container,
-      style: {
-        version: 8,
-        sources: {},
-        layers: [
-          {
-            id: "background",
-            type: "background",
-            paint: {
-              "background-color": "#f8fafc",
-            },
-          },
-        ],
-      },
-      center: [0, 0],
-      zoom: 1,
-    });
-
-    map.addControl(new window.maplibregl.NavigationControl(), "top-right");
-
-    map.on("load", () => {
-      console.log("[map-app] map loaded");
-      refreshMap();
-    });
-  } catch (err) {
-    console.error("[map-app] map initialize error", err);
-  }
-}
-
-/* =========================================================
- * UIイベント
- * ========================================================= */
-
-function setupUiEvents() {
-  const select =
-    document.getElementById("divisionSelect") ||
-    document.getElementById("division-select") ||
-    document.querySelector("[data-division-select]");
-
-  if (select) {
-    select.addEventListener("change", () => {
-      const division = String(select.value ?? "").trim();
-
-      currentViewState = {
-        ...currentViewState,
-        division,
-      };
-
-      latestRowsByDevice = buildLatestRowsByDevice(
-        filterIotRowsByCurrentDivision(iotRows)
-      );
-
-      publishGlobals();
-      refreshMap();
-
-      notifyDivisionChangedToParent(division);
-    });
-  }
-}
-
-function refreshDivisionSelector() {
-  const select =
-    document.getElementById("divisionSelect") ||
-    document.getElementById("division-select") ||
-    document.querySelector("[data-division-select]");
-
-  if (!select) return;
-
-  const currentValue = String(currentViewState.division ?? "").trim();
-
-  select.innerHTML = "";
-
-  const emptyOption = document.createElement("option");
-  emptyOption.value = "";
-  emptyOption.textContent = "全Division";
-  select.appendChild(emptyOption);
-
-  for (const d of divisionRows) {
-    const option = document.createElement("option");
-    option.value = d.Division;
-    option.textContent = d.DivisionName || d.Division;
-    select.appendChild(option);
-  }
-
-  select.value = currentValue;
-}
-
-function syncDivisionSelectorFromViewState() {
-  const select =
-    document.getElementById("divisionSelect") ||
-    document.getElementById("division-select") ||
-    document.querySelector("[data-division-select]");
-
-  if (!select) return;
-
-  select.value = String(currentViewState.division ?? "").trim();
-}
-
-function notifyDivisionChangedToParent(division) {
-  if (!window.parent || window.parent === window) return;
-
-  try {
-    window.parent.postMessage(
-      {
-        type: "DIVISION_CHANGED",
-        division,
-      },
-      window.location.origin
-    );
-
-    console.log("[map-app] DIVISION_CHANGED sent", division);
-  } catch (err) {
-    console.error("[map-app] DIVISION_CHANGED send failed", err);
-  }
-}
-
-/* =========================================================
- * 描画更新
- *
- * 既存の描画関数がある場合は、この refreshMap 内から呼ぶ形にすると、
- * 入力がCSVでもAmplifyでも同じ描画経路になります。
- * ========================================================= */
-
-function refreshMap() {
-  latestRowsByDevice = buildLatestRowsByDevice(
-    filterIotRowsByCurrentDivision(iotRows)
-  );
-
-  publishGlobals();
-
-  console.log("[map-app] refreshMap", {
-    divisions: divisionRows.length,
-    devices: deviceRows.length,
-    iotRows: iotRows.length,
-    latestDevices: latestRowsByDevice.size,
-    viewState: currentViewState,
-  });
-
-  renderSummary();
-  renderDivisionListFallback();
-  renderDeviceListFallback();
-
-  /**
-   * 既存 map-app.js に以下のような関数がある場合は自動で呼びます。
-   * 既存名に合わせて必要ならここを変更してください。
-   */
-  callIfFunction("renderDivisions", divisionRows);
-  callIfFunction("renderDevices", getVisibleDevicesWithLatestValues());
-  callIfFunction("updateDeviceValuesOnMap", latestRowsByDevice);
-  callIfFunction("renderMap", {
-    divisions: divisionRows,
-    devices: getVisibleDevicesWithLatestValues(),
-    iotRows,
-    latestRowsByDevice,
-    viewState: currentViewState,
-  });
-  callIfFunction("updateMap", {
-    divisions: divisionRows,
-    devices: getVisibleDevicesWithLatestValues(),
-    iotRows,
-    latestRowsByDevice,
-    viewState: currentViewState,
-  });
-
-  /**
-   * このファイル自身でも最低限 MapLibre source/layer を更新します。
-   * 既存描画がある場合は不要ですが、害が少ないように安全に実行しています。
-   */
-  updateMapLibreLayers();
-}
-
-function getVisibleDevicesWithLatestValues() {
-  const selectedDivision = String(currentViewState.division ?? "").trim();
-
-  return deviceRows
-    .filter((device) => {
-      if (!selectedDivision) return true;
-      return String(device.Division ?? "").trim() === selectedDivision;
-    })
-    .map((device) => {
-      const latest = latestRowsByDevice.get(device.Device);
-
-      return {
-        ...device,
-        latest,
-        ActualTemp: latest?.ActualTemp ?? null,
-        ActualHumidity: latest?.ActualHumidity ?? null,
-        ActivePower: latest?.ActivePower ?? null,
-        ApparentPower: latest?.ApparentPower ?? null,
-        CumulativeEnergy: latest?.CumulativeEnergy ?? null,
-        WtTemp: latest?.WtTemp ?? null,
-        DeviceDatetime:
-          latest?.DeviceDatetime ??
-          latest?.DatetimeAgg ??
-          latest?.DeviceTimestamp ??
-          null,
-      };
-    });
-}
-
-/* =========================================================
- * MapLibre 最低限描画
- *
- * 既存の Babylon.js / deck.gl / MapLibre 描画がある場合は
- * このブロックは使わなくてもOKです。
- * ========================================================= */
-
-function updateMapLibreLayers() {
-  if (!map) return;
-  if (!map.loaded()) return;
-
-  const divisionFeatureCollection = buildDivisionFeatureCollection();
-  const deviceFeatureCollection = buildDeviceFeatureCollection();
-
-  upsertGeoJsonSource("divisions-source", divisionFeatureCollection);
-  upsertGeoJsonSource("devices-source", deviceFeatureCollection);
-
-  if (!map.getLayer("divisions-fill")) {
-    map.addLayer({
-      id: "divisions-fill",
-      type: "fill",
-      source: "divisions-source",
-      paint: {
-        "fill-color": "#93c5fd",
-        "fill-opacity": 0.25,
-      },
-    });
-  }
-
-  if (!map.getLayer("divisions-line")) {
-    map.addLayer({
-      id: "divisions-line",
-      type: "line",
-      source: "divisions-source",
-      paint: {
-        "line-color": "#2563eb",
-        "line-width": 2,
-      },
-    });
-  }
-
-  if (!map.getLayer("devices-circle")) {
-    map.addLayer({
-      id: "devices-circle",
-      type: "circle",
-      source: "devices-source",
-      paint: {
-        "circle-radius": 6,
-        "circle-color": "#ef4444",
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": 2,
-      },
-    });
-  }
-
-  fitToAvailableFeatures(divisionFeatureCollection, deviceFeatureCollection);
-}
-
-function upsertGeoJsonSource(sourceId, data) {
-  if (!map) return;
-
-  const source = map.getSource(sourceId);
-
-  if (source && typeof source.setData === "function") {
-    source.setData(data);
-    return;
-  }
-
-  map.addSource(sourceId, {
-    type: "geojson",
-    data,
-  });
-}
-
-function buildDivisionFeatureCollection() {
-  const features = [];
-
-  for (const division of divisionRows) {
-    const polygon = normalizePolygon(
-      division.DivisionPolygon ?? division.Polygon
-    );
-
-    if (!polygon) continue;
-
-    const coordinates = normalizePolygonToGeoJsonCoordinates(polygon);
-    if (!coordinates) continue;
-
-    features.push({
-      type: "Feature",
-      properties: {
-        Division: division.Division,
-        DivisionName: division.DivisionName,
-      },
-      geometry: {
-        type: "Polygon",
-        coordinates,
-      },
-    });
-  }
-
-  return {
-    type: "FeatureCollection",
-    features,
-  };
-}
-
-function buildDeviceFeatureCollection() {
-  const features = [];
-
-  for (const device of getVisibleDevicesWithLatestValues()) {
-    const point = getDevicePoint(device);
-    if (!point) continue;
-
-    features.push({
-      type: "Feature",
-      properties: {
-        Device: device.Device,
-        DeviceName: device.DeviceName,
-        Division: device.Division,
-        DeviceType: device.DeviceType,
-        ActualTemp: device.ActualTemp,
-        ActualHumidity: device.ActualHumidity,
-        ActivePower: device.ActivePower,
-        DeviceDatetime: device.DeviceDatetime,
-      },
-      geometry: {
-        type: "Point",
-        coordinates: point,
-      },
-    });
-  }
-
-  return {
-    type: "FeatureCollection",
-    features,
-  };
-}
-
-function getDevicePoint(device) {
-  const lng = toNumberOrNull(device.Lng);
-  const lat = toNumberOrNull(device.Lat);
-
-  if (lng != null && lat != null) {
-    return [lng, lat];
-  }
-
-  const x = toNumberOrNull(device.X);
-  const y = toNumberOrNull(device.Y);
-
-  if (x != null && y != null) {
-    return [x, y];
-  }
-
-  return null;
-}
-
-function fitToAvailableFeatures(...collections) {
-  if (!map) return;
-
-  const coords = [];
-
-  for (const collection of collections) {
-    for (const feature of collection.features ?? []) {
-      collectCoordinates(feature.geometry, coords);
-    }
-  }
-
-  if (coords.length === 0) return;
-
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-
-  for (const [x, y] of coords) {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-  }
-
-  if (
-    !Number.isFinite(minX) ||
-    !Number.isFinite(minY) ||
-    !Number.isFinite(maxX) ||
-    !Number.isFinite(maxY)
-  ) {
-    return;
-  }
-
-  if (minX === maxX && minY === maxY) {
-    map.setCenter([minX, minY]);
-    map.setZoom(16);
-    return;
-  }
-
-  map.fitBounds(
-    [
-      [minX, minY],
-      [maxX, maxY],
-    ],
-    {
-      padding: 40,
-      duration: 0,
-    }
-  );
-}
-
-function collectCoordinates(geometry, out) {
-  if (!geometry) return;
-
-  if (geometry.type === "Point") {
-    out.push(geometry.coordinates);
-    return;
-  }
-
-  if (geometry.type === "Polygon") {
-    for (const ring of geometry.coordinates ?? []) {
-      for (const coord of ring ?? []) {
-        out.push(coord);
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        continue;
       }
-    }
-    return;
-  }
 
-  if (geometry.type === "MultiPolygon") {
-    for (const polygon of geometry.coordinates ?? []) {
-      for (const ring of polygon ?? []) {
-        for (const coord of ring ?? []) {
-          out.push(coord);
+      if (char === "," && !inQuotes) {
+        row.push(field);
+        field = "";
+        continue;
+      }
+
+      if ((char === "\n" || char === "\r") && !inQuotes) {
+        if (char === "\r" && next === "\n") {
+          i++;
         }
+
+        row.push(field);
+        field = "";
+
+        if (row.some(v => String(v).trim() !== "")) {
+          rows.push(row);
+        }
+
+        row = [];
+        continue;
       }
+
+      field += char;
     }
+
+    row.push(field);
+
+    if (row.some(v => String(v).trim() !== "")) {
+      rows.push(row);
+    }
+
+    if (rows.length <= 1) {
+      return [];
+    }
+
+    const headers = rows[0].map(h => String(h || "").trim());
+
+    return rows.slice(1).map(cols => {
+      const obj = {};
+
+      headers.forEach((h, i) => {
+        obj[h] = cols[i] ?? "";
+      });
+
+      return obj;
+    });
   }
-}
 
-/* =========================================================
- * fallback DOM 描画
- *
- * map-index.html に以下があれば表示されます:
- *   #status
- *   #summary
- *   #divisionList
- *   #deviceList
- * ========================================================= */
-
-function showStatus(message) {
-  const el =
-    document.getElementById("status") ||
-    document.getElementById("map-status") ||
-    document.querySelector("[data-status]");
-
-  if (el) {
-    el.textContent = message;
-  }
-
-  console.log("[map-app status]", message);
-}
-
-function renderSummary() {
-  const el =
-    document.getElementById("summary") ||
-    document.getElementById("map-summary") ||
-    document.querySelector("[data-summary]");
-
-  if (!el) return;
-
-  el.textContent =
-    `Division=${currentViewState.division || "ALL"} / ` +
-    `divisions=${divisionRows.length} / ` +
-    `devices=${deviceRows.length} / ` +
-    `iotRows=${iotRows.length} / ` +
-    `latestDevices=${latestRowsByDevice.size}`;
-}
-
-function renderDivisionListFallback() {
-  const el =
-    document.getElementById("divisionList") ||
-    document.getElementById("division-list") ||
-    document.querySelector("[data-division-list]");
-
-  if (!el) return;
-
-  el.innerHTML = "";
-
-  const selectedDivision = String(currentViewState.division ?? "").trim();
-
-  const visible = selectedDivision
-    ? divisionRows.filter((d) => d.Division === selectedDivision)
-    : divisionRows;
-
-  for (const d of visible) {
-    const item = document.createElement("div");
-    item.textContent = `${d.DivisionName || d.Division} (${d.Division})`;
-    item.style.padding = "4px 0";
-    el.appendChild(item);
-  }
-}
-
-function renderDeviceListFallback() {
-  const el =
-    document.getElementById("deviceList") ||
-    document.getElementById("device-list") ||
-    document.querySelector("[data-device-list]");
-
-  if (!el) return;
-
-  el.innerHTML = "";
-
-  const devices = getVisibleDevicesWithLatestValues();
-
-  for (const d of devices) {
-    const item = document.createElement("div");
-
-    const temp =
-      d.ActualTemp == null || d.ActualTemp === ""
-        ? "-"
-        : `${Number(d.ActualTemp).toFixed(1)}℃`;
-
-    const power =
-      d.ActivePower == null || d.ActivePower === ""
-        ? "-"
-        : `${Number(d.ActivePower).toFixed(1)}`;
-
-    item.textContent =
-      `${d.DeviceName || d.Device} (${d.Device})` +
-      ` / Division=${d.Division || "-"}` +
-      ` / Temp=${temp}` +
-      ` / ActivePower=${power}`;
-
-    item.style.padding = "4px 0";
-    el.appendChild(item);
-  }
-}
-
-/* =========================================================
- * master index
- * ========================================================= */
-
-let divisionByCode = new Map();
-let deviceByCode = new Map();
-
-function rebuildMasterIndexes() {
-  divisionByCode = new Map();
-  deviceByCode = new Map();
-
-  for (const d of divisionRows) {
-    if (d.Division) {
-      divisionByCode.set(d.Division, d);
+  // =========================================================
+  // 文字コード対応
+  // - UTF-8
+  // - Shift_JIS / CP932
+  // =========================================================
+  function decodeArrayBuffer(buffer) {
+    try {
+      return new TextDecoder("utf-8", {
+        fatal: true
+      }).decode(buffer);
+    } catch (e) {
+      console.warn("[MAP] UTF-8 decode failed → Shift_JISで再読込");
+      return new TextDecoder("shift_jis").decode(buffer);
     }
   }
 
-  for (const d of deviceRows) {
-    if (d.Device) {
-      deviceByCode.set(d.Device, d);
+  async function readTextFile(file) {
+    const buffer = await file.arrayBuffer();
+    return decodeArrayBuffer(buffer);
+  }
+
+  async function fetchTextSmart(url) {
+    const res = await fetch(url, {
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      throw new Error(`fetch failed: ${url}, status=${res.status}`);
     }
+
+    const buffer = await res.arrayBuffer();
+    return decodeArrayBuffer(buffer);
   }
 
-  window.__divisionByCode = divisionByCode;
-  window.__deviceByCode = deviceByCode;
-}
+  // =========================================================
+  // DivisionOutline文字列 / 配列 → GeoJSON coordinates
+  // =========================================================
+  function parseDivisionOutline(value) {
+    if (!value) return null;
 
-/* =========================================================
- * utility
- * ========================================================= */
-
-function publishGlobals() {
-  window.__currentViewState = currentViewState;
-  window.__rawDivisionRows = rawDivisionRows;
-  window.__rawDeviceRows = rawDeviceRows;
-  window.__rawIotRows = rawIotRows;
-
-  window.__divisionRows = divisionRows;
-  window.__deviceRows = deviceRows;
-  window.__iotRows = iotRows;
-  window.__latestRowsByDevice = latestRowsByDevice;
-}
-
-function callIfFunction(name, ...args) {
-  const fn = window[name];
-
-  if (typeof fn !== "function") return;
-
-  try {
-    fn(...args);
-  } catch (err) {
-    console.error(`[map-app] ${name} failed`, err);
-  }
-}
-
-function pickFirst(row, keys) {
-  for (const key of keys) {
-    if (row == null) continue;
-
-    const value = row[key];
-
-    if (value !== undefined && value !== null && String(value).trim() !== "") {
+    // Amplify / AppSync / DynamoDB から配列として来た場合
+    if (Array.isArray(value)) {
       return value;
     }
-  }
 
-  return null;
-}
+    let s = String(value).trim();
 
-function pickString(row, keys) {
-  const value = pickFirst(row, keys);
-  if (value == null) return "";
+    // CSV由来で外側に余分な " が付く場合を吸収
+    s = s.replace(/^"|"$/g, "");
 
-  return String(value).trim();
-}
-
-function pickNumber(row, keys) {
-  return toNumberOrNull(pickFirst(row, keys));
-}
-
-function toNumberOrNull(value) {
-  if (value == null) return null;
-
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  const s = String(value)
-    .trim()
-    .replace(/^'+/, "")
-    .replace(/^[\"']|[\"']$/g, "")
-    .replace(/[−ー―]/g, "-")
-    .replace(/,/g, "");
-
-  if (!s) return null;
-
-  const n = Number(s);
-
-  return Number.isFinite(n) ? n : null;
-}
-
-function normalizeDateTime(value) {
-  if (value == null) return null;
-
-  let s = String(value).trim();
-  if (!s) return null;
-
-  if (s.includes(" ") && !s.includes("T")) {
-    s = s.replace(" ", "T");
-  }
-
-  if (
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
-    !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
-  ) {
-    s += "+09:00";
-  }
-
-  return s;
-}
-
-function normalizePolygon(value) {
-  if (value == null || value === "") return null;
-
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === "object") {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const s = value.trim();
-    if (!s) return null;
+    // CSV保存時のエスケープ吸収
+    s = s
+      .replace(/\\\[/g, "[")
+      .replace(/\\\]/g, "]")
+      .replace(/\\"/g, '"');
 
     try {
-      return JSON.parse(s);
-    } catch {
+      const parsed = JSON.parse(s);
+
+      if (!Array.isArray(parsed)) {
+        console.warn("[MAP] DivisionOutline is not array:", parsed);
+        return null;
+      }
+
+      return parsed;
+
+    } catch (e) {
+      console.warn("[MAP] DivisionOutline JSON parse error:", value, e);
       return null;
     }
   }
 
-  return null;
-}
+  // =========================================================
+  // CSV rows / parent rows → Division GeoJSON
+  // =========================================================
+  function buildDivisionGeoJSONFromRows(rows) {
+    const features = [];
 
-function normalizePolygonToGeoJsonCoordinates(value) {
-  const polygon = normalizePolygon(value);
-  if (!polygon) return null;
+    for (const r of rows || []) {
+      const division = String(
+        r.Division ||
+        r.division ||
+        r.DivisionName ||
+        r.divisionName ||
+        r.name ||
+        ""
+      ).trim();
 
-  /**
-   * GeoJSON Polygon:
-   * [
-   *   [
-   *     [lng, lat],
-   *     [lng, lat],
-   *     ...
-   *   ]
-   * ]
-   */
-  if (
-    Array.isArray(polygon) &&
-    Array.isArray(polygon[0]) &&
-    Array.isArray(polygon[0][0]) &&
-    typeof polygon[0][0][0] !== "undefined"
-  ) {
-    return ensureClosedPolygonCoordinates(polygon);
-  }
+      const outline =
+        r.DivisionOutline ??
+        r.divisionOutline ??
+        r.DivisionPolygon ??
+        r.divisionPolygon ??
+        r.Polygon ??
+        r.polygon;
 
-  /**
-   * 単純な点配列:
-   * [
-   *   [x, y],
-   *   [x, y],
-   *   ...
-   * ]
-   */
-  if (
-    Array.isArray(polygon) &&
-    Array.isArray(polygon[0]) &&
-    typeof polygon[0][0] !== "undefined" &&
-    typeof polygon[0][1] !== "undefined"
-  ) {
-    return ensureClosedPolygonCoordinates([polygon]);
-  }
+      if (!division || !outline) {
+        continue;
+      }
 
-  /**
-   * { coordinates: [...] } 形式
-   */
-  if (polygon && Array.isArray(polygon.coordinates)) {
-    return normalizePolygonToGeoJsonCoordinates(polygon.coordinates);
-  }
+      const coordinates = parseDivisionOutline(outline);
 
-  /**
-   * { points: [...] } 形式
-   */
-  if (polygon && Array.isArray(polygon.points)) {
-    return normalizePolygonToGeoJsonCoordinates(polygon.points);
-  }
+      if (!coordinates) {
+        continue;
+      }
 
-  return null;
-}
-
-function ensureClosedPolygonCoordinates(coordinates) {
-  if (!Array.isArray(coordinates)) return null;
-
-  return coordinates.map((ring) => {
-    const normalizedRing = ring
-      .map((p) => {
-        if (!Array.isArray(p)) return null;
-
-        const x = toNumberOrNull(p[0]);
-        const y = toNumberOrNull(p[1]);
-
-        if (x == null || y == null) return null;
-
-        return [x, y];
-      })
-      .filter(Boolean);
-
-    if (normalizedRing.length === 0) return normalizedRing;
-
-    const first = normalizedRing[0];
-    const last = normalizedRing[normalizedRing.length - 1];
-
-    if (first[0] !== last[0] || first[1] !== last[1]) {
-      normalizedRing.push([...first]);
+      features.push({
+        type: "Feature",
+        properties: {
+          Division: division,
+          name: division,
+          height: Number(r.Height ?? r.height ?? 7)
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates
+        }
+      });
     }
 
-    return normalizedRing;
-  });
-}
-
-function getErrorMessage(err) {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
-
-/* =========================================================
- * デバッグ用
- * ========================================================= */
-
-window.mapAppDebug = {
-  getState() {
     return {
-      embedMode,
-      currentViewState,
-      rawDivisionRows,
-      rawDeviceRows,
-      rawIotRows,
-      divisionRows,
-      deviceRows,
-      iotRows,
-      latestRowsByDevice,
-      divisionByCode,
-      deviceByCode,
+      type: "FeatureCollection",
+      features
     };
-  },
+  }
 
-  refreshMap,
+  // =========================================================
+  // Device rows → rawDeviceData
+  // =========================================================
+  function parseNumberValue(value, fallback = 0) {
+    const n = Number(String(value ?? "").trim());
+    return Number.isFinite(n) ? n : fallback;
+  }
 
-  setViewState(next) {
-    currentViewState = {
-      ...currentViewState,
-      ...next,
+  function parseRotationValue(value, fallback = 0) {
+    const s = String(value ?? "").trim();
+
+    if (!s) return fallback;
+
+    const direct = Number(s);
+
+    if (Number.isFinite(direct)) {
+      return direct;
+    }
+
+    const allowed = s.replace(/\s+/g, "");
+
+    if (!/^[0-9+\-*/().MathPI]+$/.test(allowed)) {
+      console.warn("[MAP] invalid rot expression:", value);
+      return fallback;
+    }
+
+    try {
+      const expr = allowed.replace(/Math\.PI/g, String(Math.PI));
+      const result = Function(`"use strict"; return (${expr});`)();
+
+      return Number.isFinite(result) ? result : fallback;
+
+    } catch (e) {
+      console.warn("[MAP] rot parse error:", value, e);
+      return fallback;
+    }
+  }
+
+  function buildDeviceDataFromRows(rows) {
+    const devices = [];
+
+    for (const r of rows || []) {
+      const type = String(
+        r.type ||
+        r.Type ||
+        r.DeviceType ||
+        r.deviceType ||
+        ""
+      ).trim();
+
+      const lon = parseNumberValue(
+        r.lon ??
+        r.Lon ??
+        r.Longitude ??
+        r.longitude,
+        NaN
+      );
+
+      const lat = parseNumberValue(
+        r.lat ??
+        r.Lat ??
+        r.Latitude ??
+        r.latitude,
+        NaN
+      );
+
+      const height = parseNumberValue(
+        r.height ??
+        r.Height,
+        0
+      );
+
+      const rot = parseRotationValue(
+        r.rot ??
+        r.Rot ??
+        r.Rotation ??
+        r.rotation,
+        0
+      );
+
+      const label = String(
+        r.DeviceName ||
+        r.deviceName ||
+        r.Device ||
+        r.device ||
+        r.label ||
+        r.Label ||
+        ""
+      ).trim();
+
+      const fallbackTempRaw =
+        r.fallbackTemp ??
+        r.FallbackTemp ??
+        r.ActualTemp ??
+        r.actualTemp ??
+        "";
+
+      const fallbackTemp =
+        fallbackTempRaw === ""
+          ? null
+          : parseNumberValue(fallbackTempRaw, null);
+
+      if (!type || !Number.isFinite(lon) || !Number.isFinite(lat) || !label) {
+        console.warn("[MAP] invalid device row skipped:", r);
+        continue;
+      }
+
+      if (!deviceTypeToModel[type]) {
+        console.warn("[MAP] unknown device type skipped:", r);
+        continue;
+      }
+
+      devices.push([
+        type,
+        lon,
+        lat,
+        height,
+        rot,
+        label,
+        fallbackTemp
+      ]);
+    }
+
+    return devices;
+  }
+
+  function buildModelConfigs(deviceData) {
+    return Object.values(
+      (deviceData || []).reduce((acc, device, index) => {
+        const [type, lon, lat, height, rot, label, fallbackTemp] = device;
+        const url = deviceTypeToModel[type];
+
+        if (!url) {
+          console.warn("[MAP] unknown device type:", type);
+          return acc;
+        }
+
+        if (!acc[url]) {
+          acc[url] = {
+            url,
+            devices: []
+          };
+        }
+
+        acc[url].devices.push({
+          index,
+          type,
+          lon,
+          lat,
+          height,
+          rot,
+          label,
+          fallbackTemp
+        });
+
+        return acc;
+      }, {})
+    );
+  }
+
+  // =========================================================
+  // File loaders
+  // =========================================================
+  async function loadDivisionGeoJSONFromFile(file) {
+    const text = await readTextFile(file);
+    const rows = parseCsv(text);
+
+    console.log("[MAP] division csv rows", rows);
+
+    const geojson = buildDivisionGeoJSONFromRows(rows);
+
+    console.log("[MAP] division geojson from file", geojson);
+
+    return geojson;
+  }
+
+  async function loadDeviceDataFromFile(file) {
+    const text = await readTextFile(file);
+    const rows = parseCsv(text);
+
+    console.log("[MAP] device csv rows", rows);
+
+    const devices = buildDeviceDataFromRows(rows);
+
+    console.log("[MAP] device data from file", devices);
+
+    return devices;
+  }
+
+  async function tryAutoLoadDivisionGeoJSON() {
+    if (window.location.protocol === "file:") {
+      console.warn(
+        "[MAP] file:// のため fetch('./division.csv') はスキップします。CSVボタンから読み込んでください。"
+      );
+      return null;
+    }
+
+    try {
+      const text = await fetchTextSmart("./division.csv");
+      const rows = parseCsv(text);
+      const geojson = buildDivisionGeoJSONFromRows(rows);
+
+      console.log("[MAP] division geojson from fetch", geojson);
+
+      return geojson;
+
+    } catch (e) {
+      console.warn("[MAP] division.csv auto fetch error:", e);
+      return null;
+    }
+  }
+
+  async function tryAutoLoadDeviceData() {
+    if (window.location.protocol === "file:") {
+      console.warn(
+        "[MAP] file:// のため fetch('./device.csv') はスキップします。Device CSVボタンから読み込んでください。"
+      );
+      return null;
+    }
+
+    try {
+      const text = await fetchTextSmart("./device.csv");
+      const rows = parseCsv(text);
+      const devices = buildDeviceDataFromRows(rows);
+
+      console.log("[MAP] device data from fetch", devices);
+
+      return devices;
+
+    } catch (e) {
+      console.warn("[MAP] device.csv auto fetch error:", e);
+      return null;
+    }
+  }
+
+  // =========================================================
+  // Division GeoJSON state
+  // =========================================================
+  function setDivisionGeoJSON(geojson) {
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.warn("[MAP] Division GeoJSON が空です");
+      appState.divisionGeoJSON = null;
+      return;
+    }
+
+    appState.divisionGeoJSON = geojson;
+
+    console.log("[MAP] Division GeoJSON set for Babylon", geojson);
+  }
+
+  // =========================================================
+  // Babylon座標変換
+  // =========================================================
+  function lngLatToBabylonVector(lon, lat, y) {
+    const offset =
+      maplibregl.MercatorCoordinate.fromLngLat(
+        [lon, lat],
+        worldAltitude
+      );
+
+    const dx =
+      (offset.x - babylonRuntime.worldOriginMercator.x) /
+      babylonRuntime.worldScale;
+
+    const dz =
+      (offset.y - babylonRuntime.worldOriginMercator.y) /
+      babylonRuntime.worldScale;
+
+    return new BABYLON.Vector3(dx, y, -dz);
+  }
+
+  function isSamePoint2D(a, b) {
+    if (!a || !b) return false;
+
+    return (
+      Math.abs(Number(a[0]) - Number(b[0])) < 1e-12 &&
+      Math.abs(Number(a[1]) - Number(b[1])) < 1e-12
+    );
+  }
+
+  function normalizeRing(ring) {
+    if (!Array.isArray(ring)) return [];
+
+    const points = ring
+      .filter(p =>
+        Array.isArray(p) &&
+        Number.isFinite(Number(p[0])) &&
+        Number.isFinite(Number(p[1]))
+      )
+      .map(p => [Number(p[0]), Number(p[1])]);
+
+    if (
+      points.length >= 2 &&
+      isSamePoint2D(points[0], points[points.length - 1])
+    ) {
+      points.pop();
+    }
+
+    return points;
+  }
+
+  // =========================================================
+  // Babylon root helpers
+  // =========================================================
+  function disposeNode(node) {
+    if (!node) return;
+
+    try {
+      node.dispose(false, true);
+    } catch (e) {
+      console.warn("[MAP] dispose skipped:", e);
+    }
+  }
+
+  function createRootNode(name) {
+    return new BABYLON.TransformNode(
+      name,
+      babylonRuntime.scene
+    );
+  }
+
+  function ensureBabylonSceneReady() {
+    return (
+      babylonRuntime.sceneReady &&
+      babylonRuntime.scene &&
+      babylonRuntime.worldOriginMercator &&
+      babylonRuntime.worldScale
+    );
+  }
+
+  // =========================================================
+  // Materials
+  // =========================================================
+  function createDivisionBoxMaterial(name) {
+    const mat = new BABYLON.StandardMaterial(
+      name,
+      babylonRuntime.scene
+    );
+
+    mat.diffuseColor = new BABYLON.Color3(0.25, 0.55, 1.0);
+    mat.emissiveColor = new BABYLON.Color3(0.02, 0.08, 0.16);
+    mat.alpha = 0.18;
+    mat.backFaceCulling = false;
+    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+
+    return mat;
+  }
+
+  function createEdgeMaterial(name) {
+    const mat = new BABYLON.StandardMaterial(
+      name,
+      babylonRuntime.scene
+    );
+
+    const color = new BABYLON.Color3(1.0, 0.68, 0.0);
+
+    mat.diffuseColor = color;
+    mat.emissiveColor = color;
+    mat.alpha = 1.0;
+    mat.backFaceCulling = false;
+
+    return mat;
+  }
+
+  // =========================================================
+  // Division mesh
+  // =========================================================
+  function createTubeLine(name, path, radius, material, parent) {
+    if (!path || path.length < 2) return null;
+
+    const mesh = BABYLON.MeshBuilder.CreateTube(
+      name,
+      {
+        path,
+        radius,
+        tessellation: 8,
+        updatable: false
+      },
+      babylonRuntime.scene
+    );
+
+    mesh.material = material;
+    mesh.parent = parent;
+    mesh.alwaysSelectAsActiveMesh = true;
+
+    return mesh;
+  }
+
+  function createDivisionBoxEdges(
+    bottomPoints,
+    topPoints,
+    featureIndex,
+    divisionName,
+    height,
+    parent
+  ) {
+    const n = bottomPoints.length;
+
+    if (n < 3) return;
+
+    const edgeRadius = 0.035;
+    const edgeMaterial = createEdgeMaterial(
+      `division-edge-mat-${featureIndex}`
+    );
+
+    const bottomLoop = bottomPoints.map(p => p.clone());
+    bottomLoop.push(bottomPoints[0].clone());
+
+    const topLoop = topPoints.map(p => p.clone());
+    topLoop.push(topPoints[0].clone());
+
+    const bottomEdge = createTubeLine(
+      `division-bottom-edge-${featureIndex}`,
+      bottomLoop,
+      edgeRadius,
+      edgeMaterial,
+      parent
+    );
+
+    const topEdge = createTubeLine(
+      `division-top-edge-${featureIndex}`,
+      topLoop,
+      edgeRadius,
+      edgeMaterial,
+      parent
+    );
+
+    if (bottomEdge) {
+      bottomEdge.metadata = {
+        type: "DivisionBottomEdge",
+        division: divisionName,
+        height
+      };
+    }
+
+    if (topEdge) {
+      topEdge.metadata = {
+        type: "DivisionTopEdge",
+        division: divisionName,
+        height
+      };
+    }
+
+    for (let i = 0; i < n; i++) {
+      const verticalEdge = createTubeLine(
+        `division-vertical-edge-${featureIndex}-${i}`,
+        [
+          bottomPoints[i].clone(),
+          topPoints[i].clone()
+        ],
+        edgeRadius,
+        edgeMaterial,
+        parent
+      );
+
+      if (verticalEdge) {
+        verticalEdge.metadata = {
+          type: "DivisionVerticalEdge",
+          division: divisionName,
+          height
+        };
+      }
+    }
+  }
+
+  function createDivisionBoxMesh(feature, featureIndex, parent) {
+    const geometry = feature.geometry;
+
+    if (!geometry || geometry.type !== "Polygon") {
+      console.warn("[MAP] Polygon以外のgeometryはスキップします:", geometry);
+      return;
+    }
+
+    const outerRing = normalizeRing(geometry.coordinates?.[0]);
+
+    if (outerRing.length < 3) {
+      console.warn("[MAP] Division polygon points are insufficient:", feature);
+      return;
+    }
+
+    const height = Number(feature.properties?.height || 7);
+
+    const divisionName =
+      feature.properties?.Division ||
+      feature.properties?.name ||
+      `division-${featureIndex}`;
+
+    const bottomPoints = outerRing.map(([lon, lat]) =>
+      lngLatToBabylonVector(
+        lon,
+        lat,
+        0
+      )
+    );
+
+    const topPoints = outerRing.map(([lon, lat]) =>
+      lngLatToBabylonVector(
+        lon,
+        lat,
+        height
+      )
+    );
+
+    const positions = [];
+    const indices = [];
+
+    function addVertex(v) {
+      positions.push(v.x, v.y, v.z);
+      return positions.length / 3 - 1;
+    }
+
+    const bottomIdx = bottomPoints.map(addVertex);
+    const topIdx = topPoints.map(addVertex);
+
+    const n = bottomPoints.length;
+
+    // 床面
+    // 注意: 凹形ポリゴンの場合は三角形ファンでは崩れる可能性あり
+    for (let i = 1; i < n - 1; i++) {
+      indices.push(bottomIdx[0], bottomIdx[i + 1], bottomIdx[i]);
+    }
+
+    // 天井面
+    for (let i = 1; i < n - 1; i++) {
+      indices.push(topIdx[0], topIdx[i], topIdx[i + 1]);
+    }
+
+    // 壁面
+    for (let i = 0; i < n; i++) {
+      const next = (i + 1) % n;
+
+      const b1 = bottomIdx[i];
+      const b2 = bottomIdx[next];
+      const t1 = topIdx[i];
+      const t2 = topIdx[next];
+
+      indices.push(b1, b2, t2);
+      indices.push(b1, t2, t1);
+    }
+
+    const normals = [];
+
+    BABYLON.VertexData.ComputeNormals(
+      positions,
+      indices,
+      normals
+    );
+
+    const vertexData = new BABYLON.VertexData();
+
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    vertexData.normals = normals;
+
+    const mesh = new BABYLON.Mesh(
+      `division-box-${featureIndex}`,
+      babylonRuntime.scene
+    );
+
+    vertexData.applyToMesh(mesh);
+
+    mesh.material = createDivisionBoxMaterial(
+      `division-box-mat-${featureIndex}`
+    );
+
+    mesh.parent = parent;
+    mesh.alwaysSelectAsActiveMesh = true;
+
+    mesh.metadata = {
+      type: "DivisionBox",
+      division: divisionName,
+      height
     };
 
-    refreshMap();
-  },
-};
+    createDivisionBoxEdges(
+      bottomPoints,
+      topPoints,
+      featureIndex,
+      divisionName,
+      height,
+      parent
+    );
+
+    console.log("[MAP] Division Babylon box created:", divisionName);
+  }
+
+  function rebuildDivisionMeshes() {
+    if (!ensureBabylonSceneReady()) {
+      console.warn("[MAP] Babylon scene not ready. Division rebuild skipped.");
+      return;
+    }
+
+    disposeNode(babylonRuntime.divisionRoot);
+
+    babylonRuntime.divisionRoot = createRootNode("division-root");
+
+    const geojson = appState.divisionGeoJSON;
+
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.warn("[MAP] Division GeoJSON がないためBabylon直方体は作成しません");
+      return;
+    }
+
+    geojson.features.forEach((feature, featureIndex) => {
+      createDivisionBoxMesh(
+        feature,
+        featureIndex,
+        babylonRuntime.divisionRoot
+      );
+    });
+
+    console.log("[MAP] Division meshes rebuilt");
+  }
+
+  // =========================================================
+  // Device model cache
+  // =========================================================
+  async function getModelTemplate(url) {
+    if (babylonRuntime.modelCache.has(url)) {
+      return babylonRuntime.modelCache.get(url);
+    }
+
+    const container =
+      await BABYLON.SceneLoader.LoadAssetContainerAsync(
+        MODEL_BASE_URL,
+        url,
+        babylonRuntime.scene
+      );
+
+    const templateRoot = container.createRootMesh();
+
+    container.addAllToScene();
+
+    templateRoot.setEnabled(false);
+
+    const cached = {
+      container,
+      templateRoot
+    };
+
+    babylonRuntime.modelCache.set(url, cached);
+
+    console.log("[MAP] model cached:", url);
+
+    return cached;
+  }
+
+  function setMetadataRecursive(mesh, metadata) {
+    mesh.metadata = metadata;
+
+    mesh.getChildMeshes().forEach(child => {
+      child.metadata = metadata;
+    });
+  }
+
+  async function rebuildDeviceMeshes() {
+    if (!ensureBabylonSceneReady()) {
+      console.warn("[MAP] Babylon scene not ready. Device rebuild skipped.");
+      return;
+    }
+
+    const currentVersion = ++babylonRuntime.deviceVersion;
+
+    disposeNode(babylonRuntime.deviceRoot);
+
+    babylonRuntime.deviceRoot = createRootNode("device-root");
+
+    if (!rawDeviceData || rawDeviceData.length === 0) {
+      console.warn("[MAP] Device data が空のためDevice meshは作成しません");
+      return;
+    }
+
+    const modelConfigs = buildModelConfigs(rawDeviceData);
+
+    for (let modelIndex = 0; modelIndex < modelConfigs.length; modelIndex++) {
+      const { url, devices } = modelConfigs[modelIndex];
+
+      let cached;
+
+      try {
+        cached = await getModelTemplate(url);
+      } catch (err) {
+        console.error("[MAP] model load failed:", url, err);
+        continue;
+      }
+
+      // 読込中に別のCSV/parent dataが読み込まれた場合、古い処理を破棄
+      if (currentVersion !== babylonRuntime.deviceVersion) {
+        console.warn("[MAP] stale device rebuild skipped:", url);
+        return;
+      }
+
+      const templateRoot = cached.templateRoot;
+
+      devices.forEach((device, i) => {
+        const {
+          type,
+          lon,
+          lat,
+          height,
+          rot,
+          label
+        } = device;
+
+        const pos = lngLatToBabylonVector(
+          lon,
+          lat,
+          height
+        );
+
+        const mesh = templateRoot.clone(
+          `device-${modelIndex}-instance-${i}`
+        );
+
+        mesh.position.set(pos.x, pos.y, pos.z);
+        mesh.rotation.y = rot;
+        mesh.parent = babylonRuntime.deviceRoot;
+        mesh.setEnabled(true);
+
+        setMetadataRecursive(mesh, {
+          type,
+          label
+        });
+      });
+    }
+
+    console.log("[MAP] Device meshes rebuilt:", rawDeviceData.length);
+  }
+
+  function rebuildBabylonContent() {
+    rebuildDivisionMeshes();
+    rebuildDeviceMeshes();
+  }
+
+  // =========================================================
+  // Babylon custom layer
+  // =========================================================
+  function createBabylonLayer() {
+    const worldOriginMercator =
+      maplibregl.MercatorCoordinate.fromLngLat(
+        worldOrigin,
+        worldAltitude
+      );
+
+    const worldScale =
+      worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+      new BABYLON.Vector3(
+        worldOriginMercator.x,
+        worldOriginMercator.y,
+        worldOriginMercator.z
+      )
+    );
+
+    babylonRuntime.worldOriginMercator = worldOriginMercator;
+    babylonRuntime.worldScale = worldScale;
+    babylonRuntime.worldMatrix = worldMatrix;
+
+    return {
+      id: "babylon-device-layer",
+      type: "custom",
+      renderingMode: "3d",
+
+      onAdd(map, gl) {
+        console.log("[MAP] Babylon layer onAdd");
+
+        babylonRuntime.map = map;
+
+        this.map = map;
+
+        babylonRuntime.engine = new BABYLON.Engine(
+          gl,
+          true,
+          {
+            useHighPrecisionMatrix: true
+          },
+          true
+        );
+
+        babylonRuntime.scene = new BABYLON.Scene(
+          babylonRuntime.engine
+        );
+
+        const scene = babylonRuntime.scene;
+
+        scene.autoClear = false;
+        scene.preventDefaultOnPointerDown = false;
+        scene.preventDefaultOnPointerUp = false;
+
+        scene.beforeRender = () => {
+          babylonRuntime.engine.wipeCaches(true);
+        };
+
+        babylonRuntime.camera = new BABYLON.Camera(
+          "Camera",
+          new BABYLON.Vector3(0, 0, 0),
+          scene
+        );
+
+        const light = new BABYLON.HemisphericLight(
+          "light1",
+          new BABYLON.Vector3(0, 0, 100),
+          scene
+        );
+
+        light.intensity = 0.9;
+
+        babylonRuntime.divisionRoot = createRootNode("division-root");
+        babylonRuntime.deviceRoot = createRootNode("device-root");
+
+        scene.attachControl(map.getCanvas(), true);
+
+        babylonRuntime.sceneReady = true;
+
+        // 現在保持している Division / Device を生成
+        // CSV由来でも parent postMessage由来でも同じ入口
+        rebuildBabylonContent();
+      },
+
+      render(gl, args) {
+        if (!babylonRuntime.scene || !babylonRuntime.camera) {
+          return;
+        }
+
+        const cameraMatrix =
+          BABYLON.Matrix.FromArray(
+            args.defaultProjectionData.mainMatrix
+          );
+
+        const wvpMatrix =
+          babylonRuntime.worldMatrix.multiply(cameraMatrix);
+
+        babylonRuntime.camera.freezeProjectionMatrix(wvpMatrix);
+
+        babylonRuntime.scene.render(false);
+
+        this.map.triggerRepaint();
+      },
+
+      onRemove() {
+        try {
+          babylonRuntime.sceneReady = false;
+
+          disposeNode(babylonRuntime.divisionRoot);
+          disposeNode(babylonRuntime.deviceRoot);
+
+          babylonRuntime.modelCache.forEach(({ container }) => {
+            try {
+              container.dispose();
+            } catch (e) {
+              console.warn("[MAP] model container dispose skipped:", e);
+            }
+          });
+
+          babylonRuntime.modelCache.clear();
+
+          babylonRuntime.scene?.dispose();
+          babylonRuntime.engine?.dispose();
+
+        } catch (e) {
+          console.warn("[MAP] Babylon layer dispose skipped:", e);
+        }
+      }
+    };
+  }
+
+  function addBabylonLayerOnce(map) {
+    if (!map) return;
+
+    if (map.getLayer("babylon-device-layer")) {
+      console.log("[MAP] Babylon layer already exists");
+      return;
+    }
+
+    map.addLayer(createBabylonLayer());
+
+    babylonRuntime.layerAdded = true;
+
+    console.log("[MAP] Babylon layer added once");
+  }
+
+  // =========================================================
+  // parent postMessage receiver
+  // - Amplify / Next.js page.tsx から Division / Device / IoT rows を受け取る
+  // - standalone CSV機能はそのまま維持
+  // =========================================================
+  function applyDivisionRowsFromParent(rows) {
+    appState.divisionSource = "parent";
+
+    const geojson = buildDivisionGeoJSONFromRows(rows || []);
+
+    console.log("[MAP] division rows from parent", rows);
+    console.log("[MAP] division geojson from parent", geojson);
+
+    setDivisionGeoJSON(geojson);
+
+    if (!appState.map || !appState.mapLoaded) {
+      console.warn("[MAP] map is not ready yet. Division will be applied after layer ready.");
+      return;
+    }
+
+    if (ensureBabylonSceneReady()) {
+      rebuildDivisionMeshes();
+    } else {
+      addBabylonLayerOnce(appState.map);
+    }
+  }
+
+  function applyDeviceRowsFromParent(rows) {
+    appState.deviceSource = "parent";
+
+    const devices = buildDeviceDataFromRows(rows || []);
+
+    console.log("[MAP] device rows from parent", rows);
+    console.log("[MAP] device data from parent", devices);
+
+    rawDeviceData = devices;
+
+    if (!appState.map || !appState.mapLoaded) {
+      console.warn("[MAP] map is not ready yet. Device will be applied after layer ready.");
+      return;
+    }
+
+    if (ensureBabylonSceneReady()) {
+      rebuildDeviceMeshes();
+    } else {
+      addBabylonLayerOnce(appState.map);
+    }
+  }
+
+  function applyIotRowsFromParent(rows) {
+    appState.rowsSource = "parent";
+
+    console.log("[MAP] iot rows from parent", rows?.length || 0);
+
+    setRows(rows || []);
+    render();
+  }
+
+  function bindParentMessages() {
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      switch (data.type) {
+        case "MAP_SET_DIVISIONS": {
+          applyDivisionRowsFromParent(data.rows || []);
+          break;
+        }
+
+        case "MAP_SET_DEVICES": {
+          applyDeviceRowsFromParent(data.rows || []);
+          break;
+        }
+
+        case "MAP_SET_IOT_ROWS": {
+          applyIotRowsFromParent(data.rows || []);
+          break;
+        }
+
+        case "MAP_SET_ALL": {
+          if (Array.isArray(data.divisions)) {
+            applyDivisionRowsFromParent(data.divisions);
+          }
+
+          if (Array.isArray(data.devices)) {
+            applyDeviceRowsFromParent(data.devices);
+          }
+
+          if (Array.isArray(data.rows)) {
+            applyIotRowsFromParent(data.rows);
+          }
+
+          break;
+        }
+
+        default:
+          break;
+      }
+    });
+  }
+
+  // =========================================================
+  // postMessage safe
+  // =========================================================
+  function postToParentSafe(message) {
+    if (!window.parent || window.parent === window) {
+      return;
+    }
+
+    const targetOrigin =
+      window.location.protocol === "file:"
+        ? "*"
+        : window.location.origin;
+
+    try {
+      window.parent.postMessage(message, targetOrigin);
+    } catch (e) {
+      console.warn("[MAP] postMessage skipped:", e);
+    }
+  }
+
+  // =========================================================
+  // Map init
+  // =========================================================
+  function initMap() {
+    const map = new maplibregl.Map({
+      container: "map",
+      style:
+        "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
+      center: [140.303872, 35.353847],
+      zoom: 18,
+      pitch: 60,
+      bearing: 0,
+      maxPitch: 89,
+
+      canvasContextAttributes: {
+        antialias: true
+      }
+    });
+
+    map.addControl(
+      new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showZoom: true,
+        showCompass: true
+      })
+    );
+
+    appState.map = map;
+
+    map.on("load", async () => {
+      console.log("[MAP] loaded");
+
+      appState.mapLoaded = true;
+
+      const autoGeoJSON = await tryAutoLoadDivisionGeoJSON();
+
+      if (
+        autoGeoJSON &&
+        appState.divisionSource !== "parent"
+      ) {
+        appState.divisionSource = "auto-csv";
+        setDivisionGeoJSON(autoGeoJSON);
+      }
+
+      const autoDeviceData = await tryAutoLoadDeviceData();
+
+      if (
+        autoDeviceData &&
+        autoDeviceData.length > 0 &&
+        appState.deviceSource !== "parent"
+      ) {
+        appState.deviceSource = "auto-csv";
+        rawDeviceData = autoDeviceData;
+      }
+
+      // custom layerは一度だけ追加
+      addBabylonLayerOnce(map);
+
+      postToParentSafe({
+        type: "MAP_READY"
+      });
+    });
+
+    bindTooltip(map);
+  }
+
+  // =========================================================
+  // Division CSV input events
+  // =========================================================
+  function bindCsvInput() {
+    if (!els.divisionCsvInput) {
+      console.warn(
+        '[MAP] CSV入力が見つかりません。map-index.html に <input id="divisionCsvInput" type="file" accept=".csv" /> を追加してください。'
+      );
+      return;
+    }
+
+    els.divisionCsvInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      try {
+        console.log("[MAP] selected division csv", file.name);
+
+        const geojson = await loadDivisionGeoJSONFromFile(file);
+
+        appState.divisionSource = "file-csv";
+
+        if (!appState.map) {
+          console.warn("[MAP] map is not ready yet");
+          setDivisionGeoJSON(geojson);
+          return;
+        }
+
+        if (!appState.mapLoaded) {
+          console.warn("[MAP] map style is not loaded yet");
+          setDivisionGeoJSON(geojson);
+          return;
+        }
+
+        setDivisionGeoJSON(geojson);
+
+        // layer全体は消さず、Divisionだけ差分更新
+        if (ensureBabylonSceneReady()) {
+          rebuildDivisionMeshes();
+        } else {
+          addBabylonLayerOnce(appState.map);
+        }
+
+      } catch (err) {
+        console.error("[MAP] failed to load selected division csv", err);
+      }
+    });
+  }
+
+  // =========================================================
+  // Device CSV input events
+  // =========================================================
+  function bindDeviceCsvInput() {
+    if (!els.deviceCsvInput) {
+      console.warn(
+        '[MAP] Device CSV入力が見つかりません。map-index.html に <input id="deviceCsvInput" type="file" accept=".csv" /> を追加してください。'
+      );
+      return;
+    }
+
+    els.deviceCsvInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      try {
+        console.log("[MAP] selected device csv", file.name);
+
+        const devices = await loadDeviceDataFromFile(file);
+
+        appState.deviceSource = "file-csv";
+        rawDeviceData = devices;
+
+        if (!appState.map) {
+          console.warn("[MAP] map is not ready yet");
+          return;
+        }
+
+        if (!appState.mapLoaded) {
+          console.warn("[MAP] map style is not loaded yet");
+          return;
+        }
+
+        // layer全体は消さず、Deviceだけ差分更新
+        if (ensureBabylonSceneReady()) {
+          rebuildDeviceMeshes();
+        } else {
+          addBabylonLayerOnce(appState.map);
+        }
+
+      } catch (err) {
+        console.error("[MAP] failed to load selected device csv", err);
+      }
+    });
+  }
+
+  // =========================================================
+  // Tooltip
+  // =========================================================
+  function bindTooltip(map) {
+    if (!els.tooltip) return;
+
+    const hoverRadiusPx = 60;
+
+    function findHoveredDevice(point) {
+      let nearest = null;
+      let nearestDist = Infinity;
+
+      for (const d of rawDeviceData) {
+        const [type, lon, lat, height, rot, label, fallbackTemp = null] = d;
+
+        const screen = map.project([lon, lat]);
+
+        const adjustedY = screen.y - height * 5;
+
+        const dx = screen.x - point.x;
+        const dy = adjustedY - point.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < hoverRadiusPx && dist < nearestDist) {
+          nearest = {
+            type,
+            lon,
+            lat,
+            height,
+            rot,
+            label,
+            fallbackTemp,
+            screen: {
+              x: screen.x,
+              y: adjustedY
+            },
+            dist
+          };
+
+          nearestDist = dist;
+        }
+      }
+
+      return nearest;
+    }
+
+    map.on("mousemove", (e) => {
+      const hit = findHoveredDevice(e.point);
+
+      if (hit) {
+        const latest = appState.latest.get(hit.label);
+
+        let text = hit.label;
+
+        if (hit.type === "Temp" || hit.type === "TemperatureSensor") {
+          const temp =
+            Number.isFinite(latest?.temp)
+              ? latest.temp
+              : hit.fallbackTemp;
+
+          if (temp != null && Number.isFinite(Number(temp))) {
+            text = `${hit.label}\n${Number(temp)}℃`;
+          }
+        }
+
+        if (
+          hit.type === "Aircon" ||
+          hit.type === "AC" ||
+          hit.type === "AirConditioner"
+        ) {
+          const latestPower = latest?.power;
+
+          if (Number.isFinite(latestPower)) {
+            text = `${hit.label}\n${latestPower} W`;
+          }
+        }
+
+        els.tooltip.style.display = "block";
+        els.tooltip.style.left = e.originalEvent.clientX + 10 + "px";
+        els.tooltip.style.top = e.originalEvent.clientY + 10 + "px";
+        els.tooltip.innerText = text;
+
+      } else {
+        els.tooltip.style.display = "none";
+      }
+    });
+
+    map.on("mouseout", () => {
+      els.tooltip.style.display = "none";
+    });
+  }
+
+  // =========================================================
+  // Render
+  // =========================================================
+  function render() {
+    // 現時点では tooltip が appState.latest を参照するため、
+    // rows更新後に特別な再描画処理は不要。
+    //
+    // 将来:
+    // - 温度に応じてDeviceモデル色を変える
+    // - Division色をIoT rowsで更新する
+    // - Aircon稼働状態をモデルに反映する
+    // 場合は、babylonRuntime.scene 内の対象Meshだけ更新する。
+  }
+
+  // =========================================================
+  // Init
+  // =========================================================
+  function init() {
+    bindCsvInput();
+    bindDeviceCsvInput();
+
+    // Amplify / Next.js iframe埋め込み用
+    bindParentMessages();
+
+    initMap();
+
+    // 既存adapterも維持
+    adapter.init();
+    adapter.applyUiLock();
+  }
+
+  init();
+
+})();
