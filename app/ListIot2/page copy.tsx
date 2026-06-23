@@ -23,6 +23,17 @@ const client = generateClient<Schema>();
 type DivisionRow = {
   Division: string;
   DivisionName: string;
+
+  // Map/Babylon 用
+  // DynamoDB / AppSync 側に存在する場合、そのまま map-app.js へ渡す
+  DivisionOutline?: unknown;
+  divisionOutline?: unknown;
+  DivisionPolygon?: unknown;
+  divisionPolygon?: unknown;
+  Polygon?: unknown;
+  polygon?: unknown;
+  Height?: number | string | null;
+  height?: number | string | null;
 };
 
 type DeviceRow = {
@@ -31,6 +42,22 @@ type DeviceRow = {
   Controller?: string | null;
   DeviceType?: string | null;
   Division?: string | null;
+
+  // Map/Babylon 用
+  Longitude?: number | string | null;
+  longitude?: number | string | null;
+  Lon?: number | string | null;
+  lon?: number | string | null;
+  Latitude?: number | string | null;
+  latitude?: number | string | null;
+  Lat?: number | string | null;
+  lat?: number | string | null;
+  Height?: number | string | null;
+  height?: number | string | null;
+  Rotation?: number | string | null;
+  rotation?: number | string | null;
+  Rot?: number | string | null;
+  rot?: number | string | null;
 };
 
 type IotRow = Record<string, unknown>;
@@ -73,11 +100,15 @@ export default function Page() {
   const [divisions, setDivisions] = useState<DivisionRow[]>([]);
   const [selectedDivision, setSelectedDivision] = useState("");
 
-  // マスタ由来の DeviceCode -> DeviceName map
+  // Device master 全体
+  // Map iframe へ Device配置情報を送るために保持する
+  const [deviceRows, setDeviceRows] = useState<DeviceRow[]>([]);
 
+  // マスタ由来の DeviceCode -> DeviceName map
   const [deviceNameMap, setDeviceNameMap] = useState<Map<string, string>>(
     new Map()
   );
+
   const [divisionNameMap, setDivisionNameMap] = useState<Map<string, string>>(
     new Map()
   );
@@ -335,7 +366,9 @@ export default function Page() {
               if (isNilLike(out.DeviceTimestamp)) {
                 out.DeviceTimestamp = normalizedTs;
               } else {
-                out.DeviceTimestamp = normalizeDateTimeString(out.DeviceTimestamp);
+                out.DeviceTimestamp = normalizeDateTimeString(
+                  out.DeviceTimestamp
+                );
               }
             }
 
@@ -625,7 +658,14 @@ export default function Page() {
 
   /**
    * iframeへ viewState + rows を送る
-   * Plotly / Map 両方へ送る
+   * Plotly:
+   *   SET_VIEWSTATE / SET_DATA
+   *
+   * Map:
+   *   MAP_SET_ALL
+   *   - divisions: Division master
+   *   - devices: Device master
+   *   - rows: IoT rows
    */
   const sendFullPayloadToIframe = useCallback(
     (payload: FullPayload, dataKey: string) => {
@@ -635,6 +675,8 @@ export default function Page() {
       console.log("[SEND ENTRY]", {
         dataKey,
         rows: payload.rows.length,
+        divisions: divisions.length,
+        devices: deviceRows.length,
         iframeReady,
         mapReady,
         hasPlotWindow: !!iframeRef.current?.contentWindow,
@@ -653,19 +695,46 @@ export default function Page() {
       if (iframeReady && plotWin) {
         plotWin.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
         plotWin.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
-        console.log("[SEND DATA] -> plotly", payload.rows.length);
+
+        console.log("[SEND DATA] -> plotly", {
+          rows: payload.rows.length,
+          viewState: payload.viewState,
+        });
       }
 
       const mapWin = mapIframeRef.current?.contentWindow;
       if (mapReady && mapWin) {
+        // 既存Adapter向けに viewState も送る
         mapWin.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
-        mapWin.postMessage({ type: "SET_DATA", rows: payload.rows }, origin);
-        console.log("[SEND DATA] -> map", payload.rows.length);
+
+        // Map/Babylon 側の新しい受信口
+        mapWin.postMessage(
+          {
+            type: "MAP_SET_ALL",
+            divisions,
+            devices: deviceRows,
+            rows: payload.rows,
+          },
+          origin
+        );
+
+        console.log("[SEND DATA] -> map MAP_SET_ALL", {
+          divisions: divisions.length,
+          devices: deviceRows.length,
+          rows: payload.rows.length,
+          viewState: payload.viewState,
+        });
       }
 
       lastSentDataKeyRef.current = dataKey;
     },
-    [iframeReady, mapReady, getTargetOrigin]
+    [
+      iframeReady,
+      mapReady,
+      getTargetOrigin,
+      divisions,
+      deviceRows,
+    ]
   );
 
   /**
@@ -691,7 +760,7 @@ export default function Page() {
         return;
       }
 
-      // MAP_READY（division.html 側で postMessage している場合）
+      // MAP_READY
       if (event.data?.type === "MAP_READY") {
         console.log("[iframe] MAP_READY");
         setMapReady(true);
@@ -722,6 +791,9 @@ export default function Page() {
   /**
    * iframe readyになったら最新状態を流す
    * Plotly ready / Map ready のどちらかが変化したら最新payloadを再送
+   *
+   * divisions / deviceRows が後からロードされた場合も、
+   * sendFullPayloadToIframe の依存関係経由で再送される。
    */
   useEffect(() => {
     if (!iframeReady && !mapReady) return;
@@ -775,8 +847,16 @@ export default function Page() {
         const list = (data || []) as DivisionRow[];
 
         const sorted = [...list].sort((a, b) =>
-          a.DivisionName.localeCompare(b.DivisionName, "ja")
+          String(a.DivisionName ?? "").localeCompare(
+            String(b.DivisionName ?? ""),
+            "ja"
+          )
         );
+
+        console.log("[MASTER] divisions loaded", {
+          count: sorted.length,
+          first: sorted[0],
+        });
 
         setDivisions(sorted);
         setDivisionNameMap(buildDivisionNameMap(sorted));
@@ -784,8 +864,6 @@ export default function Page() {
         if (sorted.length > 0) {
           setSelectedDivision((prev) => prev || sorted[0].Division);
         }
-
-
       } catch (err) {
         console.error("listDivision error:", err);
       }
@@ -816,11 +894,19 @@ export default function Page() {
         if (cancelled) return;
 
         const list = (data || []) as DeviceRow[];
+
+        console.log("deviceRows sample raw", list[0]);
+
         const map = buildDeviceNameMap(list);
 
+        console.log("[MASTER] devices loaded", {
+          count: list.length,
+          first: list[0],
+        });
         console.log("deviceNameMap size=", map.size);
-        setDeviceNameMap(map);
 
+        setDeviceRows(list);
+        setDeviceNameMap(map);
       } catch (err) {
         console.error("listDevice error:", err);
       }
@@ -864,6 +950,7 @@ export default function Page() {
         endDate,
         dataKind
       );
+
       const iframeDataKey = makeIframeDataKey(
         startDate,
         endDate,
@@ -921,6 +1008,7 @@ export default function Page() {
         startOfDay(start),
         "yyyy-MM-dd"
       )} 00:00:00+09:00`;
+
       const endDatetime = `${format(
         startOfDay(end),
         "yyyy-MM-dd"
@@ -976,9 +1064,9 @@ export default function Page() {
         page += 1;
 
         console.log(
-          `[${kind}][${division}] page=${page} items=${normalizedItems.length} nextToken=${
-            nextToken ? "あり" : "なし"
-          }`
+          `[${kind}][${division}] page=${page} items=${
+            normalizedItems.length
+          } nextToken=${nextToken ? "あり" : "なし"}`
         );
 
         if (normalizedItems.length > 0) {
@@ -1017,12 +1105,14 @@ export default function Page() {
         dataKind,
         selectedDivision
       );
+
       const iframeDataKey = makeIframeDataKey(
         startDate,
         endDate,
         dataKind,
         selectedDivision
       );
+
       const currentViewState = buildViewState(
         selectedDivision,
         startDate,
@@ -1052,6 +1142,7 @@ export default function Page() {
           viewState: currentViewState,
           rows: cached,
         };
+
         latestFullPayloadRef.current = payload;
 
         sendFullPayloadToIframe(payload, iframeDataKey);
@@ -1100,6 +1191,7 @@ export default function Page() {
           viewState: currentViewState,
           rows: all,
         };
+
         latestFullPayloadRef.current = payload;
 
         sendFullPayloadToIframe(payload, iframeDataKey);
@@ -1113,6 +1205,7 @@ export default function Page() {
             viewState: currentViewState,
             rows: [],
           };
+
           latestFullPayloadRef.current = payload;
 
           sendFullPayloadToIframe(payload, iframeDataKey);
@@ -1204,7 +1297,8 @@ export default function Page() {
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} /
           totalRows={allRows.length} / iframeReady={String(iframeReady)} /
           mapReady={String(mapReady)} / loading={String(loading)} /
-          division={viewState.division} / deviceNameMap={deviceNameMap.size}
+          division={viewState.division} / deviceNameMap={deviceNameMap.size} /
+          divisions={divisions.length} / devices={deviceRows.length}
         </span>
       </div>
 
@@ -1267,7 +1361,7 @@ export default function Page() {
       {/* Map iframe */}
       <iframe
         ref={mapIframeRef}
-        src="/plotly-view/map-index.html"  
+        src="/plotly-view/map-index.html"
         style={{
           width: "100%",
           height: "700px",
@@ -1282,8 +1376,8 @@ export default function Page() {
             !!mapIframeRef.current?.contentWindow
           );
 
-          // division.html 側が MAP_READY をまだ送っていなくても、
-          // onLoad で最低限 ready 扱いにする
+          // map-app.js 側の MAP_READY を基本にするが、
+          // onLoad時点でも contentWindow が存在するため最低限 ready 扱いにする
           setMapReady(true);
         }}
       />

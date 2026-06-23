@@ -707,16 +707,37 @@ export default function Page() {
         // 既存Adapter向けに viewState も送る
         mapWin.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
 
-        // Map/Babylon 側の新しい受信口
+
+        const selected = payload.viewState.division;
+
+        // ✅ Divisionフィルタ
+        const filteredDivisions = divisions.filter(
+          (d) => d.Division === selected
+        );
+
+        // ✅ Deviceフィルタ
+        const filteredDevices = deviceRows.filter(
+          (d) => d.Division === selected
+        );
+
         mapWin.postMessage(
           {
             type: "MAP_SET_ALL",
-            divisions,
-            devices: deviceRows,
+            divisions: filteredDivisions,
+            devices: filteredDevices,
             rows: payload.rows,
           },
           origin
         );
+
+        console.log("[SEND MAP FILTERED]", {
+          division: selected,
+          divisions: filteredDivisions.length,
+          devices: filteredDevices.length,
+          rows: payload.rows.length,
+        });        
+
+
 
         console.log("[SEND DATA] -> map MAP_SET_ALL", {
           divisions: divisions.length,
