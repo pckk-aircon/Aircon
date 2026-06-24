@@ -779,38 +779,34 @@
 
   function calculateDivisionGeoJSONCenter(geojson) {
     const features = geojson?.features || [];
-    const centroids = [];
+
+    let minLon = Infinity;
+    let maxLon = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
 
     for (const feature of features) {
-      const centroid = calculateFeatureCentroid(feature);
+      const coords = feature?.geometry?.coordinates?.[0];
 
-      if (
-        centroid &&
-        Number.isFinite(centroid[0]) &&
-        Number.isFinite(centroid[1])
-      ) {
-        centroids.push(centroid);
+      const ring = normalizeRing(coords);
+
+      for (const [lon, lat] of ring) {
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
       }
     }
 
-    if (centroids.length === 0) {
+    if (!isFinite(minLon)) {
       return null;
     }
 
-    // 要件:
-    // Divisionが複数件の場合は「複数件の重心の重心」
-    const sum = centroids.reduce(
-      (acc, c) => {
-        acc.lon += c[0];
-        acc.lat += c[1];
-        return acc;
-      },
-      { lon: 0, lat: 0 }
-    );
-
     return [
-      sum.lon / centroids.length,
-      sum.lat / centroids.length
+      (minLon + maxLon) / 2,
+      (minLat + maxLat) / 2
     ];
   }
 
