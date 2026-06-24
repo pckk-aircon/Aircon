@@ -105,8 +105,15 @@
     TemperatureSensor: "TempModel.glb"
   };
 
+  // =========================================================
   // MapLibre / Babylon のワールド基準
-  const worldOrigin = [140.303475, 35.35359];
+  // =========================================================
+  // Division未読込時のフォールバック中心
+  const FALLBACK_MAP_CENTER = [140.303872, 35.353847];
+
+  // Division GeoJSON読込後に更新される現在の中心
+  let currentMapCenter = FALLBACK_MAP_CENTER.slice();
+
   const worldAltitude = 0;
   const worldRotate = [Math.PI / 2, 0, 0];
 
@@ -601,21 +608,6 @@
   }
 
   // =========================================================
-  // Division GeoJSON state
-  // =========================================================
-  function setDivisionGeoJSON(geojson) {
-    if (!geojson || !geojson.features || geojson.features.length === 0) {
-      console.warn("[MAP] Division GeoJSON が空です");
-      appState.divisionGeoJSON = null;
-      return;
-    }
-
-    appState.divisionGeoJSON = geojson;
-
-    console.log("[MAP] Division GeoJSON set for Babylon", geojson);
-  }
-
-  // =========================================================
   // Babylon座標変換
   // =========================================================
   function lngLatToBabylonVector(lon, lat, y) {
@@ -667,6 +659,162 @@
   }
 
   // =========================================================
+  // Division GeoJSON center helpers
+  // - 各Polygonの重心を計算
+  // - 複数Divisionの場合は「重心の重心」を計算
+  // =========================================================
+  function calculateRingCentroid(ring) {
+    const points = normalizeRing(ring);
+
+    if (points.length === 0) {
+      return null;
+    }
+
+    // 点が3点未満の場合は単純平均
+    if (points.length < 3) {
+      const sum = points.reduce(
+        (acc, p) => {
+          acc.lon += p[0];
+          acc.lat += p[1];
+          return acc;
+        },
+        { lon: 0, lat: 0 }
+      );
+
+      return [
+        sum.lon / points.length,
+        sum.lat / points.length
+      ];
+    }
+
+    // Polygon centroid formula
+    // lon=x, lat=y として平面近似で計算
+    let twiceArea = 0;
+    let cx = 0;
+    let cy = 0;
+
+    for (let i = 0; i < points.length; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[(i + 1) % points.length];
+
+      const cross = x1 * y2 - x2 * y1;
+
+      twiceArea += cross;
+      cx += (x1 + x2) * cross;
+      cy += (y1 + y2) * cross;
+    }
+
+    // 面積がほぼ0の場合は単純平均にフォールバック
+    if (Math.abs(twiceArea) < 1e-18) {
+      const sum = points.reduce(
+        (acc, p) => {
+          acc.lon += p[0];
+          acc.lat += p[1];
+          return acc;
+        },
+        { lon: 0, lat: 0 }
+      );
+
+      return [
+        sum.lon / points.length,
+        sum.lat / points.length
+      ];
+    }
+
+    return [
+      cx / (3 * twiceArea),
+      cy / (3 * twiceArea)
+    ];
+  }
+
+  function calculateFeatureCentroid(feature) {
+    const geometry = feature?.geometry;
+
+    if (!geometry) return null;
+
+    if (geometry.type === "Polygon") {
+      // 現状のDivisionは Polygon 前提。
+      // 外周 ring のみを使う。
+      return calculateRingCentroid(geometry.coordinates?.[0]);
+    }
+
+    if (geometry.type === "MultiPolygon") {
+      // 念のため MultiPolygon にも対応。
+      // 各Polygon重心の単純平均。
+      const centroids = [];
+
+      for (const polygon of geometry.coordinates || []) {
+        const centroid = calculateRingCentroid(polygon?.[0]);
+
+        if (
+          centroid &&
+          Number.isFinite(centroid[0]) &&
+          Number.isFinite(centroid[1])
+        ) {
+          centroids.push(centroid);
+        }
+      }
+
+      if (centroids.length === 0) {
+        return null;
+      }
+
+      const sum = centroids.reduce(
+        (acc, c) => {
+          acc.lon += c[0];
+          acc.lat += c[1];
+          return acc;
+        },
+        { lon: 0, lat: 0 }
+      );
+
+      return [
+        sum.lon / centroids.length,
+        sum.lat / centroids.length
+      ];
+    }
+
+    return null;
+  }
+
+  function calculateDivisionGeoJSONCenter(geojson) {
+    const features = geojson?.features || [];
+    const centroids = [];
+
+    for (const feature of features) {
+      const centroid = calculateFeatureCentroid(feature);
+
+      if (
+        centroid &&
+        Number.isFinite(centroid[0]) &&
+        Number.isFinite(centroid[1])
+      ) {
+        centroids.push(centroid);
+      }
+    }
+
+    if (centroids.length === 0) {
+      return null;
+    }
+
+    // 要件:
+    // Divisionが複数件の場合は「複数件の重心の重心」
+    const sum = centroids.reduce(
+      (acc, c) => {
+        acc.lon += c[0];
+        acc.lat += c[1];
+        return acc;
+      },
+      { lon: 0, lat: 0 }
+    );
+
+    return [
+      sum.lon / centroids.length,
+      sum.lat / centroids.length
+    ];
+  }
+
+  // =========================================================
   // Babylon root helpers
   // =========================================================
   function disposeNode(node) {
@@ -693,6 +841,101 @@
       babylonRuntime.worldOriginMercator &&
       babylonRuntime.worldScale
     );
+  }
+
+  // =========================================================
+  // Babylon world transform helpers
+  // =========================================================
+  function updateBabylonWorldTransform(center) {
+    const worldOriginMercator =
+      maplibregl.MercatorCoordinate.fromLngLat(
+        center,
+        worldAltitude
+      );
+
+    const worldScale =
+      worldOriginMercator.meterInMercatorCoordinateUnits();
+
+    const worldMatrix = BABYLON.Matrix.Compose(
+      new BABYLON.Vector3(worldScale, worldScale, worldScale),
+      BABYLON.Quaternion.FromEulerAngles(...worldRotate),
+      new BABYLON.Vector3(
+        worldOriginMercator.x,
+        worldOriginMercator.y,
+        worldOriginMercator.z
+      )
+    );
+
+    babylonRuntime.worldOriginMercator = worldOriginMercator;
+    babylonRuntime.worldScale = worldScale;
+    babylonRuntime.worldMatrix = worldMatrix;
+
+    console.log("[MAP] Babylon world transform updated:", center);
+  }
+
+  function applyMapCenter(center, options = {}) {
+    if (
+      !Array.isArray(center) ||
+      !Number.isFinite(Number(center[0])) ||
+      !Number.isFinite(Number(center[1]))
+    ) {
+      console.warn("[MAP] invalid center skipped:", center);
+      return;
+    }
+
+    currentMapCenter = [
+      Number(center[0]),
+      Number(center[1])
+    ];
+
+    console.log("[MAP] MAP_CENTER updated from Division:", currentMapCenter);
+
+    if (appState.map) {
+      const moveMethod = options.animate ? "easeTo" : "jumpTo";
+
+      appState.map[moveMethod]({
+        center: currentMapCenter
+      });
+    }
+
+    // Babylon layer作成済みの場合は座標基準も更新する
+    if (ensureBabylonSceneReady()) {
+      updateBabylonWorldTransform(currentMapCenter);
+
+      // worldOriginが変わるため、既存mesh座標も再計算する
+      rebuildBabylonContent();
+    }
+  }
+
+  function applyMapCenterFromDivisionGeoJSON(geojson, options = {}) {
+    const center = calculateDivisionGeoJSONCenter(geojson);
+
+    if (!center) {
+      console.warn("[MAP] Division center could not be calculated");
+      return;
+    }
+
+    applyMapCenter(center, options);
+  }
+
+  // =========================================================
+  // Division GeoJSON state
+  // =========================================================
+  function setDivisionGeoJSON(geojson) {
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.warn("[MAP] Division GeoJSON が空です");
+      appState.divisionGeoJSON = null;
+      return;
+    }
+
+    appState.divisionGeoJSON = geojson;
+
+    // Division Polygonの重心からMAP_CENTERを更新
+    applyMapCenterFromDivisionGeoJSON(geojson, {
+      animate: false
+    });
+
+    console.log("[MAP] Division GeoJSON set for Babylon", geojson);
   }
 
   // =========================================================
@@ -1103,28 +1346,7 @@
   // Babylon custom layer
   // =========================================================
   function createBabylonLayer() {
-    const worldOriginMercator =
-      maplibregl.MercatorCoordinate.fromLngLat(
-        worldOrigin,
-        worldAltitude
-      );
-
-    const worldScale =
-      worldOriginMercator.meterInMercatorCoordinateUnits();
-
-    const worldMatrix = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(worldScale, worldScale, worldScale),
-      BABYLON.Quaternion.FromEulerAngles(...worldRotate),
-      new BABYLON.Vector3(
-        worldOriginMercator.x,
-        worldOriginMercator.y,
-        worldOriginMercator.z
-      )
-    );
-
-    babylonRuntime.worldOriginMercator = worldOriginMercator;
-    babylonRuntime.worldScale = worldScale;
-    babylonRuntime.worldMatrix = worldMatrix;
+    updateBabylonWorldTransform(currentMapCenter);
 
     return {
       id: "babylon-device-layer",
@@ -1254,8 +1476,6 @@
   // - Amplify / Next.js page.tsx から Division / Device / IoT rows を受け取る
   // - standalone CSV機能はそのまま維持
   // =========================================================
-
-
   function applyDivisionRowsFromParent(rows) {
     appState.divisionSource = "parent";
 
@@ -1271,9 +1491,7 @@
       return;
     }
 
-    if (ensureBabylonSceneReady()) {
-      rebuildDivisionMeshes();
-    } else {
+    if (!ensureBabylonSceneReady()) {
       addBabylonLayerOnce(appState.map);
     }
   }
@@ -1383,7 +1601,7 @@
       container: "map",
       style:
         "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
-      center: [140.303872, 35.353847],
+      center: currentMapCenter,
       zoom: 18,
       pitch: 60,
       bearing: 0,
@@ -1478,10 +1696,9 @@
 
         setDivisionGeoJSON(geojson);
 
-        // layer全体は消さず、Divisionだけ差分更新
-        if (ensureBabylonSceneReady()) {
-          rebuildDivisionMeshes();
-        } else {
+        // setDivisionGeoJSON内で中心更新とBabylon再生成を行う。
+        // scene未作成の場合のみlayerを追加する。
+        if (!ensureBabylonSceneReady()) {
           addBabylonLayerOnce(appState.map);
         }
 

@@ -55,7 +55,12 @@
     latest: new Map(),
     map: null,
     mapLoaded: false,
-    divisionGeoJSON: null
+    divisionGeoJSON: null,
+
+    // standalone CSV / parent postMessage のどちらから来たかを管理
+    divisionSource: null,
+    deviceSource: null,
+    rowsSource: null
   };
 
   // =========================================================
@@ -88,11 +93,16 @@
   // glTF / Babylon 設定
   // =========================================================
   const MODEL_BASE_URL =
+    window.__MODEL_BASE_URL__ ||
     "https://pckk-device.s3.ap-southeast-2.amazonaws.com/";
 
   const deviceTypeToModel = {
     Aircon: "AirconModel.glb",
-    Temp: "TempModel.glb"
+    AC: "AirconModel.glb",
+    AirConditioner: "AirconModel.glb",
+
+    Temp: "TempModel.glb",
+    TemperatureSensor: "TempModel.glb"
   };
 
   // MapLibre / Babylon のワールド基準
@@ -110,6 +120,9 @@
   const adapter = window.createViewAdapter({
     onRowsLoaded: (rows) => {
       console.log("[MAP] RECV DATA", rows.length);
+
+      appState.rowsSource = "adapter";
+
       setRows(rows);
       render();
     },
@@ -261,15 +274,22 @@
   }
 
   // =========================================================
-  // DivisionOutline文字列 → GeoJSON coordinates
+  // DivisionOutline文字列 / 配列 → GeoJSON coordinates
   // =========================================================
   function parseDivisionOutline(value) {
     if (!value) return null;
 
+    // Amplify / AppSync / DynamoDB から配列として来た場合
+    if (Array.isArray(value)) {
+      return value;
+    }
+
     let s = String(value).trim();
 
+    // CSV由来で外側に余分な " が付く場合を吸収
     s = s.replace(/^"|"$/g, "");
 
+    // CSV保存時のエスケープ吸収
     s = s
       .replace(/\\\[/g, "[")
       .replace(/\\\]/g, "]")
@@ -292,14 +312,28 @@
   }
 
   // =========================================================
-  // CSV rows → Division GeoJSON
+  // CSV rows / parent rows → Division GeoJSON
   // =========================================================
   function buildDivisionGeoJSONFromRows(rows) {
     const features = [];
 
     for (const r of rows || []) {
-      const division = String(r.Division || "").trim();
-      const outline = r.DivisionOutline;
+      const division = String(
+        r.Division ||
+        r.division ||
+        r.DivisionName ||
+        r.divisionName ||
+        r.name ||
+        ""
+      ).trim();
+
+      const outline =
+        r.DivisionOutline ??
+        r.divisionOutline ??
+        r.DivisionPolygon ??
+        r.divisionPolygon ??
+        r.Polygon ??
+        r.polygon;
 
       if (!division || !outline) {
         continue;
@@ -316,7 +350,7 @@
         properties: {
           Division: division,
           name: division,
-          height: Number(r.Height || 7)
+          height: Number(r.Height ?? r.height ?? 7)
         },
         geometry: {
           type: "Polygon",
@@ -332,7 +366,7 @@
   }
 
   // =========================================================
-  // Device CSV rows → rawDeviceData
+  // Device rows → rawDeviceData
   // =========================================================
   function parseNumberValue(value, fallback = 0) {
     const n = Number(String(value ?? "").trim());
@@ -377,39 +411,45 @@
         r.type ||
         r.Type ||
         r.DeviceType ||
+        r.deviceType ||
         ""
       ).trim();
 
       const lon = parseNumberValue(
-        r.lon ||
-        r.Lon ||
-        r.Longitude,
+        r.lon ??
+        r.Lon ??
+        r.Longitude ??
+        r.longitude,
         NaN
       );
 
       const lat = parseNumberValue(
-        r.lat ||
-        r.Lat ||
-        r.Latitude,
+        r.lat ??
+        r.Lat ??
+        r.Latitude ??
+        r.latitude,
         NaN
       );
 
       const height = parseNumberValue(
-        r.height ||
+        r.height ??
         r.Height,
         0
       );
 
       const rot = parseRotationValue(
-        r.rot ||
-        r.Rot ||
-        r.Rotation,
+        r.rot ??
+        r.Rot ??
+        r.Rotation ??
+        r.rotation,
         0
       );
 
       const label = String(
         r.DeviceName ||
         r.deviceName ||
+        r.Device ||
+        r.device ||
         r.label ||
         r.Label ||
         ""
@@ -419,6 +459,7 @@
         r.fallbackTemp ??
         r.FallbackTemp ??
         r.ActualTemp ??
+        r.actualTemp ??
         "";
 
       const fallbackTemp =
@@ -1010,7 +1051,7 @@
         continue;
       }
 
-      // 読込中に別のCSVが読み込まれた場合、古い処理を破棄
+      // 読込中に別のCSV/parent dataが読み込まれた場合、古い処理を破棄
       if (currentVersion !== babylonRuntime.deviceVersion) {
         console.warn("[MAP] stale device rebuild skipped:", url);
         return;
@@ -1141,7 +1182,8 @@
 
         babylonRuntime.sceneReady = true;
 
-        // 初回だけ全体生成
+        // 現在保持している Division / Device を生成
+        // CSV由来でも parent postMessage由来でも同じ入口
         rebuildBabylonContent();
       },
 
@@ -1208,6 +1250,112 @@
   }
 
   // =========================================================
+  // parent postMessage receiver
+  // - Amplify / Next.js page.tsx から Division / Device / IoT rows を受け取る
+  // - standalone CSV機能はそのまま維持
+  // =========================================================
+
+
+  function applyDivisionRowsFromParent(rows) {
+    appState.divisionSource = "parent";
+
+    const geojson = buildDivisionGeoJSONFromRows(rows || []);
+
+    console.log("[MAP] division rows from parent", rows);
+    console.log("[MAP] division geojson from parent", geojson);
+
+    setDivisionGeoJSON(geojson);
+
+    if (!appState.map || !appState.mapLoaded) {
+      console.warn("[MAP] map is not ready yet. Division will be applied after layer ready.");
+      return;
+    }
+
+    if (ensureBabylonSceneReady()) {
+      rebuildDivisionMeshes();
+    } else {
+      addBabylonLayerOnce(appState.map);
+    }
+  }
+
+  function applyDeviceRowsFromParent(rows) {
+    appState.deviceSource = "parent";
+
+    const devices = buildDeviceDataFromRows(rows || []);
+
+    console.log("[MAP] device rows from parent", rows);
+    console.log("[MAP] device data from parent", devices);
+
+    rawDeviceData = devices;
+
+    if (!appState.map || !appState.mapLoaded) {
+      console.warn("[MAP] map is not ready yet. Device will be applied after layer ready.");
+      return;
+    }
+
+    if (ensureBabylonSceneReady()) {
+      rebuildDeviceMeshes();
+    } else {
+      addBabylonLayerOnce(appState.map);
+    }
+  }
+
+  function applyIotRowsFromParent(rows) {
+    appState.rowsSource = "parent";
+
+    console.log("[MAP] iot rows from parent", rows?.length || 0);
+
+    setRows(rows || []);
+    render();
+  }
+
+  function bindParentMessages() {
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      switch (data.type) {
+        case "MAP_SET_DIVISIONS": {
+          applyDivisionRowsFromParent(data.rows || []);
+          break;
+        }
+
+        case "MAP_SET_DEVICES": {
+          applyDeviceRowsFromParent(data.rows || []);
+          break;
+        }
+
+        case "MAP_SET_IOT_ROWS": {
+          applyIotRowsFromParent(data.rows || []);
+          break;
+        }
+
+        case "MAP_SET_ALL": {
+          if (Array.isArray(data.divisions)) {
+            applyDivisionRowsFromParent(data.divisions);
+          }
+
+          if (Array.isArray(data.devices)) {
+            applyDeviceRowsFromParent(data.devices);
+          }
+
+          if (Array.isArray(data.rows)) {
+            applyIotRowsFromParent(data.rows);
+          }
+
+          break;
+        }
+
+        default:
+          break;
+      }
+    });
+  }
+
+  // =========================================================
   // postMessage safe
   // =========================================================
   function postToParentSafe(message) {
@@ -1263,13 +1411,22 @@
 
       const autoGeoJSON = await tryAutoLoadDivisionGeoJSON();
 
-      if (autoGeoJSON) {
+      if (
+        autoGeoJSON &&
+        appState.divisionSource !== "parent"
+      ) {
+        appState.divisionSource = "auto-csv";
         setDivisionGeoJSON(autoGeoJSON);
       }
 
       const autoDeviceData = await tryAutoLoadDeviceData();
 
-      if (autoDeviceData && autoDeviceData.length > 0) {
+      if (
+        autoDeviceData &&
+        autoDeviceData.length > 0 &&
+        appState.deviceSource !== "parent"
+      ) {
+        appState.deviceSource = "auto-csv";
         rawDeviceData = autoDeviceData;
       }
 
@@ -1305,13 +1462,17 @@
 
         const geojson = await loadDivisionGeoJSONFromFile(file);
 
+        appState.divisionSource = "file-csv";
+
         if (!appState.map) {
           console.warn("[MAP] map is not ready yet");
+          setDivisionGeoJSON(geojson);
           return;
         }
 
         if (!appState.mapLoaded) {
           console.warn("[MAP] map style is not loaded yet");
+          setDivisionGeoJSON(geojson);
           return;
         }
 
@@ -1351,6 +1512,7 @@
 
         const devices = await loadDeviceDataFromFile(file);
 
+        appState.deviceSource = "file-csv";
         rawDeviceData = devices;
 
         if (!appState.map) {
@@ -1430,7 +1592,7 @@
 
         let text = hit.label;
 
-        if (hit.type === "Temp") {
+        if (hit.type === "Temp" || hit.type === "TemperatureSensor") {
           const temp =
             Number.isFinite(latest?.temp)
               ? latest.temp
@@ -1441,7 +1603,11 @@
           }
         }
 
-        if (hit.type === "Aircon") {
+        if (
+          hit.type === "Aircon" ||
+          hit.type === "AC" ||
+          hit.type === "AirConditioner"
+        ) {
           const latestPower = latest?.power;
 
           if (Number.isFinite(latestPower)) {
@@ -1484,7 +1650,13 @@
   function init() {
     bindCsvInput();
     bindDeviceCsvInput();
+
+    // Amplify / Next.js iframe埋め込み用
+    bindParentMessages();
+
     initMap();
+
+    // 既存adapterも維持
     adapter.init();
     adapter.applyUiLock();
   }
