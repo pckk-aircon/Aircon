@@ -1857,10 +1857,31 @@
     // 場合は、babylonRuntime.scene 内の対象Meshだけ更新する。
   }
 
+  //非表示
+  function applyStandaloneUiVisibility() {
+    const toolbar = document.querySelector(".toolbar");
+
+    if (!toolbar) return;
+
+    const isStandalone = (window.parent === window);
+
+    if (!isStandalone) {
+      console.log("[MAP] iframe mode → hide toolbar");
+      toolbar.style.display = "none";
+    } else {
+      console.log("[MAP] standalone mode → show toolbar");
+    }
+  }
+
+
+
   // =========================================================
   // Init
   // =========================================================
   function init() {
+    
+    applyStandaloneUiVisibility();  // ← 非表示判定
+
     bindCsvInput();
     bindDeviceCsvInput();
 
