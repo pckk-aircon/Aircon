@@ -689,8 +689,6 @@ export default function Page() {
         payload.rows.slice(0, 10).map((r) => ({
           Device: r.Device,
           DeviceName: r.DeviceName,
-          Division: r.Division,
-          DeviceType: r.DeviceType,
         }))
       );
 

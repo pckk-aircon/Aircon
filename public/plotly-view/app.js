@@ -1679,6 +1679,14 @@
         label: "EMBED:rows",
         viewState: appState.pendingViewState,
       });
+
+      console.table(
+        rows.slice(0, 10).map(r => ({
+          Device: r.Device,
+          DeviceName: r.DeviceName,
+        }))
+      );
+
     },
 
     onViewStateChanged: (viewState) => {
