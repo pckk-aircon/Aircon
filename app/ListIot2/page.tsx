@@ -1267,7 +1267,7 @@ export default function Page() {
 
   return (
     <main style={{ padding: 12 }}>
-      <h2>ListIot2</h2>
+      <h1>部屋別データ</h1>
 
       <div
         style={{
