@@ -1598,7 +1598,7 @@
       style:
         "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
       center: currentMapCenter,
-      zoom: 18,
+      zoom: 20,
       pitch: 60,
       bearing: 0,
       maxPitch: 89,
@@ -1872,7 +1872,6 @@
       console.log("[MAP] standalone mode → show toolbar");
     }
   }
-
 
 
   // =========================================================
