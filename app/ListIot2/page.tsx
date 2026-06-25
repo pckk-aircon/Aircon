@@ -1298,8 +1298,8 @@ export default function Page() {
           value={dataKind}
           onChange={(e) => setDataKind(e.target.value as DataKind)}
         >
-          <option value="iot">IotData</option>
-          <option value="agg">IotDataAgg</option>
+          <option value="iot">明細データ（生データ）</option>
+          <option value="agg">集計データ（サマリ）</option>
         </select>
 
         {/* app.js 側のリストボックスに一本化するなら、この select は削除してOK */}
