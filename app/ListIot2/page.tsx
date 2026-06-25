@@ -684,6 +684,16 @@ export default function Page() {
         viewState: payload.viewState,
       });
 
+
+      console.table(
+        payload.rows.slice(0, 10).map((r) => ({
+          Device: r.Device,
+          DeviceName: r.DeviceName,
+          Division: r.Division,
+          DeviceType: r.DeviceType,
+        }))
+      );
+
       const origin = getTargetOrigin();
 
       if (!iframeReady && !mapReady) {
