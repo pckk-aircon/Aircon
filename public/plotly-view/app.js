@@ -1686,6 +1686,11 @@
     },
   });
 
+  // ✅ mode判定してCSV入力を非表示
+  if (new URLSearchParams(location.search).get("mode") === "embed") {
+    if (els.fileInput) els.fileInput.style.display = "none";
+  }
+
 
   function init() {
     bindUiEventsOnce();
