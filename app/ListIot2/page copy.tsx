@@ -684,6 +684,14 @@ export default function Page() {
         viewState: payload.viewState,
       });
 
+
+      console.table(
+        payload.rows.slice(0, 10).map((r) => ({
+          Device: r.Device,
+          DeviceName: r.DeviceName,
+        }))
+      );
+
       const origin = getTargetOrigin();
 
       if (!iframeReady && !mapReady) {
@@ -707,16 +715,37 @@ export default function Page() {
         // 既存Adapter向けに viewState も送る
         mapWin.postMessage({ type: "SET_VIEWSTATE", ...payload.viewState }, origin);
 
-        // Map/Babylon 側の新しい受信口
+
+        const selected = payload.viewState.division;
+
+        // ✅ Divisionフィルタ
+        const filteredDivisions = divisions.filter(
+          (d) => d.Division === selected
+        );
+
+        // ✅ Deviceフィルタ
+        const filteredDevices = deviceRows.filter(
+          (d) => d.Division === selected
+        );
+
         mapWin.postMessage(
           {
             type: "MAP_SET_ALL",
-            divisions,
-            devices: deviceRows,
+            divisions: filteredDivisions,
+            devices: filteredDevices,
             rows: payload.rows,
           },
           origin
         );
+
+        console.log("[SEND MAP FILTERED]", {
+          division: selected,
+          divisions: filteredDivisions.length,
+          devices: filteredDevices.length,
+          rows: payload.rows.length,
+        });        
+
+
 
         console.log("[SEND DATA] -> map MAP_SET_ALL", {
           divisions: divisions.length,
@@ -1246,7 +1275,7 @@ export default function Page() {
 
   return (
     <main style={{ padding: 12 }}>
-      <h2>ListIot2</h2>
+      <h1>部屋別データ</h1>
 
       <div
         style={{
@@ -1277,8 +1306,8 @@ export default function Page() {
           value={dataKind}
           onChange={(e) => setDataKind(e.target.value as DataKind)}
         >
-          <option value="iot">IotData</option>
-          <option value="agg">IotDataAgg</option>
+          <option value="iot">明細データ（生データ）</option>
+          <option value="agg">集計データ（サマリ）</option>
         </select>
 
         {/* app.js 側のリストボックスに一本化するなら、この select は削除してOK */}

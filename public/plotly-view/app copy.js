@@ -13,12 +13,7 @@
   // =========================================================
   // Boot / Mode
   // =========================================================
-  function getMode() {
-    const p = new URLSearchParams(location.search);
-    return p.get("mode") || "standalone";
-  }
 
-  const MODE = getMode();
   const DEBUG = false;
 
   // =========================================================
@@ -155,7 +150,6 @@
   // State
   // =========================================================
   const appState = {
-    mode: MODE,
 
     sourceData: null,
     fields: [],
@@ -1356,12 +1350,12 @@
     const fields = Object.keys(normalized[0] || {});
     let dataKind = appState.currentDataKind;
 
-    if (MODE !== "embed") {
-      dataKind = detectDataKindFromFields(fields);
+    if (options.viewState?.dataKind) {
+      dataKind = options.viewState.dataKind;
+    } else if (appState.pendingViewState?.dataKind) {
+      dataKind = appState.pendingViewState.dataKind;
     } else {
-      if (options.viewState?.dataKind) dataKind = options.viewState.dataKind;
-      else if (appState.pendingViewState?.dataKind) dataKind = appState.pendingViewState.dataKind;
-      else dataKind = detectDataKindFromFields(fields);
+      dataKind = detectDataKindFromFields(fields);
     }
 
     const colDivision = pickDivisionColumn(fields, dataKind);
@@ -1474,9 +1468,6 @@
       appState.currentDataKind = appState.pendingViewState.dataKind;
     }
 
-    // embedでは SET_VIEWSTATE では描画しない
-    if (MODE === "embed") return;
-
     if (!appState.sourceData) return;
 
     appState.colDivision = pickDivisionColumn(appState.fields, appState.currentDataKind);
@@ -1544,18 +1535,15 @@
       els.divisionSel.addEventListener("change", () => {
         const nextDivision = els.divisionSel.value;
 
-        // ★ 追加（これが最重要）
-        if (MODE === "embed") {
-          window.parent.postMessage(
-            {
-              type: "DIVISION_CHANGED",
-              division: nextDivision,
-            },
-            window.location.origin
-          );
-          // ★ embedでは即描画しない
-          return;
-        }
+        window.parent.postMessage(
+          {
+            type: "DIVISION_CHANGED",
+            division: nextDivision,
+          },
+          window.location.origin
+        );
+        return;
+
         // standalone時だけ描画
         clearRenderCachesOnly();
         renderAll();
@@ -1589,7 +1577,8 @@
           buildDaySelectors(days);
 
           const vs = appState.pendingViewState;
-          if (MODE === "embed" && vs) {
+
+          if (vs) {
             if (vs.startDay && days.includes(vs.startDay)) {
               els.startDaySel.value = vs.startDay;
             } else if (prevStart && days.includes(prevStart)) {
@@ -1679,99 +1668,39 @@
   }
 
   // =========================================================
-  // Adapter: standalone
-  // =========================================================
-  function createStandaloneAdapter() {
-    return {
-      init() {
-        if (!els.fileInput || typeof Papa === "undefined") return;
-
-        els.fileInput.addEventListener("change", () => {
-          const file = els.fileInput.files && els.fileInput.files[0];
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = () => {
-            const csvText = reader.result;
-
-            const parsed = Papa.parse(csvText, {
-              header: true,
-              skipEmptyLines: true,
-              transformHeader: (h) => String(h).trim(),
-            });
-
-            const data = parsed.data || [];
-            onRowsLoaded(data, { label: `CSV:${file.name}` });
-          };
-
-          reader.readAsText(file, "utf-8");
-        });
-      },
-
-      applyUiLock() {
-        // standalone はロックなし
-      },
-    };
-  }
-
-  // =========================================================
-  // Adapter: embed
-  // =========================================================
-  function createEmbedAdapter() {
-    return {
-      init() {
-        window.parent.postMessage({ type: "PLOTLY_READY", version: "1" }, window.location.origin);
-
-        window.addEventListener("message", (event) => {
-          if (event.origin !== window.location.origin) return;
-
-          const msg = event.data;
-          if (!msg || !msg.type) return;
-
-          if (msg.type === "SET_VIEWSTATE") {
-            onViewStateChanged({
-              division: msg.division ?? null,
-              startDay: msg.startDay ?? null,
-              endDay: msg.endDay ?? null,
-              dataKind: msg.dataKind ?? "iot",
-            });
-          }
-
-          if (msg.type === "SET_DATA") {
-            const rows = (msg.rows || []).filter((r) => r && typeof r === "object");
-
-            console.log("[RECV DATA]", rows.length);
-
-            onRowsLoaded(rows, {
-              label: "EMBED:rows",
-              viewState: appState.pendingViewState,
-            });
-          }
-        });
-      },
-
-      applyUiLock() {
-        if (els.divisionSel) els.divisionSel.disabled = true;
-        if (els.startDaySel) els.startDaySel.disabled = true;
-        if (els.endDaySel) els.endDaySel.disabled = true;
-      },
-    };
-  }
-
-  function createAdapter(mode) {
-    return mode === "embed" ? createEmbedAdapter() : createStandaloneAdapter();
-  }
-
-  // =========================================================
   // Init
   // =========================================================
-  const adapter = createAdapter(MODE);
+
+  const adapter = window.createViewAdapter({
+    onRowsLoaded: (rows) => {
+      console.log("[RECV DATA]", rows.length);
+
+      onRowsLoaded(rows, {
+        label: "EMBED:rows",
+        viewState: appState.pendingViewState,
+      });
+
+      console.table(
+        rows.slice(0, 10).map(r => ({
+          Device: r.Device,
+          DeviceName: r.DeviceName,
+        }))
+      );
+
+    },
+
+    onViewStateChanged: (viewState) => {
+      onViewStateChanged(viewState);
+    },
+  });
+
+  // ✅ mode判定してCSV入力を非表示
+  if (new URLSearchParams(location.search).get("mode") === "embed") {
+    if (els.fileInput) els.fileInput.style.display = "none";
+  }
+
 
   function init() {
-    if (MODE === "embed") {
-      els.body?.classList.add("embed");
-    }
-
     bindUiEventsOnce();
     adapter.init();
     adapter.applyUiLock();
