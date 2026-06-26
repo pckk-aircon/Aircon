@@ -31,18 +31,65 @@
   }
 
   // =========================================================
+  // Time slider UI
+  // - map-index.html に無くても、自動生成する
+  // =========================================================
+  function ensureTimeSliderPanel() {
+    if (document.getElementById("timeSlider")) {
+      return;
+    }
+
+    const panel = document.createElement("div");
+    panel.id = "timeSliderPanel";
+    panel.style.position = "absolute";
+    panel.style.left = "12px";
+    panel.style.bottom = "12px";
+    panel.style.zIndex = "9999";
+    panel.style.background = "rgba(255,255,255,0.92)";
+    panel.style.padding = "10px 12px";
+    panel.style.borderRadius = "8px";
+    panel.style.boxShadow = "0 2px 10px rgba(0,0,0,0.25)";
+    panel.style.fontFamily = "sans-serif";
+    panel.style.fontSize = "13px";
+    panel.style.minWidth = "360px";
+    panel.style.maxWidth = "520px";
+
+    panel.innerHTML = `
+      <div style="font-weight:600; margin-bottom:6px;">
+        表示時刻:
+        <span id="timeSliderLabel">-</span>
+      </div>
+      <input
+        id="timeSlider"
+        type="range"
+        min="0"
+        max="0"
+        step="1"
+        value="0"
+        disabled
+        style="width:100%;"
+      />
+    `;
+
+    document.body.appendChild(panel);
+  }
+
+  ensureTimeSliderPanel();
+
+  // =========================================================
   // DOM
   // =========================================================
   const els = {
     map: document.getElementById("map"),
     tooltip: document.getElementById("tooltip"),
 
-    // Division CSV読込用
+    timeSlider: document.getElementById("timeSlider"),
+    timeSliderLabel: document.getElementById("timeSliderLabel"),
+
     divisionCsvInput:
       document.getElementById("divisionCsvInput") ||
       document.getElementById("fileInput"),
 
-    // Device CSV読込用
     deviceCsvInput:
       document.getElementById("deviceCsvInput")
   };
@@ -52,12 +99,28 @@
   // =========================================================
   const appState = {
     rows: [],
+
+    // 既存互換：最新値
     latest: new Map(),
+
+    // 追加：Deviceごとの時系列
+    // key = DeviceName または Device
+    // value = [{ ms, ts, label, temp, power, raw }]
+    history: new Map(),
+
+    // 追加：スライダ用の全時刻
+    // value = [{ ms, label }]
+    timeKeys: [],
+
+    // 追加：現在スライダで選択中の時刻
+    selectedTimeIndex: 0,
+    selectedTimeMs: null,
+    selectedTimeLabel: "",
+
     map: null,
     mapLoaded: false,
     divisionGeoJSON: null,
 
-    // standalone CSV / parent postMessage のどちらから来たかを管理
     divisionSource: null,
     deviceSource: null,
     rowsSource: null
@@ -82,10 +145,8 @@
     divisionRoot: null,
     deviceRoot: null,
 
-    // url -> { container, templateRoot }
     modelCache: new Map(),
 
-    // Device CSV読込中に古い非同期処理が残るのを防ぐ
     deviceVersion: 0
   };
 
@@ -108,21 +169,19 @@
   // =========================================================
   // MapLibre / Babylon のワールド基準
   // =========================================================
-  // Division未読込時のフォールバック中心
   const FALLBACK_MAP_CENTER = [140.303872, 35.353847];
 
-  // Division GeoJSON読込後に更新される現在の中心
   let currentMapCenter = FALLBACK_MAP_CENTER.slice();
 
   const worldAltitude = 0;
   const worldRotate = [Math.PI / 2, 0, 0];
 
   // Device 配置データ
-  // [type, lon, lat, height, rot, label, fallbackTemp?]
+  // [type, lon, lat, height, rot, label, fallbackTemp]
   let rawDeviceData = [];
 
   // =========================================================
-  // Adapter（Plotlyと同じ構造）
+  // Adapter
   // =========================================================
   const adapter = window.createViewAdapter({
     onRowsLoaded: (rows) => {
@@ -140,31 +199,301 @@
   });
 
   // =========================================================
+  // Time slider helpers
+  // =========================================================
+  function normalizeTimestampString(value) {
+    let s = String(value ?? "").trim();
+
+    if (!s) return "";
+
+    if (s.includes(" ") && !s.includes("T")) {
+      s = s.replace(" ", "T");
+    }
+
+    if (
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) &&
+      !/[zZ]$|[+\-]\d{2}:\d{2}$/.test(s)
+    ) {
+      s += "+09:00";
+    }
+
+    return s;
+  }
+
+  function toTimestampMs(value) {
+    const s = normalizeTimestampString(value);
+
+    if (!s) return null;
+
+    const ms = Date.parse(s);
+
+    return Number.isFinite(ms) ? ms : null;
+  }
+
+  function formatTimeLabel(ms) {
+    if (!Number.isFinite(ms)) return "-";
+
+    const d = new Date(ms);
+
+    return d.toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  }
+
+  function toFiniteNumberOrNull(value) {
+    if (value === null || value === undefined) return null;
+
+    let s = String(value).trim();
+
+    if (!s || s.toLowerCase() === "null" || s.toLowerCase() === "nan") {
+      return null;
+    }
+
+    s = s
+      .replace(/^'+/, "")
+      .replace(/^["']|["']$/g, "")
+      .replace(/[−ー―]/g, "-")
+      .replace(/,/g, "");
+
+    const n = Number(s);
+
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function getRowTimestampRaw(row) {
+    return (
+      row.DatetimeAgg ||
+      row.DeviceDatetime ||
+      row.DeviceTimestamp ||
+      row.datetimeAgg ||
+      row.deviceDatetime ||
+      row.deviceTimestamp ||
+      ""
+    );
+  }
+
+  function getRowDeviceKey(row) {
+    return String(
+      row.DeviceName ||
+      row.deviceName ||
+      row.Device ||
+      row.device ||
+      ""
+    ).trim();
+  }
+
+  function updateTimeSliderUi() {
+    if (!els.timeSlider || !els.timeSliderLabel) {
+      return;
+    }
+
+    const timeKeys = appState.timeKeys || [];
+
+    if (timeKeys.length === 0) {
+      els.timeSlider.disabled = true;
+      els.timeSlider.min = "0";
+      els.timeSlider.max = "0";
+      els.timeSlider.value = "0";
+      els.timeSliderLabel.textContent = "-";
+      return;
+    }
+
+    els.timeSlider.disabled = false;
+    els.timeSlider.min = "0";
+    els.timeSlider.max = String(timeKeys.length - 1);
+    els.timeSlider.step = "1";
+
+    const idx = Math.max(
+      0,
+      Math.min(
+        appState.selectedTimeIndex ?? timeKeys.length - 1,
+        timeKeys.length - 1
+      )
+    );
+
+    appState.selectedTimeIndex = idx;
+    appState.selectedTimeMs = timeKeys[idx].ms;
+    appState.selectedTimeLabel = timeKeys[idx].label;
+
+    els.timeSlider.value = String(idx);
+    els.timeSliderLabel.textContent = timeKeys[idx].label;
+  }
+
+  function bindTimeSlider() {
+    if (!els.timeSlider) {
+      console.warn("[MAP] timeSlider が見つかりません");
+      return;
+    }
+
+    els.timeSlider.addEventListener("input", () => {
+      const timeKeys = appState.timeKeys || [];
+
+      if (timeKeys.length === 0) {
+        return;
+      }
+
+      const idx = Math.max(
+        0,
+        Math.min(
+          Number(els.timeSlider.value || 0),
+          timeKeys.length - 1
+        )
+      );
+
+      const selected = timeKeys[idx];
+
+      appState.selectedTimeIndex = idx;
+      appState.selectedTimeMs = selected.ms;
+      appState.selectedTimeLabel = selected.label;
+
+      if (els.timeSliderLabel) {
+        els.timeSliderLabel.textContent = selected.label;
+      }
+
+      console.log("[MAP] selected time changed", selected);
+    });
+  }
+
+  function getDeviceValueAtSelectedTime(deviceLabel) {
+    const selectedMs = appState.selectedTimeMs;
+
+    if (!Number.isFinite(selectedMs)) {
+      return null;
+    }
+
+    const arr = appState.history.get(deviceLabel);
+
+    if (!arr || arr.length === 0) {
+      return null;
+    }
+
+    // 完全一致
+    for (const item of arr) {
+      if (item.ms === selectedMs) {
+        return {
+          ...item,
+          matchType: "exact"
+        };
+      }
+    }
+
+    // 完全一致がない場合は、選択時刻以前の直近値
+    let prev = null;
+
+    for (const item of arr) {
+      if (item.ms <= selectedMs) {
+        prev = item;
+      } else {
+        break;
+      }
+    }
+
+    if (prev) {
+      return {
+        ...prev,
+        matchType: "previous"
+      };
+    }
+
+    return null;
+  }
+
+  // =========================================================
   // IoT rows
   // =========================================================
   function setRows(rows) {
     appState.rows = rows || [];
 
     const latest = new Map();
+    const history = new Map();
+    const timeMap = new Map();
 
     for (const r of appState.rows) {
-      const dev = r.DeviceName || r.Device;
-      const ts = r.DatetimeAgg || r.DeviceDatetime;
+      const dev = getRowDeviceKey(r);
+      const tsRaw = getRowTimestampRaw(r);
+      const ms = toTimestampMs(tsRaw);
 
-      if (!dev || !ts) continue;
+      if (!dev || !Number.isFinite(ms)) {
+        continue;
+      }
+
+      const label = formatTimeLabel(ms);
+
+      const temp = toFiniteNumberOrNull(
+        r.ActualTemp ??
+        r.AvgActualTemp ??
+        r.actualTemp
+      );
+
+      const power = toFiniteNumberOrNull(
+        r.ActivePower ??
+        r.AvgActivePower ??
+        r.activePower
+      );
+
+      const item = {
+        ms,
+        ts: normalizeTimestampString(tsRaw),
+        label,
+        temp,
+        power,
+        raw: r
+      };
+
+      if (!history.has(dev)) {
+        history.set(dev, []);
+      }
+
+      history.get(dev).push(item);
+
+      if (!timeMap.has(ms)) {
+        timeMap.set(ms, {
+          ms,
+          label
+        });
+      }
 
       const prev = latest.get(dev);
 
-      if (!prev || ts > prev.ts) {
-        latest.set(dev, {
-          ts,
-          temp: Number(r.ActualTemp),
-          power: Number(r.ActivePower)
-        });
+      if (!prev || ms > prev.ms) {
+        latest.set(dev, item);
       }
     }
 
+    for (const arr of history.values()) {
+      arr.sort((a, b) => a.ms - b.ms);
+    }
+
+    const timeKeys = [...timeMap.values()].sort((a, b) => a.ms - b.ms);
+
     appState.latest = latest;
+    appState.history = history;
+    appState.timeKeys = timeKeys;
+
+    // rows更新時は最後の時刻を初期選択
+    if (timeKeys.length > 0) {
+      appState.selectedTimeIndex = timeKeys.length - 1;
+      appState.selectedTimeMs = timeKeys[timeKeys.length - 1].ms;
+      appState.selectedTimeLabel = timeKeys[timeKeys.length - 1].label;
+    } else {
+      appState.selectedTimeIndex = 0;
+      appState.selectedTimeMs = null;
+      appState.selectedTimeLabel = "";
+    }
+
+    updateTimeSliderUi();
+
+    console.log("[MAP] time slider updated", {
+      rows: appState.rows.length,
+      devices: appState.history.size,
+      timeCount: appState.timeKeys.length,
+      selectedTime: appState.selectedTimeLabel
+    });
   }
 
   // =========================================================
@@ -248,8 +577,6 @@
 
   // =========================================================
   // 文字コード対応
-  // - UTF-8
-  // - Shift_JIS / CP932
   // =========================================================
   function decodeArrayBuffer(buffer) {
     try {
@@ -286,17 +613,14 @@
   function parseDivisionOutline(value) {
     if (!value) return null;
 
-    // Amplify / AppSync / DynamoDB から配列として来た場合
     if (Array.isArray(value)) {
       return value;
     }
 
     let s = String(value).trim();
 
-    // CSV由来で外側に余分な " が付く場合を吸収
     s = s.replace(/^"|"$/g, "");
 
-    // CSV保存時のエスケープ吸収
     s = s
       .replace(/\\\[/g, "[")
       .replace(/\\\]/g, "]")
@@ -659,18 +983,13 @@
   }
 
   // =========================================================
-  // Division GeoJSON center helpers
-  // - 各Polygonの重心を計算
-  // - 複数Divisionの場合は「重心の重心」を計算
+  // Division center helpers
   // =========================================================
   function calculateRingCentroid(ring) {
     const points = normalizeRing(ring);
 
-    if (points.length === 0) {
-      return null;
-    }
+    if (points.length === 0) return null;
 
-    // 点が3点未満の場合は単純平均
     if (points.length < 3) {
       const sum = points.reduce(
         (acc, p) => {
@@ -687,8 +1006,6 @@
       ];
     }
 
-    // Polygon centroid formula
-    // lon=x, lat=y として平面近似で計算
     let twiceArea = 0;
     let cx = 0;
     let cy = 0;
@@ -704,7 +1021,6 @@
       cy += (y1 + y2) * cross;
     }
 
-    // 面積がほぼ0の場合は単純平均にフォールバック
     if (Math.abs(twiceArea) < 1e-18) {
       const sum = points.reduce(
         (acc, p) => {
@@ -733,14 +1049,10 @@
     if (!geometry) return null;
 
     if (geometry.type === "Polygon") {
-      // 現状のDivisionは Polygon 前提。
-      // 外周 ring のみを使う。
       return calculateRingCentroid(geometry.coordinates?.[0]);
     }
 
     if (geometry.type === "MultiPolygon") {
-      // 念のため MultiPolygon にも対応。
-      // 各Polygon重心の単純平均。
       const centroids = [];
 
       for (const polygon of geometry.coordinates || []) {
@@ -894,11 +1206,8 @@
       });
     }
 
-    // Babylon layer作成済みの場合は座標基準も更新する
     if (ensureBabylonSceneReady()) {
       updateBabylonWorldTransform(currentMapCenter);
-
-      // worldOriginが変わるため、既存mesh座標も再計算する
       rebuildBabylonContent();
     }
   }
@@ -926,7 +1235,6 @@
 
     appState.divisionGeoJSON = geojson;
 
-    // Division Polygonの重心からMAP_CENTERを更新
     applyMapCenterFromDivisionGeoJSON(geojson, {
       animate: false
     });
@@ -1120,18 +1428,14 @@
 
     const n = bottomPoints.length;
 
-    // 床面
-    // 注意: 凹形ポリゴンの場合は三角形ファンでは崩れる可能性あり
     for (let i = 1; i < n - 1; i++) {
       indices.push(bottomIdx[0], bottomIdx[i + 1], bottomIdx[i]);
     }
 
-    // 天井面
     for (let i = 1; i < n - 1; i++) {
       indices.push(topIdx[0], topIdx[i], topIdx[i + 1]);
     }
 
-    // 壁面
     for (let i = 0; i < n; i++) {
       const next = (i + 1) % n;
 
@@ -1290,7 +1594,6 @@
         continue;
       }
 
-      // 読込中に別のCSV/parent dataが読み込まれた場合、古い処理を破棄
       if (currentVersion !== babylonRuntime.deviceVersion) {
         console.warn("[MAP] stale device rebuild skipped:", url);
         return;
@@ -1400,8 +1703,6 @@
 
         babylonRuntime.sceneReady = true;
 
-        // 現在保持している Division / Device を生成
-        // CSV由来でも parent postMessage由来でも同じ入口
         rebuildBabylonContent();
       },
 
@@ -1469,8 +1770,6 @@
 
   // =========================================================
   // parent postMessage receiver
-  // - Amplify / Next.js page.tsx から Division / Device / IoT rows を受け取る
-  // - standalone CSV機能はそのまま維持
   // =========================================================
   function applyDivisionRowsFromParent(rows) {
     appState.divisionSource = "parent";
@@ -1644,7 +1943,6 @@
         rawDeviceData = autoDeviceData;
       }
 
-      // custom layerは一度だけ追加
       addBabylonLayerOnce(map);
 
       postToParentSafe({
@@ -1692,8 +1990,6 @@
 
         setDivisionGeoJSON(geojson);
 
-        // setDivisionGeoJSON内で中心更新とBabylon再生成を行う。
-        // scene未作成の場合のみlayerを追加する。
         if (!ensureBabylonSceneReady()) {
           addBabylonLayerOnce(appState.map);
         }
@@ -1738,7 +2034,6 @@
           return;
         }
 
-        // layer全体は消さず、Deviceだけ差分更新
         if (ensureBabylonSceneReady()) {
           rebuildDeviceMeshes();
         } else {
@@ -1801,18 +2096,43 @@
       const hit = findHoveredDevice(e.point);
 
       if (hit) {
-        const latest = appState.latest.get(hit.label);
+        const selectedValue = getDeviceValueAtSelectedTime(hit.label);
 
         let text = hit.label;
 
+        const selectedLabel =
+          appState.selectedTimeLabel
+            ? `\n時刻: ${appState.selectedTimeLabel}`
+            : "";
+
+        const valueTimeLabel =
+          selectedValue?.label && selectedValue.label !== appState.selectedTimeLabel
+            ? `\n値の時刻: ${selectedValue.label}`
+            : "";
+
+        const matchLabel =
+          selectedValue?.matchType === "previous"
+            ? "\n※選択時刻以前の直近値"
+            : "";
+
         if (hit.type === "Temp" || hit.type === "TemperatureSensor") {
           const temp =
-            Number.isFinite(latest?.temp)
-              ? latest.temp
+            selectedValue && Number.isFinite(selectedValue.temp)
+              ? selectedValue.temp
               : hit.fallbackTemp;
 
           if (temp != null && Number.isFinite(Number(temp))) {
-            text = `${hit.label}\n${Number(temp)}℃`;
+            text =
+              `${hit.label}` +
+              `${selectedLabel}` +
+              `${valueTimeLabel}` +
+              `\n温度: ${Number(temp)}℃` +
+              `${matchLabel}`;
+          } else {
+            text =
+              `${hit.label}` +
+              `${selectedLabel}` +
+              `\n温度: データなし`;
           }
         }
 
@@ -1821,10 +2141,23 @@
           hit.type === "AC" ||
           hit.type === "AirConditioner"
         ) {
-          const latestPower = latest?.power;
+          const power =
+            selectedValue && Number.isFinite(selectedValue.power)
+              ? selectedValue.power
+              : null;
 
-          if (Number.isFinite(latestPower)) {
-            text = `${hit.label}\n${latestPower} W`;
+          if (power != null) {
+            text =
+              `${hit.label}` +
+              `${selectedLabel}` +
+              `${valueTimeLabel}` +
+              `\n電力: ${power} W` +
+              `${matchLabel}`;
+          } else {
+            text =
+              `${hit.label}` +
+              `${selectedLabel}` +
+              `\n電力: データなし`;
           }
         }
 
@@ -1847,7 +2180,7 @@
   // Render
   // =========================================================
   function render() {
-    // 現時点では tooltip が appState.latest を参照するため、
+    // 現時点では tooltip が appState.history / selectedTimeMs を参照するため、
     // rows更新後に特別な再描画処理は不要。
     //
     // 将来:
@@ -1857,7 +2190,9 @@
     // 場合は、babylonRuntime.scene 内の対象Meshだけ更新する。
   }
 
-  //非表示
+  // =========================================================
+  // UI visibility
+  // =========================================================
   function applyStandaloneUiVisibility() {
     const toolbar = document.querySelector(".toolbar");
 
@@ -1873,23 +2208,23 @@
     }
   }
 
-
   // =========================================================
   // Init
   // =========================================================
   function init() {
-    
-    applyStandaloneUiVisibility();  // ← 非表示判定
+    applyStandaloneUiVisibility();
 
     bindCsvInput();
     bindDeviceCsvInput();
+
+    // 追加: 時刻スライダ
+    bindTimeSlider();
 
     // Amplify / Next.js iframe埋め込み用
     bindParentMessages();
 
     initMap();
 
-    // 既存adapterも維持
     adapter.init();
     adapter.applyUiLock();
   }
