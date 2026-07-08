@@ -219,6 +219,9 @@ export default function Page() {
       ),
     ].join("\r\n");
 
+
+    const bom = "\uFEFF";
+
     const blob = new Blob(
       [csv],
       {
@@ -1389,7 +1392,7 @@ export default function Page() {
           ))}
         </select>
 
-        <button onClick={downloadCsv}>2  Join結果CSVダウンロード3</button>
+        <button onClick={downloadCsv}>Join結果CSVダウンロード</button>
 
         <span>
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} /
