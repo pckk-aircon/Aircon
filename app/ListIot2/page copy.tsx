@@ -333,10 +333,13 @@ export default function Page() {
             fillIfEmpty(out, "Division", "DivisionAgg");
 
             // マスタから DeviceName / DivisionName を補完
-            enrichWithMasterNames(out, {
-              deviceNameMap,
-              divisionNameMap,
-            });
+            Object.assign(
+              out,
+              enrichWithMasterNames(out, {
+                deviceNameMap,
+                divisionNameMap,
+              })
+            );
 
             // iot は DeviceDatetime 優先
             const primaryTs =
@@ -492,10 +495,13 @@ export default function Page() {
             }
 
             // マスタから DeviceName / DivisionName を補完
-            enrichWithMasterNames(out, {
-              deviceNameMap,
-              divisionNameMap,
-            });
+            Object.assign(
+              out,
+              enrichWithMasterNames(out, {
+                deviceNameMap,
+                divisionNameMap,
+              })
+            );            
 
             // ③ 集計列 → 通常列マッピング
             if (

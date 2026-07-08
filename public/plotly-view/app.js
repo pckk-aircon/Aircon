@@ -1036,7 +1036,10 @@
       if (right2.includes(t.metric)) yaxis = "y4";
 
       const sorted = sortXY(t.x, t.y);
-      const name = `${t.day} ${t.dev}-${disp(t.metric)}`;
+      const name =
+        `${t.day}<br>` +
+        `${t.dev}<br>` +
+        `${disp(t.metric)}`;
       const colorKey = `${t.day}__${t.dev}__${t.metric}`;
       const c = getTraceColor(colorKey);
 
