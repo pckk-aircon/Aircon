@@ -186,6 +186,67 @@ export default function Page() {
     [controller]
   );
 
+
+  /**
+   * Joinデータのcsvダウンロード
+   */
+  const downloadCsv = useCallback(() => {
+    if (allRows.length === 0) {
+      alert("データがありません");
+      return;
+    }
+
+    const headers = Array.from(
+      new Set(
+        allRows.flatMap((r) => Object.keys(r))
+      )
+    );
+
+    const csv = [
+      headers.join(","),
+      ...allRows.map((row) =>
+        headers
+          .map((h) => {
+            const v = row[h];
+
+            if (v == null) return "";
+
+            const s = String(v).replace(/"/g, '""');
+
+            return `"${s}"`;
+          })
+          .join(",")
+      ),
+    ].join("\r\n");
+
+    const blob = new Blob(
+      [csv],
+      {
+        type: "text/csv;charset=utf-8;",
+      }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+
+    a.download =
+      `iot_${selectedDivision}_` +
+      `${format(startDate,"yyyyMMdd")}_` +
+      `${format(endDate,"yyyyMMdd")}.csv`;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }, [
+    allRows,
+    selectedDivision,
+    startDate,
+    endDate
+  ]);
+
+
   /**
    * UI表示用
    * allRows は常に選択Division 分だけ保持するため、そのまま件数になる
@@ -1327,6 +1388,8 @@ export default function Page() {
             </option>
           ))}
         </select>
+
+        <button onClick={downloadCsv}>2  Join結果CSVダウンロード3</button>
 
         <span>
           dataKind={viewState.dataKind} / selectedRows={selectedRowsCount} /
