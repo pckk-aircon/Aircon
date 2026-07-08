@@ -219,11 +219,9 @@ export default function Page() {
       ),
     ].join("\r\n");
 
-
     const bom = "\uFEFF";
-
     const blob = new Blob(
-      [csv],
+      [bom, csv],
       {
         type: "text/csv;charset=utf-8;",
       }
