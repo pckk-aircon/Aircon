@@ -1036,12 +1036,28 @@
       if (right2.includes(t.metric)) yaxis = "y4";
 
       const sorted = sortXY(t.x, t.y);
-      const name =
-        `${t.day}<br>` +
-        `${t.dev}<br>` +
-        `${disp(t.metric)}`;
+      const name = `${t.dev}-${disp(t.metric)}`;
       const colorKey = `${t.day}__${t.dev}__${t.metric}`;
       const c = getTraceColor(colorKey);
+
+
+      traces.push({
+        type: "scatter",
+        mode: "lines",
+
+        name,
+
+        hovertemplate:
+          "日時: %{x}<br>" +
+          "値: %{y:.2f}<br>" +
+          `日付: ${t.day}<br>` +
+          `機器: ${t.dev}<br>` +
+          `項目: ${disp(t.metric)}` +
+          "<extra></extra>",
+
+        yaxis,
+        line: { color: c },
+      });
 
       traces.push({
         type: "scatter",
