@@ -91,7 +91,11 @@
       document.getElementById("fileInput"),
 
     deviceCsvInput:
-      document.getElementById("deviceCsvInput")
+      document.getElementById("deviceCsvInput"),
+
+    iotCsvInput:
+      document.getElementById("iotCsvInput")
+
   };
 
   // =========================================================
@@ -884,6 +888,20 @@
 
     return devices;
   }
+
+  async function loadIotRowsFromFile(file) {
+    const text = await readTextFile(file);
+
+    const rows = parseCsv(text);
+
+    console.log(
+      "[MAP] iot csv rows",
+      rows.length
+    );
+
+    return rows;
+  }
+
 
   async function tryAutoLoadDivisionGeoJSON() {
     if (window.location.protocol === "file:") {
@@ -2047,6 +2065,54 @@
   }
 
   // =========================================================
+  // Iot CSV input events
+  // =========================================================
+  function bindIotCsvInput() {
+    if (!els.iotCsvInput) {
+      console.warn(
+        "[MAP] iotCsvInput not found"
+      );
+      return;
+    }
+
+    els.iotCsvInput.addEventListener(
+      "change",
+      async (e) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        try {
+          console.log(
+            "[MAP] selected iot csv",
+            file.name
+          );
+
+          const rows =
+            await loadIotRowsFromFile(file);
+
+          setRows(rows);
+
+          render();
+
+          console.log(
+            "[MAP] iot rows loaded",
+            rows.length
+          );
+
+        } catch (err) {
+          console.error(
+            "[MAP] iot csv load error",
+            err
+          );
+        }
+      }
+    );
+  }
+
+
+
+  // =========================================================
   // Tooltip
   // =========================================================
   function bindTooltip(map) {
@@ -2216,9 +2282,8 @@
 
     bindCsvInput();
     bindDeviceCsvInput();
-
-    // 追加: 時刻スライダ
-    bindTimeSlider();
+    bindIotCsvInput();
+    bindTimeSlider(); // 時刻スライダ
 
     // Amplify / Next.js iframe埋め込み用
     bindParentMessages();

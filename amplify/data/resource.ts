@@ -262,7 +262,7 @@ const schema = a.schema({
     height: a.string(),
     lat: a.string(),
     lon: a.string(),
-    model: a.string(),
+    DeviceModel: a.string(),
   }),
 
   addDevice: a
@@ -278,7 +278,7 @@ const schema = a.schema({
       height: a.string(),
       lat: a.string(),
       lon: a.string(),
-      model: a.string(),
+      DeviceModel: a.string(),
     })
     .returns(a.ref("Device"))
     .authorization(allow => [allow.publicApiKey()])
@@ -302,7 +302,7 @@ const schema = a.schema({
       height: a.string(),
       lat: a.string(),
       lon: a.string(),
-      model: a.string(),
+      DeviceModel: a.string(),
     })
     .returns(a.ref("Device").array())
     .authorization(allow => [allow.publicApiKey()])
