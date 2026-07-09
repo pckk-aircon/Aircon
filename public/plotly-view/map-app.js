@@ -741,31 +741,23 @@
 
   function getModelName(device) {
 
-    const [
+    const {
       type,
-      lon,
-      lat,
-      height,
-      rot,
-      label,
-      fallbackTemp,
-      DeviceModel
-    ] = device;
+      deviceModel
+    } = device;
 
-    if (DeviceModel) {
+    if (deviceModel) {
 
       if (
-      DeviceModel.toLowerCase().endsWith(".glb")
+        deviceModel.toLowerCase().endsWith(".glb")
       ) {
-        return DeviceModel;
+        return deviceModel;
       }
 
-      return `${DeviceModel}.glb`;
+      return `${deviceModel}.glb`;
     }
 
-    // DeviceModel未設定時の保険
-
-    switch(type) {
+    switch (type) {
 
       case "Aircon":
         return "AirconModel.glb";
@@ -867,7 +859,7 @@
         rot,
         label,
         fallbackTemp,
-        DeviceModel
+        deviceModel
       });
 
     }
@@ -1613,26 +1605,11 @@
       return babylonRuntime.modelCache.get(url);
     }
 
-    let rootUrl;
-    let fileName;
+    const rootUrl =
+      MODEL_BASE_URL;
 
-    if (isStandaloneMode()) {
-
-      rootUrl =
-        window.location.href.replace(
-          /[^/]+$/,
-          ""
-        ) + "glb/";
-
-      fileName = url;
-
-    } else {
-
-      rootUrl =
-        MODEL_BASE_URL;
-
-      fileName = url;
-    }
+    const fileName =
+      url;
 
     console.log(
       "[MAP] load model",
@@ -1713,7 +1690,7 @@
 
       const templateRoot = cached.templateRoot;
 
-      devices.forEach((device, i) => {
+      devices.forEach((item, i) => {
         const {
           type,
           lon,
@@ -1721,7 +1698,7 @@
           height,
           rot,
           label
-        } = device;
+        } = item.device;
 
         const pos = lngLatToBabylonVector(
           lon,
@@ -2219,7 +2196,7 @@
       let nearestDist = Infinity;
 
       for (const d of rawDeviceData) {
-        const [type, lon, lat, height, rot, label, fallbackTemp = null] = d;
+        const {type,lon,lat,height,rot,label,fallbackTemp} = d;
 
         const screen = map.project([lon, lat]);
 
