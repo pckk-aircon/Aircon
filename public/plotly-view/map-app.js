@@ -157,9 +157,14 @@
   // =========================================================
   // glTF / Babylon 設定
   // =========================================================
+
   const MODEL_BASE_URL =
-    window.__MODEL_BASE_URL__ ||
-    "https://pckk-device.s3.ap-southeast-2.amazonaws.com/";
+    isStandaloneMode()
+      ? "./models/"
+      : (
+          window.__MODEL_BASE_URL__ ||
+          "https://pckk-device.s3.ap-southeast-2.amazonaws.com/"
+        );    
 
   const deviceTypeToModel = {
     Aircon: "AirconModel.glb",

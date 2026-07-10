@@ -738,6 +738,39 @@
     }
   }
 
+
+  function getModelName(device) {
+
+    const {
+      type,
+      deviceModel
+    } = device;
+
+    if (deviceModel) {
+
+      if (
+        deviceModel.toLowerCase().endsWith(".glb")
+      ) {
+        return deviceModel;
+      }
+
+      return `${deviceModel}.glb`;
+    }
+
+    switch (type) {
+
+      case "Aircon":
+        return "AirconModel.glb";
+
+      case "Temp":
+        return "TempModel.glb";
+
+      default:
+        return null;
+    }
+  }
+
+
   function buildDeviceDataFromRows(rows) {
     const devices = [];
 
@@ -790,6 +823,12 @@
         ""
       ).trim();
 
+      const deviceModel = String(
+        r.DeviceModel ||
+        r.deviceModel ||
+        ""
+      ).trim();
+
       const fallbackTempRaw =
         r.fallbackTemp ??
         r.FallbackTemp ??
@@ -812,53 +851,57 @@
         continue;
       }
 
-      devices.push([
+      devices.push({
         type,
         lon,
         lat,
         height,
         rot,
         label,
-        fallbackTemp
-      ]);
+        fallbackTemp,
+        deviceModel
+      });
+
     }
 
     return devices;
   }
 
+
   function buildModelConfigs(deviceData) {
+
     return Object.values(
-      (deviceData || []).reduce((acc, device, index) => {
-        const [type, lon, lat, height, rot, label, fallbackTemp] = device;
-        const url = deviceTypeToModel[type];
 
-        if (!url) {
-          console.warn("[MAP] unknown device type:", type);
+      (deviceData || []).reduce(
+        (acc, device, index) => {
+
+          const url =
+            getModelName(device);
+
+          if (!url) {
+            return acc;
+          }
+
+          if (!acc[url]) {
+            acc[url] = {
+              url,
+              devices:[]
+            };
+          }
+
+          acc[url].devices.push({
+            index,
+            device
+          });
+
           return acc;
-        }
 
-        if (!acc[url]) {
-          acc[url] = {
-            url,
-            devices: []
-          };
-        }
-
-        acc[url].devices.push({
-          index,
-          type,
-          lon,
-          lat,
-          height,
-          rot,
-          label,
-          fallbackTemp
-        });
-
-        return acc;
-      }, {})
+        },
+        {}
+      )
     );
   }
+
 
   // =========================================================
   // File loaders
@@ -1543,19 +1586,45 @@
   // =========================================================
   // Device model cache
   // =========================================================
+
+
+  function isStandaloneMode() {
+
+    return (
+      window.parent === window
+    );
+
+  }
+
+
   async function getModelTemplate(url) {
-    if (babylonRuntime.modelCache.has(url)) {
+
+    if (
+      babylonRuntime.modelCache.has(url)
+    ) {
       return babylonRuntime.modelCache.get(url);
     }
 
+    const rootUrl =
+      MODEL_BASE_URL;
+
+    const fileName =
+      url;
+
+    console.log(
+      "[MAP] load model",
+      rootUrl + fileName
+    );
+
     const container =
       await BABYLON.SceneLoader.LoadAssetContainerAsync(
-        MODEL_BASE_URL,
-        url,
+        rootUrl,
+        fileName,
         babylonRuntime.scene
       );
 
-    const templateRoot = container.createRootMesh();
+    const templateRoot =
+      container.createRootMesh();
 
     container.addAllToScene();
 
@@ -1566,12 +1635,14 @@
       templateRoot
     };
 
-    babylonRuntime.modelCache.set(url, cached);
-
-    console.log("[MAP] model cached:", url);
+    babylonRuntime.modelCache.set(
+      url,
+      cached
+    );
 
     return cached;
   }
+
 
   function setMetadataRecursive(mesh, metadata) {
     mesh.metadata = metadata;
@@ -1619,7 +1690,7 @@
 
       const templateRoot = cached.templateRoot;
 
-      devices.forEach((device, i) => {
+      devices.forEach((item, i) => {
         const {
           type,
           lon,
@@ -1627,7 +1698,7 @@
           height,
           rot,
           label
-        } = device;
+        } = item.device;
 
         const pos = lngLatToBabylonVector(
           lon,
@@ -2125,7 +2196,7 @@
       let nearestDist = Infinity;
 
       for (const d of rawDeviceData) {
-        const [type, lon, lat, height, rot, label, fallbackTemp = null] = d;
+        const {type,lon,lat,height,rot,label,fallbackTemp} = d;
 
         const screen = map.project([lon, lat]);
 
