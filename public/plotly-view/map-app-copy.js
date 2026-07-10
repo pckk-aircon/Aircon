@@ -157,18 +157,15 @@
   // =========================================================
   // glTF / Babylon 設定
   // =========================================================
+
   const MODEL_BASE_URL =
-    window.__MODEL_BASE_URL__ ||
-    "https://pckk-device.s3.ap-southeast-2.amazonaws.com/";
+    isStandaloneMode()
+      ? "./models/"
+      : (
+          window.__MODEL_BASE_URL__ ||
+          "https://pckk-device.s3.ap-southeast-2.amazonaws.com/"
+        );    
 
-  const deviceTypeToModel = {
-    Aircon: "AirconModel.glb",
-    AC: "AirconModel.glb",
-    AirConditioner: "AirconModel.glb",
-
-    Temp: "TempModel.glb",
-    TemperatureSensor: "TempModel.glb"
-  };
 
   // =========================================================
   // MapLibre / Babylon のワールド基準
@@ -741,33 +738,17 @@
 
   function getModelName(device) {
 
-    const {
-      type,
-      deviceModel
-    } = device;
+    const model = String(
+      device.deviceModel || ""
+    ).trim();
 
-    if (deviceModel) {
-
-      if (
-        deviceModel.toLowerCase().endsWith(".glb")
-      ) {
-        return deviceModel;
-      }
-
-      return `${deviceModel}.glb`;
+    if (!model) {
+      return null;
     }
 
-    switch (type) {
-
-      case "Aircon":
-        return "AirconModel.glb";
-
-      case "Temp":
-        return "TempModel.glb";
-
-      default:
-        return null;
-    }
+    return model.toLowerCase().endsWith(".glb")
+      ? model
+      : `${model}.glb`;
   }
 
 
@@ -843,11 +824,6 @@
 
       if (!type || !Number.isFinite(lon) || !Number.isFinite(lat) || !label) {
         console.warn("[MAP] invalid device row skipped:", r);
-        continue;
-      }
-
-      if (!deviceTypeToModel[type]) {
-        console.warn("[MAP] unknown device type skipped:", r);
         continue;
       }
 
