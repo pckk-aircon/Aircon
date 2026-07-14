@@ -164,7 +164,31 @@
       : (
           window.__MODEL_BASE_URL__ ||
           "https://pckk-device.s3.ap-southeast-2.amazonaws.com/"
-        );    
+        );
+
+
+  // =========================================================
+  // Terrain 設定
+  // =========================================================
+  const TERRAIN_SOURCE_ID = "terrainSource";
+  const HILLSHADE_SOURCE_ID = "hillshadeSource";
+  const TERRAIN_LAYER_ID = "terrain-hillshade";
+
+  const TERRAIN_TILEJSON_URL =
+    "https://tiles.mapterhorn.com/tilejson.json";
+
+  const TERRAIN_EXAGGERATION = 1;
+
+  // true:
+  //   現在の地図中心の標高を0m基準にして、
+  //   その地点との差分だけBabylon側に反映する。
+  //   山梨県など標高が高い地域ではこの方が扱いやすい。
+  //
+  // false:
+  //   標高そのものをBabylon側のY座標へ加算する。
+  const USE_RELATIVE_TERRAIN_HEIGHT = true;
+
+  let terrainBaseElevation = 0;
 
 
   // =========================================================
@@ -738,17 +762,33 @@
 
   function getModelName(device) {
 
-    const model = String(
-      device.deviceModel || ""
-    ).trim();
+    const {
+      type,
+      deviceModel
+    } = device;
 
-    if (!model) {
-      return null;
+    if (deviceModel) {
+
+      if (
+        deviceModel.toLowerCase().endsWith(".glb")
+      ) {
+        return deviceModel;
+      }
+
+      return `${deviceModel}.glb`;
     }
 
-    return model.toLowerCase().endsWith(".glb")
-      ? model
-      : `${model}.glb`;
+    switch (type) {
+
+      case "Aircon":
+        return "AirconModel.glb";
+
+      case "Temp":
+        return "TempModel.glb";
+
+      default:
+        return null;
+    }
   }
 
 
@@ -826,6 +866,17 @@
         console.warn("[MAP] invalid device row skipped:", r);
         continue;
       }
+
+      const modelName = getModelName({
+        type,
+        deviceModel
+      });
+
+      if (!modelName) {
+        console.warn("[MAP] model not resolved. device row skipped:", r);
+         continue;
+      }
+
 
       devices.push({
         type,
@@ -967,6 +1018,80 @@
       return null;
     }
   }
+
+
+  // =========================================================
+  // Terrain elevation helpers
+  // =========================================================
+  function getTerrainElevationMeters(lon, lat) {
+    const map = appState.map;
+
+    if (
+      !map ||
+      typeof map.queryTerrainElevation !== "function"
+    ) {
+      return 0;
+   }
+
+    try {
+      const elevation = map.queryTerrainElevation({
+        lng: Number(lon),
+        lat: Number(lat)
+      });
+
+      return Number.isFinite(elevation)
+        ? elevation
+        : 0;
+
+    } catch (e) {
+      console.warn(
+        "[MAP] queryTerrainElevation failed:",
+        lon,
+        lat,
+        e
+      );
+
+      return 0;
+    }
+  }
+
+  function updateTerrainBaseElevation() {
+    if (!Array.isArray(currentMapCenter)) {
+      terrainBaseElevation = 0;
+      return;
+    }
+
+    terrainBaseElevation = getTerrainElevationMeters(
+      currentMapCenter[0],
+      currentMapCenter[1]
+    );
+
+    if (!Number.isFinite(terrainBaseElevation)) {
+      terrainBaseElevation = 0;
+    }
+
+    console.log(
+      "[MAP] terrain base elevation:",
+      terrainBaseElevation
+    );
+  }
+
+  function getTerrainAdjustedHeight(lon, lat, localHeight = 0) {
+    const terrainHeight =
+      getTerrainElevationMeters(lon, lat);
+
+    const h =
+      Number.isFinite(Number(localHeight))
+        ? Number(localHeight)
+        : 0;
+
+    if (USE_RELATIVE_TERRAIN_HEIGHT) {
+      return terrainHeight - terrainBaseElevation + h;
+    }
+
+    return terrainHeight + h;
+  }
+
 
   // =========================================================
   // Babylon座標変換
@@ -1243,10 +1368,16 @@
       });
     }
 
+
     if (ensureBabylonSceneReady()) {
       updateBabylonWorldTransform(currentMapCenter);
+
+      updateTerrainBaseElevation();
+
       rebuildBabylonContent();
     }
+
+
   }
 
   function applyMapCenterFromDivisionGeoJSON(geojson, options = {}) {
@@ -1436,21 +1567,37 @@
       feature.properties?.name ||
       `division-${featureIndex}`;
 
-    const bottomPoints = outerRing.map(([lon, lat]) =>
-      lngLatToBabylonVector(
-        lon,
-        lat,
-        0
-      )
-    );
 
-    const topPoints = outerRing.map(([lon, lat]) =>
-      lngLatToBabylonVector(
+    const bottomPoints = outerRing.map(([lon, lat]) => {
+      const y =
+        getTerrainAdjustedHeight(
+          lon,
+          lat,
+          0
+        );
+
+      return lngLatToBabylonVector(
         lon,
         lat,
-        height
-      )
-    );
+        y
+      );
+    });
+
+    const topPoints = outerRing.map(([lon, lat]) => {
+      const y =
+        getTerrainAdjustedHeight(
+          lon,
+          lat,
+          height
+        );
+
+      return lngLatToBabylonVector(
+        lon,
+        lat,
+        y
+      );
+    });
+
 
     const positions = [];
     const indices = [];
@@ -1676,11 +1823,19 @@
           label
         } = item.device;
 
+        const terrainAdjustedHeight =
+          getTerrainAdjustedHeight(
+            lon,
+            lat,
+            height
+          );
+
         const pos = lngLatToBabylonVector(
           lon,
           lat,
-          height
+          terrainAdjustedHeight
         );
+
 
         const mesh = templateRoot.clone(
           `device-${modelIndex}-instance-${i}`
@@ -1954,13 +2109,87 @@
   }
 
   // =========================================================
+  // MapLibre Terrain
+  // =========================================================
+  function addTerrainOnce(map) {
+    if (!map) return;
+
+    try {
+      if (!map.getSource(TERRAIN_SOURCE_ID)) {
+        map.addSource(TERRAIN_SOURCE_ID, {
+          type: "raster-dem",
+          url: TERRAIN_TILEJSON_URL,
+          tileSize: 256
+        });
+      }
+
+      if (!map.getSource(HILLSHADE_SOURCE_ID)) {
+        map.addSource(HILLSHADE_SOURCE_ID, {
+          type: "raster-dem",
+          url: TERRAIN_TILEJSON_URL,
+          tileSize: 256
+        });
+      }
+
+      if (!map.getLayer(TERRAIN_LAYER_ID)) {
+        map.addLayer({
+          id: TERRAIN_LAYER_ID,
+          type: "hillshade",
+          source: HILLSHADE_SOURCE_ID,
+          layout: {
+            visibility: "visible"
+          },
+          paint: {
+            "hillshade-shadow-color": "#473B24"
+          }
+        });
+      }
+
+      if (typeof map.setTerrain === "function") {
+        map.setTerrain({
+          source: TERRAIN_SOURCE_ID,
+          exaggeration: TERRAIN_EXAGGERATION
+        });
+
+        console.log("[MAP] terrain enabled");
+      } else {
+        console.warn(
+          "[MAP] map.setTerrain is not available. MapLibre GL JS version may be old."
+        );
+      }
+
+      if (
+        typeof maplibregl.TerrainControl === "function" &&
+        !map.__terrainControlAdded
+      ) {
+        map.addControl(
+          new maplibregl.TerrainControl({
+            source: TERRAIN_SOURCE_ID,
+            exaggeration: TERRAIN_EXAGGERATION
+          })
+        );
+
+        map.__terrainControlAdded = true;
+      }
+
+    } catch (e) {
+      console.warn("[MAP] addTerrainOnce failed:", e);
+    }
+  }
+
+
+
+  // =========================================================
   // Map init
   // =========================================================
+
   function initMap() {
     const map = new maplibregl.Map({
       container: "map",
+
       style:
         "https://api.maptiler.com/maps/basic/style.json?key=dQ9hiCWEc6AANyaB1ziN",
+
       center: currentMapCenter,
       zoom: 20,
       pitch: 60,
@@ -1987,17 +2216,23 @@
 
       appState.mapLoaded = true;
 
-      const autoGeoJSON = await tryAutoLoadDivisionGeoJSON();
+      // MapLibre側のterrain / hillshadeを有効化
+      addTerrainOnce(map);
+
+      const autoGeoJSON =
+        await tryAutoLoadDivisionGeoJSON();
 
       if (
         autoGeoJSON &&
         appState.divisionSource !== "parent"
       ) {
         appState.divisionSource = "auto-csv";
+
         setDivisionGeoJSON(autoGeoJSON);
       }
 
-      const autoDeviceData = await tryAutoLoadDeviceData();
+      const autoDeviceData =
+        await tryAutoLoadDeviceData();
 
       if (
         autoDeviceData &&
@@ -2005,10 +2240,23 @@
         appState.deviceSource !== "parent"
       ) {
         appState.deviceSource = "auto-csv";
+
         rawDeviceData = autoDeviceData;
       }
 
       addBabylonLayerOnce(map);
+
+      map.once("idle", () => {
+        console.log(
+          "[MAP] idle after terrain load -> rebuild Babylon content"
+        );
+
+        updateTerrainBaseElevation();
+
+        if (ensureBabylonSceneReady()) {
+          rebuildBabylonContent();
+        }
+      });
 
       postToParentSafe({
         type: "MAP_READY"
