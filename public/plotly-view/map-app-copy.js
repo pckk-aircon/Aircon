@@ -762,33 +762,17 @@
 
   function getModelName(device) {
 
-    const {
-      type,
-      deviceModel
-    } = device;
+    const model =
+      String(device.deviceModel || "")
+        .trim();
 
-    if (deviceModel) {
-
-      if (
-        deviceModel.toLowerCase().endsWith(".glb")
-      ) {
-        return deviceModel;
-      }
-
-      return `${deviceModel}.glb`;
+    if (!model) {
+      return null;
     }
 
-    switch (type) {
-
-      case "Aircon":
-        return "AirconModel.glb";
-
-      case "Temp":
-        return "TempModel.glb";
-
-      default:
-        return null;
-    }
+    return model.toLowerCase().endsWith(".glb")
+      ? model
+      : `${model}.glb`;
   }
 
 
@@ -862,7 +846,11 @@
           ? null
           : parseNumberValue(fallbackTempRaw, null);
 
-      if (!type || !Number.isFinite(lon) || !Number.isFinite(lat) || !label) {
+      if (
+        !Number.isFinite(lon) ||
+        !Number.isFinite(lat) ||
+        !label
+      ) {
         console.warn("[MAP] invalid device row skipped:", r);
         continue;
       }
