@@ -1824,21 +1824,80 @@
           terrainAdjustedHeight
         );
 
+        // ---------------------------------------------------------
+        // 1. 位置・回転用ノード
+        // ---------------------------------------------------------
+        const deviceNode = new BABYLON.TransformNode(
+          `device-node-${modelIndex}-${i}`,
+          babylonRuntime.scene
+        );
 
+        deviceNode.position.set(pos.x, pos.y, pos.z);
+        deviceNode.rotation.y = rot;
+        deviceNode.parent = babylonRuntime.deviceRoot;
+
+        // ---------------------------------------------------------
+        // 2. 縦横補正用ノード
+        //    X = 横方向補正
+        //    Z = 縦方向補正
+        // ---------------------------------------------------------
+        const scaleNode = new BABYLON.TransformNode(
+          `device-scale-node-${modelIndex}-${i}`,
+          babylonRuntime.scene
+        );
+
+        scaleNode.parent = deviceNode;
+
+        // ここで縦横倍率を調整
+        scaleNode.scaling.set(
+          0.98,  // X方向
+          1.0,  // Y方向 高さ方向はそのまま
+          1.0   // Z方向
+        );
+
+        // ---------------------------------------------------------
+        // 3. glTFモデルをcloneして、補正ノードの下にぶら下げる
+        // ---------------------------------------------------------
         const mesh = templateRoot.clone(
           `device-${modelIndex}-instance-${i}`
         );
 
-        mesh.position.set(pos.x, pos.y, pos.z);
-        mesh.rotation.y = rot;
-        mesh.parent = babylonRuntime.deviceRoot;
+        mesh.parent = scaleNode;
+
+        // root側には位置・回転・スケールを持たせない
+        mesh.position.set(0, 0, 0);
+        mesh.rotation.set(0, 0, 0);
+        mesh.scaling.set(1, 1, 1);
+
         mesh.setEnabled(true);
+
+        // ---------------------------------------------------------
+        // 4. デバッグ
+        // ---------------------------------------------------------
+        const childMeshes = mesh.getChildMeshes();
+
+        console.log("deviceNode", deviceNode);
+        console.log("scaleNode", scaleNode);
+        console.log("mesh", mesh);
+        console.log("childMeshes count", childMeshes.length);
+        console.log("childMeshes", childMeshes);
+
+        childMeshes.forEach(child => {
+          child.alwaysSelectAsActiveMesh = true;
+          child.computeWorldMatrix(true);
+        });
+
+        deviceNode.computeWorldMatrix(true);
+        scaleNode.computeWorldMatrix(true);
+        mesh.computeWorldMatrix(true);
 
         setMetadataRecursive(mesh, {
           type,
           label
         });
       });
+
+
     }
 
     console.log("[MAP] Device meshes rebuilt:", rawDeviceData.length);
