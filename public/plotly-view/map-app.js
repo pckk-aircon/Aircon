@@ -2266,6 +2266,26 @@
       // MapLibre側のterrain / hillshadeを有効化
       addTerrainOnce(map);
 
+      // ★追加
+      map.on("terrain", () => {
+        const terrainOn = !!map.getTerrain();
+        console.log(
+        "[MAP] terrain changed",
+        terrainOn
+        );
+
+        if (map.getLayer(TERRAIN_LAYER_ID)) {
+          map.setLayoutProperty(
+            TERRAIN_LAYER_ID,
+            "visibility",
+            terrainOn
+              ? "visible"
+              : "none"
+          );
+        }
+      });
+
+
       const autoGeoJSON =
         await tryAutoLoadDivisionGeoJSON();
 
