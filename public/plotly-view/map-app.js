@@ -2184,7 +2184,8 @@
           type: "hillshade",
           source: HILLSHADE_SOURCE_ID,
           layout: {
-            visibility: "visible"
+            visibility: "none"
+            //visibility: "visible"
           },
           paint: {
             "hillshade-shadow-color": "#473B24"
@@ -2193,12 +2194,11 @@
       }
 
       if (typeof map.setTerrain === "function") {
-        map.setTerrain({
-          source: TERRAIN_SOURCE_ID,
-          exaggeration: TERRAIN_EXAGGERATION
-        });
+      // 起動時はTerrain OFF
 
-        console.log("[MAP] terrain enabled");
+      map.setTerrain(null);
+      console.log("[MAP] terrain disabled");
+
       } else {
         console.warn(
           "[MAP] map.setTerrain is not available. MapLibre GL JS version may be old."
