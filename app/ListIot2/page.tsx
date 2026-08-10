@@ -454,6 +454,10 @@ export default function Page() {
               "CumulativeEnergy",
               "EnergyDeltaPerEffectiveMinute",
               "WtTemp",
+              "TpSetTempDivAvg",
+              "TpSetTempAvgOn",
+              "AveActualTemp",
+              "AveActualTempDivAvg",
             ];
 
             for (const k of mustHaveKeys) {

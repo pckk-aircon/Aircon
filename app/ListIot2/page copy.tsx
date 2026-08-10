@@ -1445,7 +1445,7 @@ export default function Page() {
       {/* Plotly iframe */}
       <iframe
         ref={iframeRef}
-        src="/plotly-view/index.html?mode=embed"
+        src="/plotly-view/chart.html?mode=embed"
         style={{ width: "100%", height: "900px", border: "none" }}
         title="plotly-view"
         onLoad={() => {
@@ -1460,7 +1460,7 @@ export default function Page() {
       {/* Map iframe */}
       <iframe
         ref={mapIframeRef}
-        src="/plotly-view/map-index.html"
+        src="/plotly-view/map.html"
         style={{
           width: "100%",
           height: "700px",
